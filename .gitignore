@@ -1,0 +1,14 @@
+.idea/
+__pycache__/
+project_logs/
+test_tases/
+*.pem
+bot_token
+CelesteTAS Improvements Bot.exe
+bot.log
+history.log
+improvements bot icon 32.ico
+improvements-bot-testing - Shortcut.lnk
+invite bot.txt
+projects.json
+secret.txt
