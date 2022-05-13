@@ -130,7 +130,7 @@ async def process_improvement_message(message: discord.Message):
             # when timesave :)
             # (or drafts)
             log.info(f"Committing {attachment.url} (maybe)")
-            commit_status = commit(message, attachment.filename, file_content)
+            commit_status = commit(message, attachment.filename, file_content, validation_result)
 
             if commit_status:
                 history_data = (repo, commit_status, attachment.url)
@@ -154,7 +154,7 @@ async def process_improvement_message(message: discord.Message):
 
 
 # assumes already verified TAS
-def commit(message: discord.Message, filename: str, content: bytes) -> Optional[str]:
+def commit(message: discord.Message, filename: str, content: bytes, validation_result: validation.ValidationResult) -> Optional[str]:
     log.info(f"Using project: {projects[message.channel.id]}")
     repo = projects[message.channel.id]['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
@@ -163,16 +163,16 @@ def commit(message: discord.Message, filename: str, content: bytes) -> Optional[
 
     if file_path:
         data['sha'] = get_sha(repo, file_path)
-        data['message'] = f"Updated: {filename} from {author}"
+        data['message'] = f"{validation_result.timesave} {filename} ({validation_result.chapter_time}) from {author}"
     else:
-        data['message'] = f"Draft: {filename} by {author}"
+        data['message'] = f"{filename} draft by {author} ({validation_result.chapter_time})"
 
         if not projects[message.channel.id]['commit_drafts']:
             return
 
     log.info(f"Set commit message to \"{data['message']}\"")
-    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
-    utils.handle_potential_request_error(r, 200)
+    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path if file_path else filename}', headers=headers, data=json.dumps(data))
+    utils.handle_potential_request_error(r, 200 if file_path else 201)
     log.info(f"Successfully committed: {r.json()['commit']['html_url']}")
     return data['message']
 

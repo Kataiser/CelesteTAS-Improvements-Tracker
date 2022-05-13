@@ -5,10 +5,12 @@ from typing import List, Optional, Tuple
 
 
 class ValidationResult:
-    def __init__(self, valid_tas: bool, warning_text: Optional[str] = None, log_text: Optional[str] = None):
+    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, timesave: str = None, chapter_time: str = None):
         self.valid_tas = valid_tas
         self.warning_text = warning_text
         self.log_text = log_text
+        self.timesave = timesave
+        self.chapter_time = chapter_time
 
         if valid_tas:
             log.info("TAS file and improvement post have been validated")
@@ -23,6 +25,7 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
 
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
+    message_lowercase = message_content.lower()
     found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed = parse_tas_file(tas_lines, True)
 
     if len(found_breakpoints) == 1:
@@ -41,7 +44,7 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
     # validate level
     level = filename.lower().removesuffix('.tas').replace('_', '')
 
-    if level not in message_content.lower().replace('_', '').replace(' ', ''):
+    if level not in message_lowercase.replace('_', '').replace(' ', ''):
         return ValidationResult(False, "The level name is missing in your message, please add it.", f"level name ({level}) missing in message content")
 
     if old_tas:
@@ -55,8 +58,8 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
 
         # validate timesave frames is in message content
         time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
-        time_saved_minus = f'-{time_saved_num}f'
-        time_saved_plus = f'+{time_saved_num}f'
+        time_saved_minus = f'-{abs(time_saved_num)}f'
+        time_saved_plus = f'+{abs(time_saved_num)}f'
         time_saved_messages = re_timesave_frames.match(message_content)
         # ok this logic is weird cause it can be '-f', '+f', or in the case of 0 frames saved, either one
 
@@ -80,8 +83,15 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
             if time_saved_messages[0] != time_saved_actual:
                 return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\")",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
+    else:
+        # validate draft text
+        if "draft" not in message_lowercase:
+            return ValidationResult(False, "Since this is a draft, please mention that in your message.", "no \"draft\" text in message")
 
-    return ValidationResult(True)
+    if old_tas:
+        return ValidationResult(True, timesave=time_saved_messages[0], chapter_time=chapter_time)
+    else:
+        return ValidationResult(True)
 
 
 def parse_tas_file(tas_lines: list, find_breakpoints: bool) -> Tuple[list, bool, str, str]:
@@ -104,6 +114,9 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool) -> Tuple[list, bool,
 
 
 def calculate_time_difference(time_old: str, time_new: str) -> int:
+    if time_old == time_new:
+        return 0
+
     colon_partition_old = time_old.partition(':')
     colon_partition_new = time_new.partition(':')
     dot_partition_old = colon_partition_old[2].partition('.')

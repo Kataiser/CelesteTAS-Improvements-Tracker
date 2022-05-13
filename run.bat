@@ -1,2 +1,2 @@
 @echo off
-python -OO main.py
+python -O main.py

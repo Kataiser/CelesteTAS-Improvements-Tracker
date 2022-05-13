@@ -13,42 +13,51 @@ from utils import plural, projects
 
 async def handle(message: discord.Message):
     log.info(f"Recieved DM from {utils.detailed_user(message)}: \"{message.content}\"")
+    command = message.content.partition(' ')[0]
 
-    match message.content.partition(' ')[0]:
-        case "help":
-            await command_help(message)
-        case "register_project":
-            await command_register_project(message)
-        case "add_category":
-            await command_add_category(message)
-        case "add_mods":
-            await command_add_mods(message)
-        case _:
-            await message.channel.send("Unrecognized command, try `help`")
+    if command in command_functions:
+        await command_functions[command](message)
+    else:
+        await message.channel.send("Unrecognized command, try `help`")
 
 
 async def command_help(message: discord.Message):
-    log.info("Handling 'help' command")
-    response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
-               "\n\n1. Contact Kataiser#4640 that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, and also " \
-               "he'd like to know. Maybe this step can be removed at some point." \
-               "\n2. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
-               "<https://github.com/apps/celestetas-improvements-tracker>" \
-               "\n3. Add bot to your server: <https://discord.com/api/oauth2/authorize?client_id=970375635027525652&permissions=76864&scope=bot>" \
-               "\n4. *Please* disable the View Channels permissions for categories the improvements channel isn't in, as well as other channels in that category. This is because " \
-               "otherwise every message in every server the bot's in will be processed, and since the bot is being hosted on Kataiser's machine, he doesn't want that background CPU usage." \
-               "\n5. Run the `register_project` command, see below for parameters." \
-               "\n\n```\nregister_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS" \
-               "\n\n  NAME: The name of the project (with underscores instead of spaces), ex: Into_the_Jungle, Strawberry_Jam, Celeste_maingame, Celeste_mindash" \
-               "\n  IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced setting, then right click the channel and click Copy ID" \
-               "\n  REPOSITORY: Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo" \
-               "\n  ACCOUNT: Your GitHub account name" \
-               "\n  COMMIT_DRAFTS: Automatically commit drafts to the root directory, Y or N```"
+    """"""
 
-    await message.channel.send(response)
+    log.info("Handling 'help' command")
+    message_split = message.content.split()
+
+    if len(message_split) > 1 and message_split[1] in command_functions:
+        command_doc = command_functions[message_split[1]].__doc__.replace('\n    ', '\n')
+        await message.channel.send(f"```\n{command_doc}```")
+    else:
+        response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
+                   "\n\n1. Contact Kataiser#4640 that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
+                   "and also he'd like to know. Maybe this step can be removed at some point." \
+                   "\n2. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
+                   "<https://github.com/apps/celestetas-improvements-tracker>" \
+                   "\n3. Add bot to your server: <https://discord.com/api/oauth2/authorize?client_id=970375635027525652&permissions=76864&scope=bot>" \
+                   "\n4. *Please* disable the View Channels permissions for categories the improvements channel isn't in, as well as other channels in that category. This is because " \
+                   "otherwise every message in every server the bot's in will be processed, and since the bot is being hosted on Kataiser's machine, " \
+                   "he doesn't want that background CPU usage." \
+                   "\n5. Run the `register_project` command, see `help register_project` for parameters." \
+                   "\n\nAvailable commands:" \
+                   "\n```help\nregister_project\nadd_mods\nadd_category```"
+
+        await message.channel.send(response)
 
 
 async def command_register_project(message: discord.Message):
+    """
+    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS
+
+      NAME: The name of the project (with underscores instead of spaces), ex: Into_the_Jungle, Strawberry_Jam, Celeste_maingame, Celeste_mindash
+      IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced setting, then right click the channel and click Copy ID
+      REPOSITORY: Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo
+      ACCOUNT: Your GitHub account name
+      COMMIT_DRAFTS: Automatically commit drafts to the root directory, Y or N
+    """
+
     log.info("Handling 'register_project' command")
     message_split = message.content.split()
 
@@ -128,6 +137,8 @@ async def command_register_project(message: discord.Message):
 
 
 async def command_add_mods(message: discord.Message):
+    """"""
+
     log.info("Handling 'add_mods' command")
     message_split = message.content.split()
 
@@ -163,9 +174,12 @@ async def command_add_mods(message: discord.Message):
 
 
 async def command_add_category(message: discord.Message):
-    pass
+    """"""
+
+    await message.channel.send("Not yet implemented")
 
 
+command_functions = {'help': command_help, 'register_project': command_register_project, 'add_category': command_add_category, 'add_mods': command_add_mods}
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
