@@ -71,15 +71,20 @@ async def command_register_project(message: discord.Message):
         await message.channel.send("Incorrect command format, see `help`")
         return
 
-    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts = message_split
     log.info("Verifying project")
     await message.channel.send("Verifying...")
+    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts = message_split
+    improvements_channel_id = int(improvements_channel_id)
+    editing = improvements_channel_id in projects
 
-    if int(improvements_channel_id) in projects:
-        log.warning("This project already exists, replacing")
+    if editing:
+        log.warning("This project already exists, preserving some settings")
+        previous = {'pin': projects[improvements_channel_id]['pin'],
+                    'mods': projects[improvements_channel_id]['mods'],
+                    'path_cache': projects[improvements_channel_id]['path_cache']}
 
     # verify improvements channel exists
-    improvements_channel = client.get_channel(int(improvements_channel_id))
+    improvements_channel = client.get_channel(improvements_channel_id)
     if not improvements_channel:
         error = f"Channel {improvements_channel_id} doesn't exist"
         log.error(error)
@@ -117,24 +122,28 @@ async def command_register_project(message: discord.Message):
         return
 
     log.info("Verification successful")
-    pinned_message = await utils.edit_pin(improvements_channel)
-    await pinned_message.pin()
-    log.info("Created pinned message")
 
-    projects[int(improvements_channel_id)] = {'name': name.replace('_', ' '),
-                                              'repo': repo,
-                                              'installation_owner': account,
-                                              'commit_drafts': commit_drafts.lower() == 'y',
-                                              'install_time': int(time.time()),
-                                              'pin': pinned_message.id,
-                                              'do_run_validation': False,
-                                              'subdir': subdir,
-                                              'mods': [],
-                                              'path_cache': {}}
+    if editing:
+        pinned_message = await utils.edit_pin(improvements_channel)
+        await pinned_message.pin()
+        log.info("Created pinned message")
+    else:
+        log.info("Skipped creating pinned message")
+
+    projects[improvements_channel_id] = {'name': name.replace('_', ' '),
+                                         'repo': repo,
+                                         'installation_owner': account,
+                                         'commit_drafts': commit_drafts.lower() == 'y',
+                                         'install_time': int(time.time()),
+                                         'pin': previous['pin'] if editing else pinned_message.id,
+                                         'do_run_validation': False,
+                                         'subdir': subdir,
+                                         'mods': previous['mods'] if editing else [],
+                                         'path_cache': previous['path_cache'] if editing else {}}
     # TODO: handle do_run_validation
 
     utils.save_projects()
-    project_added_log = f"Added project {improvements_channel_id}: {projects[int(improvements_channel_id)]}"
+    project_added_log = f"Added project {improvements_channel_id}: {projects[improvements_channel_id]}"
     log.info(project_added_log)
     history_log.info(project_added_log)
     await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
