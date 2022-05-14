@@ -37,8 +37,8 @@ def detailed_user(message: discord.Message):
 
 async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
-           "an file, please include the amount of frames saved, the name of the level/map, the ChapterTime of the file, and the ChapterTime of the file before you made improvements. " \
-           "Room(s) affected is ideal, and category affected and video are optional." \
+           "an file, please include the amount of frames saved, the name of the level/map, the ChapterTime of the file, and the ChapterTime of the file before you made improvements " \
+           "(ex: `-4f 3B (1:30.236 -> 1:30.168)`). Room(s) affected is ideal, and category affected and video are optional." \
            "\n\nRepo: {1}" \
            "\nPackage: {2}" \
            "\nLast sync verification: {3}" \

@@ -35,7 +35,7 @@ def get_access_token(installation_owner: str) -> str:
 
     for installation in installations:
         if installation['account']['login'] == installation_owner:
-            r = requests.post(installations[0]['access_tokens_url'], headers=headers)
+            r = requests.post(installation['access_tokens_url'], headers=headers)
             utils.handle_potential_request_error(r, 201)
             access_token_data = r.json()
             log.info(f"Generated access token: {access_token_data}")

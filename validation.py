@@ -29,23 +29,23 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
     found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed = parse_tas_file(tas_lines, True)
 
     if len(found_breakpoints) == 1:
-        return ValidationResult(False, f"Breakpoint found on line {found_breakpoints[0]}, please remove it.", f"breakpoint in {filename}")
+        return ValidationResult(False, f"Breakpoint found on line {found_breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
     elif len(found_breakpoints) > 1:
-        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(found_breakpoints)}, please remove them.", f"{len(found_breakpoints)} breakpoints in {filename}")
+        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(found_breakpoints)}, please remove them and post again.", f"{len(found_breakpoints)} breakpoints in {filename}")
     elif not found_chaptertime:
-        return ValidationResult(False, "No ChapterTime found in file, please add one.", f"no ChapterTime in {filename}")
+        return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
 
     # validate chaptertime is in message content
     if chapter_time not in message_content and chapter_time_trimmed not in message_content:
         chapter_time_notif = chapter_time if chapter_time == chapter_time_trimmed else chapter_time_trimmed
-        return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it.",
+        return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
                                 f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     # validate level
     level = filename.lower().removesuffix('.tas').replace('_', '')
 
     if level not in message_lowercase.replace('_', '').replace(' ', ''):
-        return ValidationResult(False, "The level name is missing in your message, please add it.", f"level name ({level}) missing in message content")
+        return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
     if old_tas:
         # validate old chaptertime is in message content
@@ -53,8 +53,8 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
 
         if old_chapter_time not in message_content and old_chapter_time_trimmed not in message_content:
             chapter_time_notif = old_chapter_time if old_chapter_time == old_chapter_time_trimmed else old_chapter_time_trimmed
-            return ValidationResult(False, f"The file's previous ChapterTime ({chapter_time_notif}) is missing in your message, please add it and check that it's correct for the file "
-                                           f"you saved time over.", f"old ChapterTime ({chapter_time_notif}) missing in message content")
+            return ValidationResult(False, f"The file's previous ChapterTime ({chapter_time_notif}) is missing in your message, please add it, check that it's correct for the file "
+                                           f"you saved time over, and post again.", f"old ChapterTime ({chapter_time_notif}) missing in message content")
 
         # validate timesave frames is in message content
         time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
@@ -69,24 +69,24 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
             else:
                 time_saved_options = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
-            return ValidationResult(False, f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct)",
+            return ValidationResult(False, f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct), and post again",
                                     f"no timesave in message (should be {time_saved_options})")
 
         if time_saved_num == 0:
             if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
                 time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\")",
+                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), please fix and post again",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
         else:
             time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
             if time_saved_messages[0] != time_saved_actual:
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\")",
+                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), please fix and post again",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
     else:
         # validate draft text
         if "draft" not in message_lowercase:
-            return ValidationResult(False, "Since this is a draft, please mention that in your message.", "no \"draft\" text in message")
+            return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
 
     if old_tas:
         return ValidationResult(True, timesave=time_saved_messages[0], chapter_time=chapter_time)

@@ -153,46 +153,50 @@ async def command_register_project(message: discord.Message):
 
 async def command_add_mods(message: discord.Message):
     """
-    add_mods IMPROVEMENTS_CHANNEL_ID MODS
+    add_mods PROJECT_NAME MODS
 
-      IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
+      PROJECT_NAME: The name of your project. If you have multiple improvement channels with the same name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
     log.info("Handling 'add_mods' command")
     message_split = message.content.split()
 
-    if len(message_split) < 3 or not re.match(r'add_mods \d+ .+', message.content):
+    if len(message_split) < 3 or not re.match(r'add_mods .+ .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help add_mods`")
         return
 
-    project_id = int(message_split.pop(1))
-    mods_given = [mod.removesuffix('.zip') for mod in message_split[1:]]
-    project_mods = set(projects[project_id]['mods'])
-    log.info(f"{len(project_mods)} mod(s) before adding: {project_mods}")
-    project_mods = project_mods.union(mods_given)
+    for project in projects.values():
+        if project['name'] != message_split[1].replace('_', ' '):
+            continue
 
-    for mod_given in mods_given:
-        project_mods = project_mods.union(get_mod_dependencies(mod_given))
+        log.info(f"Adding mods for project")
+        mods_given = [mod.removesuffix('.zip') for mod in message_split[1:]]
+        project_mods = set(project['mods'])
+        log.info(f"{len(project_mods)} mod(s) before adding: {project_mods}")
+        project_mods = project_mods.union(mods_given)
 
-    log.info(f"{len(project_mods)} mod(s) after adding: {project_mods}")
-    projects[project_id]['mods'] = list(project_mods)
-    utils.save_projects()
-    mods_missing = set()
-    installed_mods = [item.removesuffix('.zip') for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
+        for mod_given in mods_given:
+            project_mods = project_mods.union(get_mod_dependencies(mod_given))
 
-    for mod in project_mods:
-        if mod not in installed_mods:
-            mods_missing.add(mod)
+        log.info(f"{len(project_mods)} mod(s) after adding: {project_mods}")
+        project['mods'] = list(project_mods)
+        utils.save_projects()
+        mods_missing = set()
+        installed_mods = [item.removesuffix('.zip') for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
 
-    await message.channel.send(f"Project \"{projects[project_id]['name']}\" now has {len(project_mods)} mod{plural(project_mods)} to load for sync testing")
+        for mod in project_mods:
+            if mod not in installed_mods:
+                mods_missing.add(mod)
 
-    if mods_missing:
-        log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
-        mods_missing_formatted = '\n'.join(sorted(mods_missing))
-        await (await client.fetch_user(219955313334288385)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
-        await message.channel.send(f"The following mod(s) are not currently prepared for sync testing (Kataiser has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
+        await message.channel.send(f"Project \"{project['name']}\" now has {len(project_mods)} mod{plural(project_mods)} to load for sync testing")
+
+        if mods_missing:
+            log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
+            mods_missing_formatted = '\n'.join(sorted(mods_missing))
+            await (await client.fetch_user(219955313334288385)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
+            await message.channel.send(f"The following mod(s) are not currently prepared for sync testing (Kataiser has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
 
 
 async def command_add_category(message: discord.Message):
