@@ -57,7 +57,7 @@ async def command_register_project(message: discord.Message):
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS
 
       NAME: The name of the project (with underscores instead of spaces), ex: Into_the_Jungle, Strawberry_Jam, Celeste_maingame, Celeste_mindash
-      IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced setting, then right click the channel and click Copy ID
+      IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
       REPOSITORY: Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo
       ACCOUNT: Your GitHub account name
       COMMIT_DRAFTS: Automatically commit drafts to the root directory, Y or N
@@ -154,7 +154,7 @@ async def command_add_mods(message: discord.Message):
     """
     add_mods IMPROVEMENTS_CHANNEL_ID MODS
 
-      IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced setting, then right click the channel and click Copy ID
+      IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
