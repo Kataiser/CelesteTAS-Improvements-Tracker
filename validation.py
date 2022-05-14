@@ -140,6 +140,4 @@ def as_lines(tas: bytes) -> List[str]:
 
 
 re_timesave_frames = re.compile(r'[-+]\d+f')
-
-
 log: Optional[logging.Logger] = None

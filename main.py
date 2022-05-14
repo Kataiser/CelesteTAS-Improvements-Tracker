@@ -51,7 +51,6 @@ async def on_ready():
     log.info(f"Logged in as {client.user}")
     load_project_logs()
     log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(project_logs)} project message log{plural(project_logs)}")
-    gen_token.reset_token.start()
     downtime_message_count = 0
 
     if not debug:
@@ -106,7 +105,7 @@ async def process_improvement_message(message: discord.Message):
     await message.add_reaction('👀')
     global headers
     installation_owner = projects[message.channel.id]['installation_owner']
-    headers = {'Authorization': f'token {gen_token.get_access_token(installation_owner)}', 'Accept': 'application/vnd.github.v3+json'}
+    headers = {'Authorization': f'token {gen_token.access_token(installation_owner)}', 'Accept': 'application/vnd.github.v3+json'}
 
     for attachment in tas_attachments:
         log.info(f"Processing {attachment.filename}")
