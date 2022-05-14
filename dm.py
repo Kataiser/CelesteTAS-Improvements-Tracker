@@ -66,7 +66,7 @@ async def command_register_project(message: discord.Message):
     log.info("Handling 'register_project' command")
     message_split = message.content.split()
 
-    if len(message_split) != 6 or not re.match(r'register_project \d+ .+/.+ .+ [YyNn]', message.content):
+    if len(message_split) != 6 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn]', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help`")
         return
@@ -123,27 +123,28 @@ async def command_register_project(message: discord.Message):
 
     log.info("Verification successful")
 
-    if editing:
-        pinned_message = await utils.edit_pin(improvements_channel)
-        await pinned_message.pin()
-        log.info("Created pinned message")
-    else:
-        log.info("Skipped creating pinned message")
-
     projects[improvements_channel_id] = {'name': name.replace('_', ' '),
                                          'repo': repo,
                                          'installation_owner': account,
                                          'commit_drafts': commit_drafts.lower() == 'y',
                                          'install_time': int(time.time()),
-                                         'pin': previous['pin'] if editing else pinned_message.id,
+                                         'pin': None,
                                          'do_run_validation': False,
                                          'subdir': subdir,
                                          'mods': previous['mods'] if editing else [],
                                          'path_cache': previous['path_cache'] if editing else {}}
     # TODO: handle do_run_validation
 
+    if not editing:
+        pinned_message = await utils.edit_pin(improvements_channel, True)
+        await pinned_message.pin()
+        log.info("Created pinned message")
+    else:
+        log.info("Skipped creating pinned message")
+
+    projects[improvements_channel_id]['pin'] = previous['pin'] if editing else pinned_message.id
     utils.save_projects()
-    project_added_log = f"Added project {improvements_channel_id}: {projects[improvements_channel_id]}"
+    project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
     log.info(project_added_log)
     history_log.info(project_added_log)
     await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "

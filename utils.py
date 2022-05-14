@@ -35,7 +35,7 @@ def detailed_user(message: discord.Message):
     return f'{message.author.name}#{message.author.discriminator} ({message.author.id})'
 
 
-async def edit_pin(channel: discord.TextChannel, ran_sync: bool = True):
+async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
            "an file, please include the amount of frames saved, the name of the level/map, the ChapterTime of the file, and the ChapterTime of the file before you made improvements. " \
            "Room(s) affected is ideal, and category affected and video are optional." \
@@ -59,10 +59,15 @@ async def edit_pin(channel: discord.TextChannel, ran_sync: bool = True):
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
     # sync_timestamp = f'<t:{round(time.time())}>'
     text_out = text.format(name, repo_url, package_url, "Not yet implemented")
-    pin_message = channel.get_partial_message(pin)
-    await pin_message.edit(content=text_out, suppress=True)
-    log.info("Edited pin")
-    return pin_message
+
+    if create:
+        log.info("Creating pin")
+        return await channel.send(text_out)
+    else:
+        pin_message = channel.get_partial_message(pin)
+        await pin_message.edit(content=text_out, suppress=True)
+        log.info("Edited pin")
+        return pin_message
 
 
 log: Optional[logging.Logger] = None

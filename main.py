@@ -137,7 +137,7 @@ async def process_improvement_message(message: discord.Message):
                 history_log.info(history_data)
                 log.info(f"Added to history: {history_data}")
                 await message.add_reaction('📝')
-                await utils.edit_pin(message.channel, client.user.mention)
+                await utils.edit_pin(message.channel, False)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
