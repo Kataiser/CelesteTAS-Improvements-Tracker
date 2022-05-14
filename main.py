@@ -166,12 +166,14 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
         data['message'] = f"{validation_result.timesave} {filename} ({validation_result.chapter_time}) from {author}"
     else:
         data['message'] = f"{filename} draft by {author} ({validation_result.chapter_time})"
+        subdir = projects[message.channel.id]["subdir"]
+        file_path = f'{subdir}/{filename}' if subdir else filename
 
         if not projects[message.channel.id]['commit_drafts']:
             return
 
     log.info(f"Set commit message to \"{data['message']}\"")
-    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path if file_path else filename}', headers=headers, data=json.dumps(data))
+    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
     utils.handle_potential_request_error(r, 200 if file_path else 201)
     log.info(f"Successfully committed: {r.json()['commit']['html_url']}")
     return data['message']

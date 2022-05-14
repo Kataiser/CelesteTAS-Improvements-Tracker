@@ -91,7 +91,7 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
     if old_tas:
         return ValidationResult(True, timesave=time_saved_messages[0], chapter_time=chapter_time)
     else:
-        return ValidationResult(True)
+        return ValidationResult(True, chapter_time=chapter_time)
 
 
 def parse_tas_file(tas_lines: list, find_breakpoints: bool) -> Tuple[list, bool, str, str]:
