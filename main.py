@@ -110,10 +110,20 @@ async def process_improvement_message(message: discord.Message):
 
     log.info(f"Processing message at {message.jump_url}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
+    video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'mkv')]
+    has_video = video_attachments or 'youtube.com/watch?v=' in message.content or 'youtu.be/xq3g50e7U6s' in message.content \
+                or 'streamable.com/' in message.content or 'gfycat.com/' in message.content
+
+    if has_video:
+        log.info("Video found 🍿")
+        await message.add_reaction('🍿')
 
     if len(tas_attachments) == 0:
         log.info("No TAS file found 👍")
-        await message.add_reaction('👍')
+
+        if not has_video:
+            await message.add_reaction('👍')
+
         add_project_log(message)
         log.info("Done processing message")
         return
@@ -181,8 +191,9 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
 
     if file_path:
+        timesave = "Updated: " if projects[message.channel.id]['is_lobby'] else f"{validation_result.timesave} "
         data['sha'] = get_sha(repo, file_path)
-        data['message'] = f"{validation_result.timesave} {filename}{chapter_time} from {author}"
+        data['message'] = f"{timesave}{filename}{chapter_time} from {author}"
     else:
         data['message'] = f"{filename} draft by {author}{chapter_time}"
         subdir = projects[message.channel.id]["subdir"]

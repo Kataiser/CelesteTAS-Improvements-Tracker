@@ -48,15 +48,8 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
         return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
     if old_tas and not lobby_channel:
-        # validate old chaptertime is in message content
-        old_chapter_time, old_chapter_time_trimmed = parse_tas_file(as_lines(old_tas), False)[2:4]
-
-        if old_chapter_time not in message_content and old_chapter_time_trimmed not in message_content:
-            chapter_time_notif = old_chapter_time if old_chapter_time == old_chapter_time_trimmed else old_chapter_time_trimmed
-            return ValidationResult(False, f"The file's previous ChapterTime ({chapter_time_notif}) is missing in your message, please add it, check that it's correct for the file "
-                                           f"you saved time over, and post again.", f"old ChapterTime ({chapter_time_notif}) missing in message content")
-
         # validate timesave frames is in message content
+        old_chapter_time, old_chapter_time_trimmed = parse_tas_file(as_lines(old_tas), False, True)[2:4]
         time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
         time_saved_minus = f'-{abs(time_saved_num)}f'
         time_saved_plus = f'+{abs(time_saved_num)}f'
