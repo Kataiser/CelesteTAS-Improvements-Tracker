@@ -139,19 +139,20 @@ async def process_improvement_message(message: discord.Message):
     for attachment in tas_attachments:
         log.info(f"Processing {attachment.filename}")
         repo = projects[message.channel.id]['repo']
+        is_lobby = projects[message.channel.id]['is_lobby']
         r = requests.get(attachment.url)
         utils.handle_potential_request_error(r, 200)
         file_content = r.content
         old_file_path = get_file_repo_path(message, attachment.filename)
         old_file_content = None
 
-        if old_file_path:
+        if old_file_path and not is_lobby:
             log.info("Downloading old version of file, for time reference")
             r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
             utils.handle_potential_request_error(r, 200)
             old_file_content = base64.b64decode(r.json()['content'])
 
-        validation_result = validation.validate(file_content, attachment.filename, message.content, old_file_content, projects[message.channel.id]['is_lobby'])
+        validation_result = validation.validate(file_content, attachment.filename, message.content, old_file_content, is_lobby)
 
         if validation_result.valid_tas:
             # I love it when

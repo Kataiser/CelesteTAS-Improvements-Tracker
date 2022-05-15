@@ -47,7 +47,7 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
     if not lobby_channel and level not in message_lowercase.replace('_', '').replace(' ', ''):
         return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
-    if old_tas and not lobby_channel:
+    if old_tas:
         # validate timesave frames is in message content
         old_chapter_time, old_chapter_time_trimmed = parse_tas_file(as_lines(old_tas), False, True)[2:4]
         time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
