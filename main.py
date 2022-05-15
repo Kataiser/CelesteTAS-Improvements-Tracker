@@ -29,6 +29,9 @@ def main():
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
     debug = parser.parse_args().debug
 
+    load_project_logs()
+    log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(project_logs)} project message log{plural(project_logs)}")
+
     with open('bot_token', 'r') as bot_token_file:
         bot_token = bot_token_file.read()
 
@@ -49,8 +52,6 @@ def main():
 @client.event
 async def on_ready():
     log.info(f"Logged in as {client.user}")
-    load_project_logs()
-    log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(project_logs)} project message log{plural(project_logs)}")
     downtime_message_count = 0
 
     if not debug:
@@ -83,6 +84,16 @@ async def on_message(message: discord.Message):
         return
 
     await process_improvement_message(message)
+
+
+@client.event
+async def on_connect():
+    log.info("Connected to Discord")
+
+
+@client.event
+async def on_disconnect():
+    log.warning("Disconnected from Discord")
 
 
 # process a message posted in a registered improvements channel

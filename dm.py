@@ -36,12 +36,14 @@ async def command_help(message: discord.Message):
         except AttributeError:
             log.error(f"{command_functions[message_split[1]]} has no docstring")
     else:
+        add_bot_link = 'https:// disco rd.co m/api/oauth2 /auth orize  ? client_id= 970 375635027 525652& perm issions=76 864 &sco pe=bot'
+
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                    "\n\n1. Contact Kataiser#4640 that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
                    "and also he'd like to know. Maybe this step can be removed at some point." \
                    "\n2. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
-                   "\n3. Add bot to your server: <https://discord.com/api/oauth2/authorize?client_id=970375635027525652&permissions=76864&scope=bot>" \
+                   f"\n3. Add bot to your server: <{add_bot_link.replace(' ', '')}>" \
                    "\n4. *Please* disable the View Channels permissions for categories the improvements channel isn't in, as well as other channels in that category. This is because " \
                    "otherwise every message in every server the bot's in will be processed, and since the bot is being hosted on Kataiser's machine, " \
                    "he doesn't want that background CPU usage." \
