@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import time
+import traceback
 from typing import Optional
 
 import discord
@@ -93,7 +94,13 @@ async def on_connect():
 
 @client.event
 async def on_disconnect():
-    log.warning("Disconnected from Discord")
+    log.error("Disconnected from Discord")
+
+
+@client.event
+async def on_error(e):
+    error = traceback.format_exc()
+    log.error(error)
 
 
 # process a message posted in a registered improvements channel
@@ -105,7 +112,7 @@ async def process_improvement_message(message: discord.Message):
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
 
     if len(tas_attachments) == 0:
-        log.warning("No TAS file found 👍")
+        log.info("No TAS file found 👍")
         await message.add_reaction('👍')
         add_project_log(message)
         log.info("Done processing message")
@@ -113,6 +120,7 @@ async def process_improvement_message(message: discord.Message):
     elif len(tas_attachments) > 1:
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
 
+    await message.clear_reaction('❌')
     await message.add_reaction('👀')
     global headers
     installation_owner = projects[message.channel.id]['installation_owner']
@@ -133,7 +141,7 @@ async def process_improvement_message(message: discord.Message):
             utils.handle_potential_request_error(r, 200)
             old_file_content = base64.b64decode(r.json()['content'])
 
-        validation_result = validation.validate(file_content, attachment.filename, message.content, old_file_content)
+        validation_result = validation.validate(file_content, attachment.filename, message.content, old_file_content, projects[message.channel.id]['is_lobby'])
 
         if validation_result.valid_tas:
             # I love it when
@@ -170,12 +178,13 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
     file_path = get_file_repo_path(message, filename)
+    chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
 
     if file_path:
         data['sha'] = get_sha(repo, file_path)
-        data['message'] = f"{validation_result.timesave} {filename} ({validation_result.chapter_time}) from {author}"
+        data['message'] = f"{validation_result.timesave} {filename}{chapter_time} from {author}"
     else:
-        data['message'] = f"{filename} draft by {author} ({validation_result.chapter_time})"
+        data['message'] = f"{filename} draft by {author}{chapter_time}"
         subdir = projects[message.channel.id]["subdir"]
         file_path = f'{subdir}/{filename}' if subdir else filename
 
@@ -214,7 +223,7 @@ def get_file_repo_path(message: discord.Message, filename: str) -> Optional[str]
                         subitem_name = subitem['path'].split('/')[-1]
                         subitem_full_path = f"{item['name']}/{subitem['path']}"
 
-                        if subitem_full_path.startswith(project_subdir):
+                        if subitem_full_path.startswith(project_subdir) and subitem_name.endswith('.tas'):
                             path_cache[subitem_name] = subitem_full_path
             elif not project_subdir and item['name'].endswith('.tas'):
                 path_cache[item['name']] = item['path']
@@ -239,7 +248,7 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message) -> bool:
-    if message.id in project_logs[message.channel.id] or message.author == client.user:
+    if message.id in project_logs[message.channel.id] or message.author == client.user or message.type.value == 6:
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that
