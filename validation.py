@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 
 class ValidationResult:
-    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, timesave: str = None, chapter_time: str = None):
+    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, chapter_time: str = None, timesave: str = None):
         self.valid_tas = valid_tas
         self.warning_text = warning_text
         self.log_text = log_text
@@ -17,7 +17,7 @@ class ValidationResult:
 
 
 def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[bytes], lobby_channel: bool) -> ValidationResult:
-    log.info(f"Validating {filename}, {len(tas)} bytes, {len(message_content)} char message")
+    log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message_content)} char message")
 
     # validate length
     if len(tas) > 204800:  # 200 kb
@@ -26,25 +26,33 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message_content.lower()
-    found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed = parse_tas_file(tas_lines, True, not lobby_channel)
+    found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed = parse_tas_file(tas_lines, True, lobby_channel)
 
     if len(found_breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {found_breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
     elif len(found_breakpoints) > 1:
         return ValidationResult(False, f"Breakpoints found on lines: {', '.join(found_breakpoints)}, please remove them and post again.", f"{len(found_breakpoints)} breakpoints in {filename}")
-    elif not lobby_channel and not found_chaptertime:
-        return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
+    elif not found_chaptertime:
+        if lobby_channel:
+            return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
+        else:
+            return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
 
     # validate chaptertime is in message content
-    if not lobby_channel and chapter_time not in message_content and chapter_time_trimmed not in message_content:
-        chapter_time_notif = chapter_time if chapter_time == chapter_time_trimmed else chapter_time_trimmed
-        return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
-                                f"ChapterTime ({chapter_time_notif}) missing in message content")
+    if lobby_channel:
+        if chapter_time not in message_content:
+            return ValidationResult(False, f"The file's final time ({chapter_time}) is missing in your message, please add it and post again.",
+                                    f"final time ({chapter_time}) missing in message content")
+    else:
+        if chapter_time not in message_content and chapter_time_trimmed not in message_content:
+            chapter_time_notif = chapter_time if chapter_time == chapter_time_trimmed else chapter_time_trimmed
+            return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
+                                    f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     # validate level
     level = filename.lower().removesuffix('.tas').replace('_', '')
 
-    if not lobby_channel and level not in message_lowercase.replace('_', '').replace(' ', ''):
+    if level not in message_lowercase.replace('_', '').replace(' ', ''):
         return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
     if old_tas:
@@ -62,48 +70,56 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
             else:
                 time_saved_options = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
-            return ValidationResult(False, f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct), and post again",
+            return ValidationResult(False, f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct), and post again.",
                                     f"no timesave in message (should be {time_saved_options})")
 
         if time_saved_num == 0:
             if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
                 time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), please fix and post again",
+                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), please fix and post again.",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
         else:
             time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
             if time_saved_messages[0] != time_saved_actual:
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), please fix and post again",
+                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), please fix and post again.",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
-
-        return ValidationResult(True, timesave=time_saved_messages[0], chapter_time=chapter_time)
     else:
         # validate draft text
-        if not lobby_channel and "draft" not in message_lowercase:
+        if "draft" not in message_lowercase:
             return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
 
-        return ValidationResult(True, chapter_time=chapter_time)
+    return ValidationResult(True, chapter_time=chapter_time, timesave=time_saved_messages[0] if old_tas else None)
 
 
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, find_chaptertime: bool) -> Tuple[list, bool, Optional[str], Optional[str]]:
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, is_lobby_file: bool) -> Tuple[list, bool, Optional[str], Optional[str]]:
     found_breakpoints = []
     found_chaptertime = False
     chaptertime_line = None
     chapter_time = None
     chapter_time_trimmed = None
 
+    if is_lobby_file:
+        re_lobby_time = re.compile(r'#\d+\.\d+')
+
     for line in enumerate(tas_lines):
         if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
             log.info(f"Found breakpoint at line {line[0] + 1}")
             found_breakpoints.append(str(line[0] + 1))
-        elif not found_chaptertime and find_chaptertime and 'ChapterTime:' in line[1] and not line[1].startswith('#') and line[1].strip() != 'ChapterTime:':
-            found_chaptertime = True
-            chaptertime_line = line[0]
+        elif not found_chaptertime:
+            if not is_lobby_file and 'ChapterTime:' in line[1] and not line[1].startswith('#') and line[1].strip() != 'ChapterTime:':
+                found_chaptertime = True
+                chaptertime_line = line[0]
+            elif is_lobby_file and line[1].startswith('#') and re_lobby_time.match(line[1]):
+                found_chaptertime = True
+                chaptertime_line = line[0]
 
     if found_chaptertime:
-        chapter_time = tas_lines[chaptertime_line].partition(' ')[2].partition('(')[0]
-        chapter_time_trimmed = chapter_time.removeprefix('0:').removeprefix('0')
+        if is_lobby_file:
+            chapter_time = chapter_time_trimmed = tas_lines[chaptertime_line].lstrip('#0:').partition('(')[0]
+        else:
+            chapter_time = tas_lines[chaptertime_line].partition(' ')[2].partition('(')[0]
+            chapter_time_trimmed = chapter_time.removeprefix('0:').removeprefix('0')
 
     return found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed
 
@@ -111,6 +127,9 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, find_chaptertime: bo
 def calculate_time_difference(time_old: str, time_new: str) -> int:
     if time_old == time_new:
         return 0
+
+    if ':' not in time_new:
+        return round((float(time_old) - float(time_new)) / 0.017)
 
     colon_partition_old = time_old.partition(':')
     colon_partition_new = time_new.partition(':')

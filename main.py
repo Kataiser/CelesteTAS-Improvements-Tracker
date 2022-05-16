@@ -146,7 +146,7 @@ async def process_improvement_message(message: discord.Message):
         old_file_path = get_file_repo_path(message, attachment.filename)
         old_file_content = None
 
-        if old_file_path and not is_lobby:
+        if old_file_path:
             log.info("Downloading old version of file, for time reference")
             r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
             utils.handle_potential_request_error(r, 200)

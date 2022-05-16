@@ -56,7 +56,7 @@ async def command_help(message: discord.Message):
 
 async def command_register_project(message: discord.Message):
     """
-    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY
+    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL
 
       NAME: The name of the project (with underscores instead of spaces), ex: Into_the_Jungle, Strawberry_Jam, Celeste_maingame, Celeste_mindash
       IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
@@ -64,19 +64,20 @@ async def command_register_project(message: discord.Message):
       ACCOUNT: Your GitHub account name
       COMMIT_DRAFTS: Automatically commit drafts to the root directory (Y or N)
       IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently (Y or N)
+      ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file (Y or N)
     """
 
     log.info("Handling 'register_project' command")
     message_split = message.content.split()
 
-    if len(message_split) != 7 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn] [YyNn]', message.content):
+    if len(message_split) != 8 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn] [YyNn] [YyNn]', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help`")
         return
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
-    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts, is_lobby = message_split
+    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts, is_lobby, ensure_level = message_split
     improvements_channel_id = int(improvements_channel_id)
     editing = improvements_channel_id in projects
 
@@ -138,11 +139,12 @@ async def command_register_project(message: discord.Message):
     projects[improvements_channel_id] = {'name': name.replace('_', ' '),
                                          'repo': repo,
                                          'installation_owner': account,
-                                         'commit_drafts': commit_drafts.lower() == 'y',
                                          'install_time': int(time.time()),
+                                         'commit_drafts': commit_drafts.lower() == 'y',
+                                         'is_lobby': is_lobby.lower() == 'y',
+                                         'ensure_level': ensure_level.lower() == 'y',
                                          'pin': None,
                                          'do_run_validation': False,
-                                         'is_lobby': is_lobby.lower() == 'y',
                                          'subdir': subdir,
                                          'mods': previous['mods'] if editing else [],
                                          'path_cache': previous['path_cache'] if editing else {}}
@@ -151,7 +153,6 @@ async def command_register_project(message: discord.Message):
     if not editing:
         pinned_message = await utils.edit_pin(improvements_channel, True)
         await pinned_message.pin()
-        log.info("Created pinned message")
     else:
         log.info("Skipped creating pinned message")
 
@@ -213,7 +214,7 @@ async def command_add_mods(message: discord.Message):
 
 
 async def command_add_category(message: discord.Message):
-    """"""
+    """Not yet implemented"""
 
     await message.channel.send("Not yet implemented")
 

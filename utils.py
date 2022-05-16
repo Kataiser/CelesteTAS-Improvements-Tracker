@@ -37,9 +37,12 @@ def detailed_user(message: discord.Message):
 
 async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
     lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if projects[channel.id]['is_lobby'] else ""
+    level_text = "the name of the level/map"
+    ensure_level = projects[channel.id]['ensure_level']
+
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
-           f"a file, please include the amount of frames saved, the name of the level/map, and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
-           "Room(s) affected is ideal, and previous ChapterTime, category affected, and video are optional." \
+           f"a file, please include the amount of frames saved{f', {level_text},' if ensure_level else ''} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
+           f"Room(s) affected is ideal, and{'' if ensure_level else f' {level_text},'} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
            "\nPackage: <{2}>" \
            "\nLast sync verification: {3}" \
@@ -47,9 +50,10 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
            "\n```" \
            "\n📝 = Successfully verified and committed" \
            "\n👀 = Currently processing file" \
+           "\n❌ = Invalid TAS file or post" \
            "\n👍 = Non-TAS containing message" \
            "\n🤘 = Successfully verified draft but didn't commit" \
-           "\n❌ = Invalid TAS file or post```"
+           "\n🍿 = Video in message```"
 
     name = projects[channel.id]['name']
     repo = projects[channel.id]['repo']
