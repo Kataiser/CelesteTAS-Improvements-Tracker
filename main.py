@@ -162,9 +162,9 @@ async def process_improvement_message(message: discord.Message):
             commit_status = commit(message, attachment.filename, file_content, validation_result)
 
             if commit_status:
-                history_data = (repo, commit_status, attachment.url)
+                history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
                 history_log.info(history_data)
-                log.info(f"Added to history: {history_data}")
+                log.info("Added to history log")
                 await message.add_reaction('📝')
                 await utils.edit_pin(message.channel, False)
             else:
@@ -183,8 +183,8 @@ async def process_improvement_message(message: discord.Message):
 
 
 # assumes already verified TAS
-def commit(message: discord.Message, filename: str, content: bytes, validation_result: validation.ValidationResult) -> Optional[str]:
-    log.info(f"Using project: {projects[message.channel.id]}")
+def commit(message: discord.Message, filename: str, content: bytes, validation_result: validation.ValidationResult) -> Optional[tuple]:
+    log.info(f"Using project: {projects[message.channel.id]['name']} ({message.channel.id})")
     repo = projects[message.channel.id]['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
@@ -206,8 +206,9 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     log.info(f"Set commit message to \"{data['message']}\"")
     r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
     utils.handle_potential_request_error(r, 200 if file_path else 201)
-    log.info(f"Successfully committed: {r.json()['commit']['html_url']}")
-    return data['message']
+    commit_url = r.json()['commit']['html_url']
+    log.info(f"Successfully committed: {commit_url}")
+    return data['message'], commit_url
 
 
 # if a file exists in the repo, get its path

@@ -39,7 +39,7 @@ async def command_help(message: discord.Message):
         add_bot_link = 'https:// disco rd.co m/api/oauth2 /auth orize  ? client_id= 970 375635027 525652& perm issions=76 864 &sco pe=bot'
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
-                   "\n\n1. Contact Kataiser#4640 that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
+                   "\n\n1. Tell Kataiser that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
                    "and also he'd like to know. Maybe this step can be removed at some point." \
                    "\n2. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
