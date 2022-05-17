@@ -57,7 +57,7 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
 
     if old_tas:
         # validate timesave frames is in message content
-        old_chapter_time, old_chapter_time_trimmed = parse_tas_file(as_lines(old_tas), False, True)[2:4]
+        old_chapter_time, old_chapter_time_trimmed = parse_tas_file(as_lines(old_tas), False, lobby_channel)[2:4]
         time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
         time_saved_minus = f'-{abs(time_saved_num)}f'
         time_saved_plus = f'+{abs(time_saved_num)}f'

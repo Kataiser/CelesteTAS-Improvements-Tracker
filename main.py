@@ -98,7 +98,7 @@ async def on_disconnect():
 
 
 @client.event
-async def on_error(e):
+async def on_error():
     error = traceback.format_exc()
     log.error(error)
 
