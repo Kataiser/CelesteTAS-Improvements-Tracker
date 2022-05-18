@@ -159,7 +159,7 @@ async def process_improvement_message(message: discord.Message):
             utils.handle_potential_request_error(r, 200)
             old_file_content = base64.b64decode(r.json()['content'])
 
-        validation_result = validation.validate(file_content, attachment.filename, message.content, old_file_content, is_lobby)
+        validation_result = validation.validate(file_content, attachment.filename, message, old_file_content, is_lobby)
 
         if validation_result.valid_tas:
             # I love it when

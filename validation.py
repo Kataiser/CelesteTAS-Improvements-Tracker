@@ -3,6 +3,8 @@ import logging
 import re
 from typing import List, Optional, Tuple
 
+import discord
+
 
 class ValidationResult:
     def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, chapter_time: str = None, timesave: str = None):
@@ -16,8 +18,8 @@ class ValidationResult:
             log.info("TAS file and improvement post have been validated")
 
 
-def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[bytes], lobby_channel: bool) -> ValidationResult:
-    log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message_content)} char message")
+def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool) -> ValidationResult:
+    log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
 
     # validate length
     if len(tas) > 204800:  # 200 kb
@@ -25,7 +27,7 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
 
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
-    message_lowercase = message_content.lower()
+    message_lowercase = message.content.lower()
     found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed = parse_tas_file(tas_lines, True, lobby_channel)
 
     if len(found_breakpoints) == 1:
@@ -40,11 +42,11 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
 
     # validate chaptertime is in message content
     if lobby_channel:
-        if chapter_time not in message_content:
+        if chapter_time not in message.content:
             return ValidationResult(False, f"The file's final time ({chapter_time}) is missing in your message, please add it and post again.",
                                     f"final time ({chapter_time}) missing in message content")
     else:
-        if chapter_time not in message_content and chapter_time_trimmed not in message_content:
+        if chapter_time not in message.content and chapter_time_trimmed not in message.content:
             chapter_time_notif = chapter_time if chapter_time == chapter_time_trimmed else chapter_time_trimmed
             return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
                                     f"ChapterTime ({chapter_time_notif}) missing in message content")
@@ -61,7 +63,8 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
         time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
         time_saved_minus = f'-{abs(time_saved_num)}f'
         time_saved_plus = f'+{abs(time_saved_num)}f'
-        time_saved_messages = re_timesave_frames.match(message_content)
+        time_saved_messages = re_timesave_frames.match(message.content)
+        aleph_moment = " (you suck at math lol)" if message.author.id == 238029047567876096 else ""
         # ok this logic is weird cause it can be '-f', '+f', or in the case of 0 frames saved, either one
 
         if not time_saved_messages:
@@ -82,7 +85,8 @@ def validate(tas: bytes, filename: str, message_content: str, old_tas: Optional[
             time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
             if time_saved_messages[0] != time_saved_actual:
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), please fix and post again.",
+                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
+                                               f"please fix and post again{aleph_moment}.",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
     else:
         # validate draft text
