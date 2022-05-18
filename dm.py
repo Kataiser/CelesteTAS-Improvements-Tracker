@@ -24,7 +24,11 @@ async def handle(message: discord.Message):
 
 
 async def command_help(message: discord.Message):
-    """"""
+    """
+    help COMMAND
+
+      COMMAND: The command to get the parameter info for (optional)
+    """
 
     log.info("Handling 'help' command")
     message_split = message.content.split()
@@ -82,7 +86,11 @@ async def command_register_project(message: discord.Message):
     editing = improvements_channel_id in projects
 
     if editing:
+        if await not_admin(message, improvements_channel_id):
+            return
+
         log.warning("This project already exists, preserving some settings")
+        await message.channel.send("Project already exists, editing it")
         previous = {'pin': projects[improvements_channel_id]['pin'],
                     'mods': projects[improvements_channel_id]['mods'],
                     'path_cache': projects[improvements_channel_id]['path_cache']}
@@ -139,6 +147,7 @@ async def command_register_project(message: discord.Message):
     projects[improvements_channel_id] = {'name': name.replace('_', ' '),
                                          'repo': repo,
                                          'installation_owner': account,
+                                         'admin': message.author.id,
                                          'install_time': int(time.time()),
                                          'commit_drafts': commit_drafts.lower() == 'y',
                                          'is_lobby': is_lobby.lower() == 'y',
@@ -181,9 +190,14 @@ async def command_add_mods(message: discord.Message):
         await message.channel.send("Incorrect command format, see `help add_mods`")
         return
 
-    for project in projects.values():
+    for project_id in projects:
+        project = projects[project_id]
+
         if project['name'] != message_split[1].replace('_', ' '):
             continue
+
+        if await not_admin(message, project['admin']):
+            break
 
         log.info(f"Adding mods for project")
         mods_given = [mod.removesuffix('.zip') for mod in message_split[1:]]
@@ -217,6 +231,15 @@ async def command_add_category(message: discord.Message):
     """Not yet implemented"""
 
     await message.channel.send("Not yet implemented")
+
+
+async def not_admin(message: discord.Message, improvements_channel_id: int):
+    if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
+        return False
+    else:
+        log.warning("Not project admin")
+        await message.channel.send("Not allowed, you are not the project admin")
+        return True
 
 
 # TODO: make recursive (if necessary)

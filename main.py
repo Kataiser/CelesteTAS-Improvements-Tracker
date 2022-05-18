@@ -18,18 +18,23 @@ import game_sync
 import gen_token
 import utils
 import validation
-from utils import plural, projects
+from utils import plural
 
 client = discord.Client()
 debug = False
 
 
 def main():
-    global debug
+    global debug, projects
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
     debug = parser.parse_args().debug
 
+    if debug:
+        print("DEBUG MODE")
+
+    utils.load_projects()
+    projects = utils.projects
     load_project_logs()
     log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(project_logs)} project message log{plural(project_logs)}")
 
@@ -76,6 +81,8 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message):
+    await client.wait_until_ready()
+
     if message.author == client.user:
         return
     elif not message.guild:
@@ -98,7 +105,7 @@ async def on_disconnect():
 
 
 @client.event
-async def on_error():
+async def on_error(event: str):
     error = traceback.format_exc()
     log.error(error)
 
@@ -175,7 +182,8 @@ async def process_improvement_message(message: discord.Message):
             await message.add_reaction('❌')
             await message.reply(validation_result.warning_text)
 
-        log.info(f"Done processing {attachment.filename}")
+        if len(tas_attachments) > 1:
+            log.info(f"Done processing {attachment.filename}")
 
     add_project_log(message)
     await message.clear_reaction('👀')
@@ -192,20 +200,24 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
 
     if file_path:
+        draft = True
         timesave = "Updated: " if projects[message.channel.id]['is_lobby'] else f"{validation_result.timesave} "
         data['sha'] = get_sha(repo, file_path)
         data['message'] = f"{timesave}{filename}{chapter_time} from {author}"
     else:
+        draft = False
         data['message'] = f"{filename} draft by {author}{chapter_time}"
-        subdir = projects[message.channel.id]["subdir"]
+        subdir = projects[message.channel.id]['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
+        projects[message.channel.id]['path_cache'][filename] = file_path
+        utils.save_projects()
 
         if not projects[message.channel.id]['commit_drafts']:
             return
 
     log.info(f"Set commit message to \"{data['message']}\"")
     r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
-    utils.handle_potential_request_error(r, 200 if file_path else 201)
+    utils.handle_potential_request_error(r, 200 if draft else 201)
     commit_url = r.json()['commit']['html_url']
     log.info(f"Successfully committed: {commit_url}")
     return data['message'], commit_url
@@ -216,11 +228,11 @@ def get_file_repo_path(message: discord.Message, filename: str) -> Optional[str]
     project = message.channel.id
     repo = projects[project]['repo']
     path_cache = projects[project]['path_cache']
+    project_subdir = projects[message.channel.id]['subdir']
 
     if filename not in path_cache:
         # walk the repo and cache the path of all TAS files found
         log.info(f"Caching {repo} structure")
-        project_subdir = projects[message.channel.id]['subdir']
         r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
         utils.handle_potential_request_error(r, 200)
 
@@ -246,8 +258,6 @@ def get_file_repo_path(message: discord.Message, filename: str) -> Optional[str]
 
     if filename in path_cache:
         return path_cache[filename]
-
-    # otherwise, no path means draft file
 
 
 # we know the file exists, so get its SHA for updating
@@ -320,6 +330,7 @@ def create_loggers() -> (logging.Logger, logging.Logger):
 
 
 log, history_log = create_loggers()
+projects: Optional[dict] = None
 project_logs = {}
 nicknames = {234520815658336258: 'Vamp'}
 dm.client = client

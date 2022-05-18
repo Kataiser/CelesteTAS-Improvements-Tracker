@@ -19,20 +19,56 @@ def handle_potential_request_error(req: requests.Response, code: int):
         log.warning(req.text)
 
 
-def load_projects() -> dict:
+def detailed_user(message: discord.Message):
+    return f'{message.author.name}#{message.author.discriminator} ({message.author.id})'
+
+
+def load_projects():
+    global projects
+
     with open('projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = json.load(projects_json)
-        return {int(k): projects_loaded[k] for k in projects_loaded}
+        projects = {int(k): projects_loaded[k] for k in projects_loaded}
+
+    validate_project_formats()
 
 
 def save_projects():
+    validate_project_formats()
+
     with open('projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
         json.dump(projects, projects_json, ensure_ascii=False, indent=4)
 
 
-def detailed_user(message: discord.Message):
-    return f'{message.author.name}#{message.author.discriminator} ({message.author.id})'
+def validate_project_formats():
+    for project_id in projects:
+        project = projects[project_id]
+
+        try:
+            name = project['name']; assert isinstance(name, str); assert len(name) > 0
+            repo = project['repo']; assert isinstance(repo, str); assert len(repo) > 0
+            installation_owner = project['installation_owner']; assert isinstance(installation_owner, str); assert len(installation_owner) > 0
+            assert isinstance(project['admin'], int)
+            assert isinstance(project['install_time'], int)
+            assert isinstance(project['commit_drafts'], bool)
+            assert isinstance(project['is_lobby'], bool)
+            assert isinstance(project['ensure_level'], bool)
+            assert isinstance(project['pin'], int)
+            assert isinstance(project['do_run_validation'], bool)
+            assert isinstance(project['subdir'], str)
+            assert isinstance(project['mods'], list)
+            assert isinstance(project['path_cache'], dict)
+
+            for mod in project['mods']:
+                assert isinstance(mod, str); assert len(mod) > 0
+
+            for file in project['path_cache']:
+                assert isinstance(file, str); assert len(file) > 0
+                path = project['path_cache'][file]; assert isinstance(path, str); assert len(path) > 0
+
+        except (KeyError, AssertionError) as error:
+            log.error(f"Invalid format for project {project_id}: {repr(error)}")
 
 
 async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
@@ -59,7 +95,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
     repo = projects[channel.id]['repo']
     pin = projects[channel.id]['pin']
     subdir = projects[channel.id]['subdir']
-    repo_url = f'https://github.com/{repo}/{subdir}' if subdir else f'https://github.com/{repo}'
+    repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{subdir}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
     # sync_timestamp = f'<t:{round(time.time())}>'
@@ -76,4 +112,4 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
 
 
 log: Optional[logging.Logger] = None
-projects = load_projects()
+projects: Optional[dict] = None
