@@ -1,2 +1,2 @@
 @echo off
-python -O main.py
+python bot.py

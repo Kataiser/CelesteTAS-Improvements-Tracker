@@ -71,45 +71,5 @@ def validate_project_formats():
             log.error(f"Invalid format for project {project_id}: {repr(error)}")
 
 
-async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
-    lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if projects[channel.id]['is_lobby'] else ""
-    level_text = "the name of the level/map"
-    ensure_level = projects[channel.id]['ensure_level']
-
-    text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
-           f"a file, please include the amount of frames saved{f', {level_text},' if ensure_level else ''} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
-           f"Room(s) affected is ideal, and{'' if ensure_level else f' {level_text},'} previous ChapterTime, category affected, and video are optional." \
-           "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
-           "\nPackage: <{2}>" \
-           "\nLast sync verification: {3}" \
-           "\n\nBot reactions key:" \
-           "\n```" \
-           "\n📝 = Successfully verified and committed" \
-           "\n👀 = Currently processing file" \
-           "\n❌ = Invalid TAS file or post" \
-           "\n👍 = Non-TAS containing message" \
-           "\n🤘 = Successfully verified draft but didn't commit" \
-           "\n🍿 = Video in message```"
-
-    name = projects[channel.id]['name']
-    repo = projects[channel.id]['repo']
-    pin = projects[channel.id]['pin']
-    subdir = projects[channel.id]['subdir']
-    repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
-    package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{subdir}' if subdir else \
-        f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    # sync_timestamp = f'<t:{round(time.time())}>'
-    text_out = text.format(name, repo_url, package_url, "Not yet implemented")
-
-    if create:
-        log.info("Creating pin")
-        return await channel.send(text_out)
-    else:
-        pin_message = channel.get_partial_message(pin)
-        await pin_message.edit(content=text_out, suppress=True)
-        log.info("Edited pin")
-        return pin_message
-
-
 log: Optional[logging.Logger] = None
 projects: Optional[dict] = None

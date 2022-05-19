@@ -1,113 +1,16 @@
-import argparse
 import base64
 import datetime
 import json
 import logging
 import os
-import sys
-import time
-import traceback
 from typing import Optional
 
 import discord
-import psutil
 import requests
 
-import dm
-import game_sync
 import gen_token
 import utils
 import validation
-from utils import plural
-
-client = discord.Client()
-debug = False
-
-
-def main():
-    global debug, projects
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
-    debug = parser.parse_args().debug
-
-    if debug:
-        print("DEBUG MODE")
-
-    utils.load_projects()
-    projects = utils.projects
-    load_project_logs()
-    log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(project_logs)} project message log{plural(project_logs)}")
-
-    with open('bot_token', 'r') as bot_token_file:
-        bot_token = bot_token_file.read()
-
-    while True:
-        try:
-            log.info("Logging in...")
-            client.run(bot_token)
-        except Exception as error:
-            log.error(error)
-
-            if not debug:
-                log.info("Restarting bot in 5 seconds, this can only end well")
-                time.sleep(5)
-            else:
-                break
-
-
-@client.event
-async def on_ready():
-    log.info(f"Logged in as {client.user}")
-    downtime_message_count = 0
-
-    if not debug:
-        self_process = psutil.Process()
-        self_process.nice(psutil.IDLE_PRIORITY_CLASS)
-        self_process.ionice(psutil.IOPRIO_VERYLOW)
-        log.info("Set process priorities")
-    else:
-        log.info("Skipped setting priorities")
-
-    for improvements_channel in projects:
-        downtime_messages = await client.get_channel(improvements_channel).history(limit=20).flatten()
-        downtime_messages.reverse()  # make chronological
-
-        for message in downtime_messages:
-            downtime_message_count += 1
-            await process_improvement_message(message)
-
-    log.info(f"Finished considering {downtime_message_count} downtime messages")
-
-
-@client.event
-async def on_message(message: discord.Message):
-    await client.wait_until_ready()
-
-    if message.author == client.user:
-        return
-    elif not message.guild:
-        await dm.handle(message)
-        return
-    elif message.channel.id not in projects:
-        return
-
-    await process_improvement_message(message)
-
-
-@client.event
-async def on_connect():
-    log.info("Connected to Discord")
-
-
-@client.event
-async def on_disconnect():
-    log.error("Disconnected from Discord")
-
-
-@client.event
-async def on_error(event: str):
-    error = traceback.format_exc()
-    log.error(error)
 
 
 # process a message posted in a registered improvements channel
@@ -173,7 +76,7 @@ async def process_improvement_message(message: discord.Message):
                 history_log.info(history_data)
                 log.info("Added to history log")
                 await message.add_reaction('📝')
-                await utils.edit_pin(message.channel, False)
+                await edit_pin(message.channel, False)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
@@ -271,12 +174,52 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message) -> bool:
-    if message.id in project_logs[message.channel.id] or message.author == client.user or message.type.value == 6:
+    if message.id in project_logs[message.channel.id] or message.author.id == 970375635027525652 or message.type.value == 6:
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that
         post_time = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
         return post_time > projects[message.channel.id]['install_time']
+
+
+async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
+    lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if projects[channel.id]['is_lobby'] else ""
+    level_text = "the name of the level/map"
+    ensure_level = projects[channel.id]['ensure_level']
+
+    text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
+           f"a file, please include the amount of frames saved{f', {level_text},' if ensure_level else ''} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
+           f"Room(s) affected is ideal, and{'' if ensure_level else f' {level_text},'} previous ChapterTime, category affected, and video are optional." \
+           "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
+           "\nPackage: <{2}>" \
+           "\nLast sync verification: {3}" \
+           "\n\nBot reactions key:" \
+           "\n```" \
+           "\n📝 = Successfully verified and committed" \
+           "\n👀 = Currently processing file" \
+           "\n❌ = Invalid TAS file or post" \
+           "\n👍 = Non-TAS containing message" \
+           "\n🤘 = Successfully verified draft but didn't commit" \
+           "\n🍿 = Video in message```"
+
+    name = projects[channel.id]['name']
+    repo = projects[channel.id]['repo']
+    pin = projects[channel.id]['pin']
+    subdir = projects[channel.id]['subdir']
+    repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
+    package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{subdir}' if subdir else \
+        f'https://github.com/{repo}/archive/refs/heads/master.zip'
+    # sync_timestamp = f'<t:{round(time.time())}>'
+    text_out = text.format(name, repo_url, package_url, "Not yet implemented")
+
+    if create:
+        log.info("Creating pin")
+        return await channel.send(text_out)
+    else:
+        pin_message = channel.get_partial_message(pin)
+        await pin_message.edit(content=text_out, suppress=True)
+        log.info("Edited pin")
+        return pin_message
 
 
 # load the saved message IDs of already committed posts
@@ -305,37 +248,9 @@ def add_project_log(message: discord.Message):
     log.info(f"Added message ID {message.id} to {project_log_path}")
 
 
-def create_loggers() -> (logging.Logger, logging.Logger):
-    logger = logging.getLogger('bot')
-    logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    logger.addHandler(handler)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-
-    history = logging.getLogger('history')
-    history.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    history.addHandler(handler)
-
-    gen_token.log = logger
-    validation.log = logger
-    utils.log = logger
-    dm.log = logger
-    game_sync.log = logger
-    dm.history_log = history
-
-    return logger, history
-
-
-log, history_log = create_loggers()
+log: Optional[logging.Logger] = None
+history_log: Optional[logging.Logger] = None
 projects: Optional[dict] = None
 project_logs = {}
 nicknames = {234520815658336258: 'Vamp'}
-dm.client = client
 headers = None
-
-
-if __name__ == '__main__':
-    main()
