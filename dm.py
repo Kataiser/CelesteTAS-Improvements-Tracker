@@ -169,7 +169,7 @@ async def command_register_project(message: discord.Message):
 
     if not editing:
         main.get_file_repo_path(improvements_channel_id, '')
-        pinned_message = await main.edit_pin(improvements_channel, True)
+        pinned_message = await main.edit_pin(improvements_channel, True, False)
         await pinned_message.pin()
     else:
         log.info("Skipped creating pinned message")

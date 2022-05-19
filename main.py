@@ -80,7 +80,7 @@ async def process_improvement_message(message: discord.Message):
                 history_log.info(history_data)
                 log.info("Added to history log")
                 await message.add_reaction('📝')
-                await edit_pin(message.channel, False)
+                await edit_pin(message.channel, False, False)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
@@ -185,7 +185,7 @@ def is_processable_message(message: discord.Message) -> bool:
         return post_time > projects[message.channel.id]['install_time']
 
 
-async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = True):
+async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool):
     lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if projects[channel.id]['is_lobby'] else ""
     level_text = "the name of the level/map"
     ensure_level = projects[channel.id]['ensure_level']
@@ -209,7 +209,12 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
         if ran_sync:
             sync_timestamp = f"<t:{round(time.time())}>"
         else:
-            sync_timestamp = f"<t:{projects[channel.id]['last_run_validation']}>"
+            last_run = projects[channel.id]['last_run_validation']
+
+            if last_run:
+                sync_timestamp = f"<t:{last_run}>"
+            else:
+                sync_timestamp = "`Not yet run`"
     else:
         sync_timestamp = "`Disabled`"
 
