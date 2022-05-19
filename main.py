@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import time
 from typing import Optional
 
 import discord
@@ -43,12 +44,11 @@ async def process_improvement_message(message: discord.Message):
         return
     elif len(tas_attachments) > 1:
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
+        # TODO: handle this better
 
     await message.clear_reaction('❌')
     await message.add_reaction('👀')
-    global headers
-    installation_owner = projects[message.channel.id]['installation_owner']
-    headers = {'Authorization': f'token {gen_token.access_token(installation_owner)}', 'Accept': 'application/vnd.github.v3+json'}
+    generate_request_headers(projects[message.channel.id]['installation_owner'])
 
     for attachment in tas_attachments:
         log.info(f"Processing {attachment.filename}")
@@ -57,7 +57,7 @@ async def process_improvement_message(message: discord.Message):
         r = requests.get(attachment.url)
         utils.handle_potential_request_error(r, 200)
         file_content = r.content
-        old_file_path = get_file_repo_path(message, attachment.filename)
+        old_file_path = get_file_repo_path(message.channel.id, attachment.filename)
         old_file_content = None
 
         if old_file_path:
@@ -103,7 +103,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     repo = projects[message.channel.id]['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
-    file_path = get_file_repo_path(message, filename)
+    file_path = get_file_repo_path(message.channel.id, filename)
     chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
 
     if file_path:
@@ -131,11 +131,10 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
 
 # if a file exists in the repo, get its path
-def get_file_repo_path(message: discord.Message, filename: str) -> Optional[str]:
-    project = message.channel.id
+def get_file_repo_path(project: int, filename: str) -> Optional[str]:
     repo = projects[project]['repo']
     path_cache = projects[project]['path_cache']
-    project_subdir = projects[message.channel.id]['subdir']
+    project_subdir = projects[project]['subdir']
 
     if filename not in path_cache:
         # walk the repo and cache the path of all TAS files found
@@ -195,8 +194,8 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
            f"a file, please include the amount of frames saved{f', {level_text},' if ensure_level else ''} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
            f"Room(s) affected is ideal, and{'' if ensure_level else f' {level_text},'} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
-           "\nPackage: <{2}>" \
-           "\nLast sync verification: {3}" \
+           "\nPackage DL: <{2}>" \
+           "\nLast sync check: {3}" \
            "\n\nBot reactions key:" \
            "\n```" \
            "\n📝 = Successfully verified and committed" \
@@ -206,6 +205,14 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
            "\n🤘 = Successfully verified draft but didn't commit" \
            "\n🍿 = Video in message```"
 
+    if projects[channel.id]['do_run_validation']:
+        if ran_sync:
+            sync_timestamp = f"<t:{round(time.time())}>"
+        else:
+            sync_timestamp = f"<t:{projects[channel.id]['last_run_validation']}>"
+    else:
+        sync_timestamp = "`Disabled`"
+
     name = projects[channel.id]['name']
     repo = projects[channel.id]['repo']
     pin = projects[channel.id]['pin']
@@ -213,8 +220,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool = 
     repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{subdir}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    # sync_timestamp = f'<t:{round(time.time())}>'
-    text_out = text.format(name, repo_url, package_url, "Not yet implemented")
+    text_out = text.format(name, repo_url, package_url, sync_timestamp)
 
     if create:
         log.info("Creating pin")
@@ -250,6 +256,11 @@ def add_project_log(message: discord.Message):
         project_log_db.write(message.id.to_bytes(8, byteorder='little'))
 
     log.info(f"Added message ID {message.id} to {project_log_path}")
+
+
+def generate_request_headers(installation_owner: str):
+    global headers
+    headers = {'Authorization': f'token {gen_token.access_token(installation_owner)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
 def create_loggers() -> (logging.Logger, logging.Logger):

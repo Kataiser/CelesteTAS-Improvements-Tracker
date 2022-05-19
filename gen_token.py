@@ -43,8 +43,8 @@ def access_token(installation_owner: str):
     global token
     current_time = time.time()
 
-    if not token or current_time - token[1] > 9.5 * 60:
-        token = (generate_access_token(installation_owner), current_time)
+    if not token or installation_owner != token[1] or current_time - token[2] > 9.5 * 60:
+        token = (generate_access_token(installation_owner), installation_owner, current_time)
 
     return token[0]
 

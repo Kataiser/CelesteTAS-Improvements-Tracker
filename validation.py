@@ -5,6 +5,8 @@ from typing import List, Optional, Tuple
 
 import discord
 
+from utils import projects
+
 
 class ValidationResult:
     def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, chapter_time: str = None, timesave: str = None):
@@ -52,10 +54,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                                     f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     # validate level
-    level = filename.lower().removesuffix('.tas').replace('_', '')
+    if projects[message.channel.id]['ensure_level']:
+        level = filename.lower().removesuffix('.tas').replace('_', '')
 
-    if level not in message_lowercase.replace('_', '').replace(' ', ''):
-        return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
+        if level not in message_lowercase.replace('_', '').replace(' ', ''):
+            return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
     if old_tas:
         # validate timesave frames is in message content

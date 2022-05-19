@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import time
 import traceback
 
@@ -6,8 +7,10 @@ import discord
 import psutil
 
 import dm
+import game_sync
 import main
 from utils import plural, projects
+from discord.ext import tasks
 
 client = discord.Client()
 debug = False
@@ -81,6 +84,12 @@ async def on_message(message: discord.Message):
     await main.process_improvement_message(message)
 
 
+@tasks.loop(hours=2)
+async def nightly():
+    if datetime.datetime.now().hour in (4, 5):
+        await game_sync.run_syncs()
+
+
 @client.event
 async def on_connect():
     log.info("Connected to Discord")
@@ -92,13 +101,14 @@ async def on_disconnect():
 
 
 @client.event
-async def on_error(event: str):
+async def on_error(*args):
     error = traceback.format_exc()
     log.error(error)
 
 
 log, history_log = main.create_loggers()
 dm.client = client
+game_sync.client = client
 
 
 if __name__ == '__main__':

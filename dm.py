@@ -9,6 +9,7 @@ import discord
 import requests
 import yaml
 
+import main
 import utils
 from utils import plural, projects
 
@@ -40,14 +41,14 @@ async def command_help(message: discord.Message):
         except AttributeError:
             log.error(f"{command_functions[message_split[1]]} has no docstring")
     else:
-        add_bot_link = 'https:// disco rd.co m/api/oauth2 /auth orize  ? client_id= 970 375635027 525652& perm issions=76 864 &sco pe=bot'
+        add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(76864))
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                    "\n\n1. Tell Kataiser that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
                    "and also he'd like to know. Maybe this step can be removed at some point." \
                    "\n2. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
-                   f"\n3. Add bot to your server: <{add_bot_link.replace(' ', '')}>" \
+                   f"\n3. Add bot to your server: <{add_bot_link}>" \
                    "\n4. *Please* disable the View Channels permissions for categories the improvements channel isn't in, as well as other channels in that category. This is because " \
                    "otherwise every message in every server the bot's in will be processed, and since the bot is being hosted on Kataiser's machine, " \
                    "he doesn't want that background CPU usage." \
@@ -60,7 +61,7 @@ async def command_help(message: discord.Message):
 
 async def command_register_project(message: discord.Message):
     """
-    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL
+    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
 
       NAME: The name of the project (with underscores instead of spaces), ex: Into_the_Jungle, Strawberry_Jam, Celeste_maingame, Celeste_mindash
       IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
@@ -69,19 +70,20 @@ async def command_register_project(message: discord.Message):
       COMMIT_DRAFTS: Automatically commit drafts to the root directory (Y or N)
       IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently (Y or N)
       ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file (Y or N)
+      DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (Y or N)
     """
 
     log.info("Handling 'register_project' command")
     message_split = message.content.split()
 
-    if len(message_split) != 8 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn] [YyNn] [YyNn]', message.content):
+    if len(message_split) != 9 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn] [YyNn] [YyNn] [YyNn]', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help`")
         return
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
-    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts, is_lobby, ensure_level = message_split
+    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts, is_lobby, ensure_level, do_run_validation = message_split
     improvements_channel_id = int(improvements_channel_id)
     editing = improvements_channel_id in projects
 
@@ -142,6 +144,12 @@ async def command_register_project(message: discord.Message):
         await message.channel.send(f"GitHub account \"{account}\" doesn't seem to exist")
         return
 
+    # verify not adding run validation to a lobby
+    if do_run_validation.lower() == 'y' and is_lobby.lower() == 'y':
+        log.error("Can't add run validation to a lobby project")
+        await message.channel.send("Enabling run validation for a lobby project is not allowed")
+        return
+
     log.info("Verification successful")
 
     projects[improvements_channel_id] = {'name': name.replace('_', ' '),
@@ -152,15 +160,16 @@ async def command_register_project(message: discord.Message):
                                          'commit_drafts': commit_drafts.lower() == 'y',
                                          'is_lobby': is_lobby.lower() == 'y',
                                          'ensure_level': ensure_level.lower() == 'y',
+                                         'do_run_validation': do_run_validation.lower() == 'y',
+                                         'last_run_validation': None,
                                          'pin': None,
-                                         'do_run_validation': False,
                                          'subdir': subdir,
                                          'mods': previous['mods'] if editing else [],
                                          'path_cache': previous['path_cache'] if editing else {}}
-    # TODO: handle do_run_validation
 
     if not editing:
-        pinned_message = await utils.edit_pin(improvements_channel, True)
+        main.get_file_repo_path(improvements_channel_id, '')
+        pinned_message = await main.edit_pin(improvements_channel, True)
         await pinned_message.pin()
     else:
         log.info("Skipped creating pinned message")
@@ -170,20 +179,23 @@ async def command_register_project(message: discord.Message):
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
     log.info(project_added_log)
     history_log.info(project_added_log)
+    add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_run_validation.lower() == 'y' else ""
     await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
-                               "run the command again and it will overwrite what was there before.")
+                               f"run the command again and it will overwrite what was there before.{add_mods_text}")
 
 
 async def command_add_mods(message: discord.Message):
     """
     add_mods PROJECT_NAME MODS
 
-      PROJECT_NAME: The name of your project. If you have multiple improvement channels with the same name, this will update all of them
+      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
     log.info("Handling 'add_mods' command")
     message_split = message.content.split()
+    project_search_name = message_split[1].replace('_', ' ')
+    project_mods_added = False
 
     if len(message_split) < 3 or not re.match(r'add_mods .+ .+', message.content):
         log.warning("Bad command format")
@@ -193,22 +205,27 @@ async def command_add_mods(message: discord.Message):
     for project_id in projects:
         project = projects[project_id]
 
-        if project['name'] != message_split[1].replace('_', ' '):
+        if project['name'] != project_search_name:
             continue
 
-        if await not_admin(message, project['admin']):
+        if await not_admin(message, project_id):
             break
 
-        log.info(f"Adding mods for project")
-        mods_given = [mod.removesuffix('.zip') for mod in message_split[1:]]
+        if not project['do_run_validation']:
+            log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
+            continue
+
+        log.info(f"Adding mods for project: {project['name']}")
+        project_mods_added = True
+        mods_given = [mod.removesuffix('.zip') for mod in message_split[2:]]
         project_mods = set(project['mods'])
-        log.info(f"{len(project_mods)} mod(s) before adding: {project_mods}")
+        log.info(f"{len(project_mods)} mod{plural(project_mods)} before adding: {project_mods}")
         project_mods = project_mods.union(mods_given)
 
         for mod_given in mods_given:
             project_mods = project_mods.union(get_mod_dependencies(mod_given))
 
-        log.info(f"{len(project_mods)} mod(s) after adding: {project_mods}")
+        log.info(f"{len(project_mods)} mod{plural(project_mods)} after adding: {project_mods}")
         project['mods'] = list(project_mods)
         utils.save_projects()
         mods_missing = set()
@@ -226,6 +243,10 @@ async def command_add_mods(message: discord.Message):
             await (await client.fetch_user(219955313334288385)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
             await message.channel.send(f"The following mod(s) are not currently prepared for sync testing (Kataiser has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
 
+    if not project_mods_added:
+        log.warning(f"No projects found matching: {project_search_name}")
+        await message.channel.send("No projects (with sync checking enabled) matching that name found")
+
 
 async def command_add_category(message: discord.Message):
     """Not yet implemented"""
@@ -233,6 +254,7 @@ async def command_add_category(message: discord.Message):
     await message.channel.send("Not yet implemented")
 
 
+# verify that the user editing the project is the admin (or Kataiser)
 async def not_admin(message: discord.Message, improvements_channel_id: int):
     if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
         return False

@@ -55,6 +55,7 @@ def validate_project_formats(projects: dict):
             assert isinstance(project['ensure_level'], bool)
             assert isinstance(project['pin'], int)
             assert isinstance(project['do_run_validation'], bool)
+            assert isinstance(project['last_run_validation'], int) or project['last_run_validation'] is None
             assert isinstance(project['subdir'], str)
             assert isinstance(project['mods'], list)
             assert isinstance(project['path_cache'], dict)
@@ -66,6 +67,7 @@ def validate_project_formats(projects: dict):
                 assert isinstance(file, str); assert len(file) > 0
                 path = project['path_cache'][file]; assert isinstance(path, str); assert len(path) > 0
 
+            assert len(project) == 14
         except (KeyError, AssertionError) as error:
             log.error(f"Invalid format for project {project_id}: {repr(error)}")
 

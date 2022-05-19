@@ -1,9 +1,12 @@
+import base64
 import logging
 import os
 import subprocess
 import time
 from typing import Optional
 
+import discord
+import psutil
 import requests
 
 import main
@@ -12,12 +15,29 @@ import validation
 from utils import plural, projects
 
 
-def sync_test(project: int):
+async def run_syncs():
+    log.info("Running all sync tests")
+
+    for project_id in projects:
+        if projects[project_id]['do_run_validation'] and projects[project_id]['path_cache']:
+            await sync_test(project_id)
+
+
+async def sync_test(project: int):
     log.info(f"Running sync test for project: {projects[project]['name']}")
     installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
     mods = projects[project]['mods']
+    path_cache = projects[project]['path_cache']
+    repo = projects[project]['repo']
     blacklist = []
+    debug_save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug')]
+    desyncs = []
 
+    # remove all files related to the debug save
+    for debug_save_file in debug_save_files:
+        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
+
+    # create the mod blacklist
     for installed_mod in installed_mods:
         if installed_mod.removesuffix('.zip') not in mods and installed_mod != 'CelesteTAS.zip':
             blacklist.append(installed_mod)
@@ -26,10 +46,11 @@ def sync_test(project: int):
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
-    log.info(f"Created blacklist, launching game with {len(mods)} mod{plural(mods)}")
+    log.info(f"Removed {len(debug_save_files)} debug save files and created blacklist, launching game with {len(mods)} mod{plural(mods)}")
     subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
 
+    # wait for the game to load (handles mods updating as well)
     while not game_loaded:
         try:
             time.sleep(2)
@@ -41,57 +62,97 @@ def sync_test(project: int):
             time.sleep(2)
             game_loaded = True
 
-    test_path = r'C:\Program Files (x86)\Steam\steamapps\common\Celeste\CelesteTAS\1A.tas'
+    main.generate_request_headers(projects[project]['installation_owner'])
 
-    with open(test_path, 'rb') as tas_file:
-        tas_read = tas_file.read()
+    for tas_filename in path_cache:
+        log.info(f"Downloading {path_cache[tas_filename]}")
+        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers)
+        utils.handle_potential_request_error(r, 200)
+        tas_read = base64.b64decode(r.json()['content'])
 
-    # set up temp tas file
-    tas_lines = validation.as_lines(tas_read)
-    _, _, chapter_time, chapter_time_trimmed, chapter_time_line = validation.parse_tas_file(tas_lines, False, False)
-    tas_lines[chapter_time_line] = 'ChapterTime: '
-    tas_lines.append('***')
+        # set up temp tas file
+        tas_lines = validation.as_lines(tas_read)
+        _, _, chapter_time, chapter_time_trimmed, chapter_time_line = validation.parse_tas_file(tas_lines, False, False)
+        tas_lines[chapter_time_line] = 'ChapterTime: '
+        tas_lines.append('***')
 
-    with open(r'E:\Big downloads\celeste\temp.tas', 'w', encoding='UTF8') as temp_tas:
-        temp_tas.write('\n'.join(tas_lines))
+        with open(r'E:\Big downloads\celeste\temp.tas', 'w', encoding='UTF8') as temp_tas:
+            temp_tas.write('\n'.join(tas_lines))
 
-    # now run it
-    log.info(f"Testing timing of {os.path.basename(test_path)} ({chapter_time_trimmed})")
-    requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas')
-    tas_finished = False
+        # now run it
+        log.info(f"Testing timing of {tas_filename} ({chapter_time_trimmed})")
+        requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas')
+        tas_finished = False
 
-    while not tas_finished:
-        try:
-            time.sleep(2)
-            session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
-        except requests.ConnectTimeout:
-            pass
+        while not tas_finished:
+            try:
+                time.sleep(2)
+                session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
+            except requests.ConnectTimeout:
+                pass
+            else:
+                tas_finished = 'Running: False' in session_data.text
+
+        log.info("TAS has finished")
+        time.sleep(2)
+
+        # determine if it synced or not
+        with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
+            tas_read = tas_file.read()
+
+        _, found_chaptertime, chapter_time_new, chapter_time_new_trimmed, _ = validation.parse_tas_file(validation.as_lines(tas_read), False, False)
+
+        if found_chaptertime:
+            frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
+            synced = frame_diff == 0
+            log.info(f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
+
+            if not synced:
+                desyncs.append(tas_filename)
         else:
-            tas_finished = 'Running: False' in session_data.text
+            log.info("Desynced (no ChapterTime)")
+            desyncs.append(tas_filename)
 
-    log.info("TAS has finished")
-    time.sleep(2)
+    # close the game and studio
+    try:
+        # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/tasklist
+        processes = str(subprocess.check_output('tasklist /fi "STATUS eq running"')).split(r'\r\n')
+    except subprocess.CalledProcessError as error:
+        processes = []
+        log.error(repr(error))
 
-    with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
-        tas_read = tas_file.read()
+    for process_line in processes:
+        if '.exe' not in process_line:
+            continue
 
-    _, found_chaptertime, chapter_time_new, chapter_time_new_trimmed, _ = validation.parse_tas_file(validation.as_lines(tas_read), False, False)
-    synced = False
+        process_name = process_line.split('.exe')[0]
+        process_pid = int(process_line.split('.exe')[1].split()[0])
 
-    if found_chaptertime:
-        frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
-        synced = frame_diff == 0
-        log.info(f"{chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
-    else:
-        log.info("Desynced")
-        synced = False
+        if process_name == 'Celeste':
+            try:
+                psutil.Process(process_pid).kill()
+                log.info("Closed Celeste")
+            except psutil.NoSuchProcess as error:
+                log.error(repr(error))
+        elif 'studio' in process_name.lower() and 'celeste' in process_name.lower():
+            try:
+                psutil.Process(process_pid).kill()
+                log.info("Closed Studio")
+            except psutil.NoSuchProcess as error:
+                log.error(repr(error))
+
+    time.sleep(1)
+    improvements_channel = client.get_channel(project)
+    await main.edit_pin(improvements_channel, False, True)
+
+    if desyncs:
+        desyncs_formatted = '\n'.join(desyncs)
+        await improvements_channel.send(f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (of {len(path_cache)} file{plural(path_cache)}):\n```\n{desyncs_formatted}```")
 
 
 log: Optional[logging.Logger] = None
+client: Optional[discord.Client] = None
 
 
 if __name__ == '__main__':
-    log = main.create_loggers()[0]
-    utils.load_projects()
-
-    sync_test(970380662907482142)
+    run_syncs()
