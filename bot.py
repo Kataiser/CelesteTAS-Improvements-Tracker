@@ -1,27 +1,20 @@
 import argparse
-import logging
-import sys
 import time
 import traceback
-from typing import Optional
 
 import discord
 import psutil
 
 import dm
-import game_sync
-import gen_token
 import main
-import utils
-import validation
-from utils import plural
+from utils import plural, projects
 
 client = discord.Client()
 debug = False
 
 
 def bot():
-    global debug, projects
+    global debug
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
     debug = parser.parse_args().debug
@@ -29,9 +22,6 @@ def bot():
     if debug:
         print("DEBUG MODE")
 
-    utils.load_projects()
-    projects = utils.projects
-    main.projects = projects
     main.load_project_logs()
     log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(main.project_logs)} project message log{plural(main.project_logs)}")
 
@@ -107,34 +97,7 @@ async def on_error(event: str):
     log.error(error)
 
 
-def create_loggers() -> (logging.Logger, logging.Logger):
-    logger = logging.getLogger('bot')
-    logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    logger.addHandler(handler)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-
-    history = logging.getLogger('history')
-    history.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    history.addHandler(handler)
-
-    main.log = logger
-    gen_token.log = logger
-    validation.log = logger
-    utils.log = logger
-    dm.log = logger
-    game_sync.log = logger
-    main.history_log = history
-    dm.history_log = history
-
-    return logger, history
-
-
-log, history_log = create_loggers()
-projects: Optional[dict] = None
+log, history_log = main.create_loggers()
 dm.client = client
 
 

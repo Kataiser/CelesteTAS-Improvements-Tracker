@@ -3,14 +3,18 @@ import datetime
 import json
 import logging
 import os
+import sys
 from typing import Optional
 
 import discord
 import requests
 
+import dm
+import game_sync
 import gen_token
 import utils
 import validation
+from utils import projects
 
 
 # process a message posted in a registered improvements channel
@@ -248,9 +252,35 @@ def add_project_log(message: discord.Message):
     log.info(f"Added message ID {message.id} to {project_log_path}")
 
 
+def create_loggers() -> (logging.Logger, logging.Logger):
+    logger = logging.getLogger('bot')
+    logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
+    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+    logger.addHandler(handler)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    history = logging.getLogger('history')
+    history.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
+    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+    history.addHandler(handler)
+
+    global log, history_log
+    log = logger
+    gen_token.log = logger
+    validation.log = logger
+    utils.log = logger
+    dm.log = logger
+    game_sync.log = logger
+    history_log = history
+    dm.history_log = history
+
+    return logger, history
+
+
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
-projects: Optional[dict] = None
 project_logs = {}
 nicknames = {234520815658336258: 'Vamp'}
 headers = None

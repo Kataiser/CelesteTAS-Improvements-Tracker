@@ -24,24 +24,23 @@ def detailed_user(message: discord.Message):
 
 
 def load_projects():
-    global projects
-
     with open('projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = json.load(projects_json)
-        projects = {int(k): projects_loaded[k] for k in projects_loaded}
+        projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
 
-    validate_project_formats()
+    validate_project_formats(projects_fixed)
+    return projects_fixed
 
 
 def save_projects():
-    validate_project_formats()
+    validate_project_formats(projects)
 
     with open('projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
         json.dump(projects, projects_json, ensure_ascii=False, indent=4)
 
 
-def validate_project_formats():
+def validate_project_formats(projects: dict):
     for project_id in projects:
         project = projects[project_id]
 
@@ -72,4 +71,4 @@ def validate_project_formats():
 
 
 log: Optional[logging.Logger] = None
-projects: Optional[dict] = None
+projects = load_projects()

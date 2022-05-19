@@ -28,7 +28,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
-    found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed = parse_tas_file(tas_lines, True, lobby_channel)
+    found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed, _ = parse_tas_file(tas_lines, True, lobby_channel)
 
     if len(found_breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {found_breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
@@ -96,7 +96,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     return ValidationResult(True, chapter_time=chapter_time, timesave=time_saved_messages[0] if old_tas else None)
 
 
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, is_lobby_file: bool) -> Tuple[list, bool, Optional[str], Optional[str]]:
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, is_lobby_file: bool) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
     found_breakpoints = []
     found_chaptertime = False
     chaptertime_line = None
@@ -125,7 +125,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, is_lobby_file: bool)
             chapter_time = tas_lines[chaptertime_line].partition(' ')[2].partition('(')[0]
             chapter_time_trimmed = chapter_time.removeprefix('0:').removeprefix('0')
 
-    return found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed
+    return found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed, chaptertime_line
 
 
 def calculate_time_difference(time_old: str, time_new: str) -> int:
