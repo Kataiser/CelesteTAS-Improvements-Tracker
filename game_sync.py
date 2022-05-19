@@ -1,6 +1,7 @@
 import base64
 import logging
 import os
+import shutil
 import subprocess
 import time
 from typing import Optional
@@ -22,6 +23,18 @@ async def run_syncs():
         if projects[project_id]['do_run_validation'] and projects[project_id]['path_cache']:
             await sync_test(project_id)
 
+    remove_debug_save_files()
+    files_to_remove = ['log.txt', 'temp.tas', 'Mods\\blacklist.txt']
+    dirs_to_remove = ['LogHistory', 'TAS Files\\Backups']
+
+    for file_to_remove in files_to_remove:
+        os.remove(f'E:\\Big downloads\\celeste\\{file_to_remove}')
+
+    for dir_to_remove in dirs_to_remove:
+        shutil.rmtree(f'E:\\Big downloads\\celeste\\{dir_to_remove}')
+
+    log.info(f"Deleted {len(files_to_remove)} files and {len(dirs_to_remove)} dirs from game install")
+
 
 async def sync_test(project: int):
     log.info(f"Running sync test for project: {projects[project]['name']}")
@@ -30,12 +43,8 @@ async def sync_test(project: int):
     path_cache = projects[project]['path_cache']
     repo = projects[project]['repo']
     blacklist = []
-    debug_save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug')]
     desyncs = []
-
-    # remove all files related to the debug save
-    for debug_save_file in debug_save_files:
-        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
+    remove_debug_save_files()
 
     # create the mod blacklist
     for installed_mod in installed_mods:
@@ -46,7 +55,7 @@ async def sync_test(project: int):
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
-    log.info(f"Removed {len(debug_save_files)} debug save files and created blacklist, launching game with {len(mods)} mod{plural(mods)}")
+    log.info(f"Created blacklist, launching game with {len(mods)} mod{plural(mods)}")
     subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
 
@@ -148,6 +157,16 @@ async def sync_test(project: int):
     if desyncs:
         desyncs_formatted = '\n'.join(desyncs)
         await improvements_channel.send(f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (of {len(path_cache)} file{plural(path_cache)}):\n```\n{desyncs_formatted}```")
+
+
+# remove all files related to the debug save
+def remove_debug_save_files():
+    debug_save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug')]
+
+    for debug_save_file in debug_save_files:
+        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
+
+    log.info(f"Removed {len(debug_save_files)} debug save files")
 
 
 log: Optional[logging.Logger] = None
