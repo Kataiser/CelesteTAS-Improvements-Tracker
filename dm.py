@@ -293,7 +293,8 @@ async def command_run_sync_check(message: discord.Message):
             continue
 
         await message.channel.send(f"Running sync check for project \"{project['name']}\"...")
-        desync_text = await game_sync.sync_test(project_id)
+        desync_text = await game_sync.sync_test(project_id, message.channel)
+        game_sync.post_cleanup()
         ran_validation = True
 
         if desync_text:

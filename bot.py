@@ -33,6 +33,7 @@ def bot():
 
     while True:
         try:
+            nightly.start()
             log.info("Logging in...")
             client.run(bot_token)
         except Exception as error:

@@ -23,20 +23,10 @@ async def run_syncs():
         if projects[project_id]['do_run_validation'] and projects[project_id]['path_cache']:
             await sync_test(project_id)
 
-    remove_debug_save_files()
-    files_to_remove = ['log.txt', 'temp.tas', 'Mods\\blacklist.txt']
-    dirs_to_remove = ['LogHistory', 'TAS Files\\Backups']
-
-    for file_to_remove in files_to_remove:
-        os.remove(f'E:\\Big downloads\\celeste\\{file_to_remove}')
-
-    for dir_to_remove in dirs_to_remove:
-        shutil.rmtree(f'E:\\Big downloads\\celeste\\{dir_to_remove}')
-
-    log.info(f"Deleted {len(files_to_remove)} files and {len(dirs_to_remove)} dirs from game install")
+    post_cleanup()
 
 
-async def sync_test(project: int) -> Optional[str]:
+async def sync_test(project: int, report_channel: Optional[discord.DMChannel] = None) -> Optional[str]:
     log.info(f"Running sync test for project: {projects[project]['name']}")
     installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
     mods = projects[project]['mods']
@@ -55,9 +45,13 @@ async def sync_test(project: int) -> Optional[str]:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
-    log.info(f"Created blacklist, launching game with {len(mods)} mod{plural(mods)}")
+    launching_game_text = f"Created blacklist, launching game with {len(mods)} mod{plural(mods)}"
+    log.info(launching_game_text)
     subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
+
+    if report_channel:
+        await report_channel.send(f"`{launching_game_text}`")
 
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
@@ -89,13 +83,17 @@ async def sync_test(project: int) -> Optional[str]:
             temp_tas.write('\n'.join(tas_lines))
 
         # now run it
-        log.info(f"Testing timing of {tas_filename} ({chapter_time_trimmed})")
+        testing_timing_text = f"Testing timing of {tas_filename} ({chapter_time_trimmed})"
+        log.info(testing_timing_text)
         requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas')
         tas_finished = False
 
+        if report_channel:
+            await report_channel.send(f"`{testing_timing_text}`")
+
         while not tas_finished:
             try:
-                time.sleep(2)
+                time.sleep(1)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
             except requests.ConnectTimeout:
                 pass
@@ -103,7 +101,7 @@ async def sync_test(project: int) -> Optional[str]:
                 tas_finished = 'Running: False' in session_data.text
 
         log.info("TAS has finished")
-        time.sleep(2)
+        time.sleep(5)
 
         # determine if it synced or not
         with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
@@ -114,13 +112,18 @@ async def sync_test(project: int) -> Optional[str]:
         if found_chaptertime:
             frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
             synced = frame_diff == 0
-            log.info(f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
+            sync_text = f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)"
+            log.info(sync_text)
 
             if not synced:
                 desyncs.append(tas_filename)
         else:
-            log.info("Desynced (no ChapterTime)")
+            sync_text = "Desynced (no ChapterTime)"
+            log.info(sync_text)
             desyncs.append(tas_filename)
+
+        if report_channel:
+            await report_channel.send(f"`{sync_text}`")
 
     # close the game and studio
     try:
@@ -169,6 +172,30 @@ def remove_debug_save_files():
         os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
 
     log.info(f"Removed {len(debug_save_files)} debug save files")
+
+
+def post_cleanup():
+    remove_debug_save_files()
+    files_to_remove = ['log.txt', 'temp.tas', 'Mods\\blacklist.txt']
+    dirs_to_remove = ['LogHistory', 'TAS Files\\Backups']
+    files_removed = 0
+    dirs_removed = 0
+
+    for file_to_remove in files_to_remove:
+        file_to_remove = f'E:\\Big downloads\\celeste\\{file_to_remove}'
+
+        if os.path.isfile(file_to_remove):
+            files_removed += 1
+            os.remove(file_to_remove)
+
+    for dir_to_remove in dirs_to_remove:
+        dir_to_remove = f'E:\\Big downloads\\celeste\\{dir_to_remove}'
+
+        if os.path.isdir(dir_to_remove):
+            dirs_removed += 1
+            shutil.rmtree(dir_to_remove)
+
+    log.info(f"Deleted {files_removed} file{plural(files_removed)} and {dirs_removed} dir{plural(dirs_to_remove)} from game install")
 
 
 log: Optional[logging.Logger] = None
