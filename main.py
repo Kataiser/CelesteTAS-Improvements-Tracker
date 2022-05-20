@@ -107,12 +107,12 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
 
     if file_path:
-        draft = True
+        draft = False
         timesave = "Updated: " if projects[message.channel.id]['is_lobby'] else f"{validation_result.timesave} "
         data['sha'] = get_sha(repo, file_path)
         data['message'] = f"{timesave}{filename}{chapter_time} from {author}"
     else:
-        draft = False
+        draft = True
         data['message'] = f"{filename} draft by {author}{chapter_time}"
         subdir = projects[message.channel.id]['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
@@ -124,7 +124,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
     log.info(f"Set commit message to \"{data['message']}\"")
     r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
-    utils.handle_potential_request_error(r, 200 if draft else 201)
+    utils.handle_potential_request_error(r, 201 if draft else 200)
     commit_url = r.json()['commit']['html_url']
     log.info(f"Successfully committed: {commit_url}")
     return data['message'], commit_url
@@ -298,5 +298,5 @@ def create_loggers() -> (logging.Logger, logging.Logger):
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 project_logs = {}
-nicknames = {234520815658336258: 'Vamp'}
+nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
 headers = None

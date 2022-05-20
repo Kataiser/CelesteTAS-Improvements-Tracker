@@ -1,3 +1,5 @@
+import base64
+import json
 import logging
 import os
 import re
@@ -195,13 +197,14 @@ async def command_add_mods(message: discord.Message):
     """
 
     message_split = message.content.split()
-    project_search_name = message_split[1].replace('_', ' ')
-    project_mods_added = False
 
     if len(message_split) < 3 or not re.match(r'add_mods .+ .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help add_mods`")
         return
+
+    project_search_name = message_split[1].replace('_', ' ')
+    project_mods_added = False
 
     for project_id in projects:
         project = projects[project_id]
@@ -262,15 +265,16 @@ async def command_run_sync_check(message: discord.Message):
     """
 
     message_split = message.content.split()
-    project_search_name = message_split[1].replace('_', ' ')
-    ran_validation = False
-    idle_time = (win32api.GetTickCount() - win32api.GetLastInputInfo()) / 1000
-    log.info(f"Idle time: {idle_time} seconds")
 
     if len(message_split) != 2 or not re.match(r'run_sync_check .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help run_sync_check`")
         return
+
+    project_search_name = message_split[1].replace('_', ' ')
+    ran_validation = False
+    idle_time = (win32api.GetTickCount() - win32api.GetLastInputInfo()) / 1000
+    log.info(f"Idle time: {idle_time} seconds")
 
     if idle_time < 720 and message.author.id != 219955313334288385:  # 12 mins
         await message.channel.send("Kataiser is not currently AFK, so maybe running the game on his PC is not a great idea right now")
@@ -307,6 +311,78 @@ async def command_run_sync_check(message: discord.Message):
         await message.channel.send("No projects (with sync checking enabled) matching that name found")
 
 
+async def command_rename_file(message: discord.Message):
+    """
+    rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
+
+      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will search in all of them
+      FILENAME_BEFORE: The current name of the TAS file you want to rename (with .tas)
+      FILENAME_AFTER: What you want the TAS file to be renamed to (with .tas)
+    """
+
+    message_split = message.content.split()
+
+    if len(message_split) != 4 or not re.match(r'rename_file .+ .+\.tas .+\.tas', message.content):
+        log.warning("Bad command format")
+        await message.channel.send("Incorrect command format, see `help run_sync_check`")
+        return
+
+    project_search_name = message_split[1].replace('_', ' ')
+    filename_before, filename_after = message_split[2:]
+    renamed_file = False
+
+    for project_id in projects:
+        project = projects[project_id]
+
+        if project['name'] != project_search_name:
+            continue
+
+        main.generate_request_headers(project['installation_owner'])
+        main.get_file_repo_path(project_id, '')
+
+        if filename_before not in project['path_cache']:
+            log.warning(f"{filename_before} not in project: {project['name']}")
+
+        renaming_text = f"Renaming {filename_before} to {filename_after} in project \"{project['name']}\""
+        log.info(renaming_text)
+        await message.channel.send(renaming_text)
+        repo = project['repo']
+        file_path = project['path_cache'][filename_before]
+        renamed_file = True
+
+        log.info(f"Downloading {filename_before}")
+        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
+        utils.handle_potential_request_error(r, 200)
+        tas_downloaded = base64.b64decode(r.json()['content'])
+
+        # commit 1: delete old file
+        log.info("Performing delete commit")
+        data = {'message': f"Renamed {filename_before} to {filename_after} (deleting)", 'sha': main.get_sha(repo, file_path)}
+        r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
+        utils.handle_potential_request_error(r, 200)
+        time.sleep(1)  # just to be safe
+
+        # commit 2: create new file
+        log.info("Performing recreate commit")
+        file_path = file_path.replace(filename_before, filename_after)
+        data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
+        utils.handle_potential_request_error(r, 201)
+
+        del project['path_cache'][filename_before]
+        project['path_cache'][filename_after] = file_path
+        utils.save_projects()
+        log.info("Rename successful")
+        await message.channel.send("Rename successful")
+        improvements_channel = client.get_channel(project_id)
+        await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
+        await main.edit_pin(improvements_channel, False, True)
+
+    if not renamed_file:
+        log.warning("No files renamed")
+        await message.channel.send(f"{filename_before} not found in any project named {project_search_name}")
+
+
 # verify that the user editing the project is the admin (or Kataiser)
 async def not_admin(message: discord.Message, improvements_channel_id: int):
     if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
@@ -341,6 +417,6 @@ history_log: Optional[logging.Logger] = None
 
 command_functions = {'help': command_help,
                      'register_project': command_register_project,
+                     'rename_file': command_rename_file,
                      'add_mods': command_add_mods,
-                     'add_category': command_add_category,
                      'run_sync_check': command_run_sync_check}
