@@ -36,7 +36,7 @@ async def run_syncs():
     log.info(f"Deleted {len(files_to_remove)} files and {len(dirs_to_remove)} dirs from game install")
 
 
-async def sync_test(project: int):
+async def sync_test(project: int) -> Optional[str]:
     log.info(f"Running sync test for project: {projects[project]['name']}")
     installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
     mods = projects[project]['mods']
@@ -156,7 +156,9 @@ async def sync_test(project: int):
 
     if desyncs:
         desyncs_formatted = '\n'.join(desyncs)
-        await improvements_channel.send(f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (of {len(path_cache)} file{plural(path_cache)}):\n```\n{desyncs_formatted}```")
+        desync_warning = f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (of {len(path_cache)} file{plural(path_cache)}):\n```\n{desyncs_formatted}```"
+        await improvements_channel.send(desync_warning)
+        return desync_warning
 
 
 # remove all files related to the debug save

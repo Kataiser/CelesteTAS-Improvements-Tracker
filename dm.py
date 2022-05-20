@@ -9,6 +9,7 @@ import discord
 import requests
 import yaml
 
+import game_sync
 import main
 import utils
 from utils import plural, projects
@@ -19,6 +20,7 @@ async def handle(message: discord.Message):
     command = message.content.partition(' ')[0]
 
     if command in command_functions:
+        log.info(f"Handling '{command}' command")
         await command_functions[command](message)
     else:
         await message.channel.send("Unrecognized command, try `help`")
@@ -31,7 +33,6 @@ async def command_help(message: discord.Message):
       COMMAND: The command to get the parameter info for (optional)
     """
 
-    log.info("Handling 'help' command")
     message_split = message.content.split()
 
     if len(message_split) > 1 and message_split[1] in command_functions:
@@ -42,6 +43,7 @@ async def command_help(message: discord.Message):
             log.error(f"{command_functions[message_split[1]]} has no docstring")
     else:
         add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(76864))
+        commands_available = '\n'.join(command_functions)
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                    "\n\n1. Tell Kataiser that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
@@ -54,7 +56,7 @@ async def command_help(message: discord.Message):
                    "he doesn't want that background CPU usage." \
                    "\n5. Run the `register_project` command, see `help register_project` for parameters." \
                    "\n\nAvailable commands:" \
-                   "\n```help\nregister_project\nadd_mods\nadd_category```"
+                   f"\n```\n{commands_available}```"
 
         await message.channel.send(response)
 
@@ -73,12 +75,11 @@ async def command_register_project(message: discord.Message):
       DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (Y or N)
     """
 
-    log.info("Handling 'register_project' command")
     message_split = message.content.split()
 
     if len(message_split) != 9 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn] [YyNn] [YyNn] [YyNn]', message.content):
         log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help`")
+        await message.channel.send("Incorrect command format, see `help register_project`")
         return
 
     log.info("Verifying project")
@@ -188,11 +189,10 @@ async def command_add_mods(message: discord.Message):
     """
     add_mods PROJECT_NAME MODS
 
-      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same name, this will update all of them
+      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
-    log.info("Handling 'add_mods' command")
     message_split = message.content.split()
     project_search_name = message_split[1].replace('_', ' ')
     project_mods_added = False
@@ -207,12 +207,11 @@ async def command_add_mods(message: discord.Message):
 
         if project['name'] != project_search_name:
             continue
-
-        if await not_admin(message, project_id):
+        elif await not_admin(message, project_id):
             break
-
-        if not project['do_run_validation']:
+        elif not project['do_run_validation']:
             log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
+            await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled")
             continue
 
         log.info(f"Adding mods for project: {project['name']}")
@@ -254,6 +253,52 @@ async def command_add_category(message: discord.Message):
     await message.channel.send("Not yet implemented")
 
 
+async def command_run_sync_check(message: discord.Message):
+    """
+    run_sync_check PROJECT_NAME
+
+      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will run it for all of them
+    """
+
+    message_split = message.content.split()
+    project_search_name = message_split[1].replace('_', ' ')
+    ran_validation = False
+
+    if len(message_split) != 2 or not re.match(r'run_sync_check .+', message.content):
+        log.warning("Bad command format")
+        await message.channel.send("Incorrect command format, see `help run_sync_check`")
+        return
+
+    for project_id in projects:
+        project = projects[project_id]
+
+        if project['name'] != project_search_name:
+            continue
+        elif await not_admin(message, project_id):
+            break
+        elif not project['do_run_validation']:
+            log.warning(f"Trying to do run validation for project: {project['name']}, but it's disabled")
+            await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled")
+            continue
+        elif not project['path_cache']:
+            log.warning(f"Trying to do run validation for project: {project['name']}, but it has no files")
+            await message.channel.send(f"Project \"{project['name']}\" seems to have no files to sync check")
+            continue
+
+        await message.channel.send(f"Running sync check for project \"{project['name']}\"...")
+        desync_text = await game_sync.sync_test(project_id)
+        ran_validation = True
+
+        if desync_text:
+            await message.channel.send(desync_text)
+        else:
+            await message.channel.send(f"Sync check finished, 0 desyncs found (of {len(project['path_cache'])} file{plural(project['path_cache'])})")
+
+    if not ran_validation:
+        log.warning(f"No projects found matching: {project_search_name}")
+        await message.channel.send("No projects (with sync checking enabled) matching that name found")
+
+
 # verify that the user editing the project is the admin (or Kataiser)
 async def not_admin(message: discord.Message, improvements_channel_id: int):
     if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
@@ -281,7 +326,13 @@ def get_mod_dependencies(mod: str) -> list:
     return [d['Name'] for d in mod_everest[0]['Dependencies'] if d['Name'] != 'Everest']
 
 
-command_functions = {'help': command_help, 'register_project': command_register_project, 'add_category': command_add_category, 'add_mods': command_add_mods}
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
+
+
+command_functions = {'help': command_help,
+                     'register_project': command_register_project,
+                     'add_mods': command_add_mods,
+                     'add_category': command_add_category,
+                     'run_sync_check': command_run_sync_check}
