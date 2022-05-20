@@ -349,6 +349,7 @@ async def command_rename_file(message: discord.Message):
         repo = project['repo']
         file_path = project['path_cache'][filename_before]
         renamed_file = True
+        user_github_account = main.get_user_github_account(message.author.id)
 
         log.info(f"Downloading {filename_before}")
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
@@ -358,6 +359,9 @@ async def command_rename_file(message: discord.Message):
         # commit 1: delete old file
         log.info("Performing delete commit")
         data = {'message': f"Renamed {filename_before} to {filename_after} (deleting)", 'sha': main.get_sha(repo, file_path)}
+        if user_github_account:
+            data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
+            log.info(f"Setting commit author to {data['author']}")
         r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
         utils.handle_potential_request_error(r, 200)
         time.sleep(1)  # just to be safe
@@ -366,6 +370,9 @@ async def command_rename_file(message: discord.Message):
         log.info("Performing recreate commit")
         file_path = file_path.replace(filename_before, filename_after)
         data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
+        if user_github_account:
+            data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
+            log.info(f"Setting commit author to {data['author']}")
         r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
         utils.handle_potential_request_error(r, 201)
 
