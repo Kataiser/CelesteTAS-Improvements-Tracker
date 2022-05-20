@@ -7,6 +7,7 @@ from typing import Optional
 
 import discord
 import requests
+import win32api
 import yaml
 
 import game_sync
@@ -263,10 +264,16 @@ async def command_run_sync_check(message: discord.Message):
     message_split = message.content.split()
     project_search_name = message_split[1].replace('_', ' ')
     ran_validation = False
+    idle_time = (win32api.GetTickCount() - win32api.GetLastInputInfo()) / 1000
+    log.info(f"Idle time: {idle_time} seconds")
 
     if len(message_split) != 2 or not re.match(r'run_sync_check .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help run_sync_check`")
+        return
+
+    if idle_time < 720 and message.author.id != 219955313334288385:  # 12 mins
+        await message.channel.send("Kataiser is not currently AFK, so maybe running the game on his PC is not a great idea right now")
         return
 
     for project_id in projects:
