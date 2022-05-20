@@ -1,5 +1,6 @@
 import base64
 import datetime
+import functools
 import json
 import logging
 import os
@@ -105,6 +106,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
     file_path = get_file_repo_path(message.channel.id, filename)
     chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
+    user_github_account = get_user_github_account(message.author.id)
 
     if file_path:
         draft = False
@@ -121,6 +123,10 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
         if not projects[message.channel.id]['commit_drafts']:
             return
+
+    if user_github_account:
+        data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
+        log.info(f"Setting commit author to {data['author']}")
 
     log.info(f"Set commit message to \"{data['message']}\"")
     r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
@@ -235,6 +241,15 @@ async def edit_pin(channel: discord.TextChannel, create: bool, ran_sync: bool):
         await pin_message.edit(content=text_out, suppress=True)
         log.info("Edited pin")
         return pin_message
+
+
+@functools.cache
+def get_user_github_account(discord_id: int) -> Optional[tuple]:
+    with open('githubs.json', 'r') as githubs_json:
+        github_accounts = json.load(githubs_json)
+
+    if str(discord_id) in github_accounts:
+        return github_accounts[str(discord_id)]
 
 
 # load the saved message IDs of already committed posts
