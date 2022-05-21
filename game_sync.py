@@ -154,8 +154,10 @@ async def sync_test(project: int, report_channel: Optional[discord.DMChannel] = 
                 log.error(repr(error))
 
     time.sleep(1)
+    projects[project]['last_run_validation'] = int(time.time())
+    utils.save_projects()
     improvements_channel = client.get_channel(project)
-    await main.edit_pin(improvements_channel, False, True)
+    await main.edit_pin(improvements_channel, False)
 
     if desyncs:
         desyncs_formatted = '\n'.join(desyncs)

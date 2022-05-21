@@ -173,7 +173,7 @@ async def command_register_project(message: discord.Message):
 
     if not editing:
         main.get_file_repo_path(improvements_channel_id, '')
-        pinned_message = await main.edit_pin(improvements_channel, True, False)
+        pinned_message = await main.edit_pin(improvements_channel, True)
         await pinned_message.pin()
     else:
         log.info("Skipped creating pinned message")
@@ -383,7 +383,7 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send("Rename successful")
         improvements_channel = client.get_channel(project_id)
         await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
-        await main.edit_pin(improvements_channel, False, True)
+        await main.edit_pin(improvements_channel, False)
 
     if not renamed_file:
         log.warning("No files renamed")

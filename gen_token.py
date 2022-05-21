@@ -40,17 +40,15 @@ def generate_access_token(installation_owner: str) -> str:
 
 
 def access_token(installation_owner: str):
-    global token
     current_time = time.time()
 
-    if not token or installation_owner != token[1] or current_time - token[2] > 9.5 * 60:
-        token = (generate_access_token(installation_owner), installation_owner, current_time)
+    if installation_owner not in tokens or current_time - tokens[installation_owner][1] > 9.5 * 60:
+        tokens[installation_owner] = (generate_access_token(installation_owner), current_time)
 
-    return token[0]
+    return tokens[installation_owner][0]
 
 
-# TODO: tokens dict
-token: Optional[tuple] = None
+tokens = {}
 log: Optional[logging.Logger] = None
 
 
