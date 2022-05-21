@@ -137,39 +137,44 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
 
 # if a file exists in the repo, get its path
-def get_file_repo_path(project: int, filename: str) -> Optional[str]:
-    repo = projects[project]['repo']
-    path_cache = projects[project]['path_cache']
-    project_subdir = projects[project]['subdir']
+def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
+    path_cache = projects[project_id]['path_cache']
 
     if filename not in path_cache:
-        # walk the repo and cache the path of all TAS files found
-        log.info(f"Caching {repo} structure")
-        r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
-        utils.handle_potential_request_error(r, 200)
-
-        for item in r.json():
-            if item['type'] == 'dir':
-                # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
-                dir_sha = item['sha']
-                r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
-                utils.handle_potential_request_error(r, 200)
-
-                for subitem in r.json()['tree']:
-                    if subitem['type'] == 'blob':
-                        subitem_name = subitem['path'].split('/')[-1]
-                        subitem_full_path = f"{item['name']}/{subitem['path']}"
-
-                        if subitem_full_path.startswith(project_subdir) and subitem_name.endswith('.tas'):
-                            path_cache[subitem_name] = subitem_full_path
-            elif not project_subdir and item['name'].endswith('.tas'):
-                path_cache[item['name']] = item['path']
-
-        utils.save_projects()
-        log.info(f"Cached: {path_cache}")
+        generate_path_cache(project_id)
 
     if filename in path_cache:
         return path_cache[filename]
+
+
+# walk the project's repo and cache the path of all TAS files found
+def generate_path_cache(project_id: int):
+    repo = projects[project_id]['repo']
+    path_cache = projects[project_id]['path_cache']
+    project_subdir = projects[project_id]['subdir']
+    log.info(f"Caching {repo} structure")
+    r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
+    utils.handle_potential_request_error(r, 200)
+
+    for item in r.json():
+        if item['type'] == 'dir':
+            # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
+            dir_sha = item['sha']
+            r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
+            utils.handle_potential_request_error(r, 200)
+
+            for subitem in r.json()['tree']:
+                if subitem['type'] == 'blob':
+                    subitem_name = subitem['path'].split('/')[-1]
+                    subitem_full_path = f"{item['name']}/{subitem['path']}"
+
+                    if subitem_full_path.startswith(project_subdir) and subitem_name.endswith('.tas'):
+                        path_cache[subitem_name] = subitem_full_path
+        elif not project_subdir and item['name'].endswith('.tas'):
+            path_cache[item['name']] = item['path']
+
+    utils.save_projects()
+    log.info(f"Cached: {path_cache}")
 
 
 # we know the file exists, so get its SHA for updating
@@ -251,6 +256,10 @@ def get_user_github_account(discord_id: int) -> Optional[tuple]:
 
 # load the saved message IDs of already committed posts
 def load_project_logs():
+    if project_logs:
+        # bot restarted itself
+        return
+
     for project in projects:
         project_log_path = f'project_logs\\{project}.bin'
 
@@ -262,7 +271,7 @@ def load_project_logs():
             with open(project_log_path, 'rb') as project_log_db:
                 project_log_read = project_log_db.read()
 
-            project_logs[project] = memoryview(project_log_read).cast('Q')
+            project_logs[project] = list(memoryview(project_log_read).cast('Q'))
 
 
 def add_project_log(message: discord.Message):
@@ -272,6 +281,7 @@ def add_project_log(message: discord.Message):
         # yes this format is basically unnecessary, but I think it's cool :)
         project_log_db.write(message.id.to_bytes(8, byteorder='little'))
 
+    project_logs[message.channel.id].append(message.id)
     log.info(f"Added message ID {message.id} to {project_log_path}")
 
 
@@ -283,16 +293,19 @@ def generate_request_headers(installation_owner: str):
 def create_loggers() -> (logging.Logger, logging.Logger):
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    logger.addHandler(handler)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
+    file_handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
+    log_formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(log_formatter)
+    logger.addHandler(stdout_handler)
 
     history = logging.getLogger('history')
     history.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    history.addHandler(handler)
+    file_handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
+    file_handler.setFormatter(log_formatter)
+    history.addHandler(file_handler)
 
     global log, history_log
     log = logger

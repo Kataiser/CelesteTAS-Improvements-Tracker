@@ -10,16 +10,21 @@ from utils import plural
 
 
 def generate_jwt() -> str:
+    current_time = time.time()
+
+    if '_jwt' in tokens and current_time - tokens['_jwt'][1] < 9.75 * 60:
+        return tokens['_jwt'][0]
+
     with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
         private = pem_file.read()
 
-    current_time = time.time()
     payload = {'iat': round(current_time - 60),
                'exp': round(current_time + (9.75 * 60)),
                'iss': '196447'}
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
     log.info(f"Generated JWT: {generated_jwt}")
+    tokens['_jwt'] = (generated_jwt, current_time)
     return generated_jwt
 
 

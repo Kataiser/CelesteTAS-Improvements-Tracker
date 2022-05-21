@@ -172,7 +172,7 @@ async def command_register_project(message: discord.Message):
                                          'path_cache': previous['path_cache'] if editing else {}}
 
     if not editing:
-        main.get_file_repo_path(improvements_channel_id, '')
+        main.generate_path_cache(improvements_channel_id)
         pinned_message = await main.edit_pin(improvements_channel, True)
         await pinned_message.pin()
     else:
@@ -338,7 +338,7 @@ async def command_rename_file(message: discord.Message):
             continue
 
         main.generate_request_headers(project['installation_owner'])
-        main.get_file_repo_path(project_id, '')
+        main.generate_path_cache(project_id)
 
         if filename_before not in project['path_cache']:
             log.warning(f"{filename_before} not in project: {project['name']}")

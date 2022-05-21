@@ -98,7 +98,7 @@ async def on_connect():
 
 @client.event
 async def on_disconnect():
-    log.error("Disconnected from Discord")
+    log.warning("Disconnected from Discord")
 
 
 @client.event
