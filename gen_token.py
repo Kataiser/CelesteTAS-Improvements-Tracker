@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 from typing import Optional
@@ -12,7 +13,7 @@ from utils import plural
 def generate_jwt() -> str:
     current_time = time.time()
 
-    if '_jwt' in tokens and current_time - tokens['_jwt'][1] < 9.75 * 60:
+    if '_jwt' in tokens and current_time < tokens['_jwt'][1]:
         return tokens['_jwt'][0]
 
     with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
@@ -24,11 +25,11 @@ def generate_jwt() -> str:
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
     log.info(f"Generated JWT: {generated_jwt}")
-    tokens['_jwt'] = (generated_jwt, current_time)
+    tokens['_jwt'] = (generated_jwt, payload['exp'])
     return generated_jwt
 
 
-def generate_access_token(installation_owner: str) -> str:
+def generate_access_token(installation_owner: str) -> tuple:
     headers = {'Authorization': f'Bearer {generate_jwt()}', 'Accept': 'application/vnd.github.v3+json'}
     r = requests.get('https://api.github.com/app/installations', headers=headers)
     utils.handle_potential_request_error(r, 200)
@@ -40,15 +41,15 @@ def generate_access_token(installation_owner: str) -> str:
             r = requests.post(installation['access_tokens_url'], headers=headers)
             utils.handle_potential_request_error(r, 201)
             access_token_data = r.json()
+            token_expiration_str = access_token_data['expires_at'][:-1]
+            token_expiration = datetime.datetime.fromisoformat(f'{token_expiration_str}+00:00')
             log.info(f"Generated access token: {access_token_data}")
-            return access_token_data['token']
+            return access_token_data['token'], token_expiration.timestamp()
 
 
 def access_token(installation_owner: str):
-    current_time = time.time()
-
-    if installation_owner not in tokens or current_time - tokens[installation_owner][1] > 9.5 * 60:
-        tokens[installation_owner] = (generate_access_token(installation_owner), current_time)
+    if installation_owner not in tokens or time.time() - tokens[installation_owner][1] > 9.5 * 60:
+        tokens[installation_owner] = generate_access_token(installation_owner)
 
     return tokens[installation_owner][0]
 

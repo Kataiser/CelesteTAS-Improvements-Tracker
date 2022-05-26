@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 import os
@@ -56,13 +57,13 @@ async def sync_test(project: int, report_channel: Optional[discord.DMChannel] = 
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
         try:
-            time.sleep(2)
+            await asyncio.sleep(2)
             requests.get('http://localhost:32270/', timeout=2)
         except requests.ConnectTimeout:
             pass
         else:
             log.info("Game loaded")
-            time.sleep(2)
+            await asyncio.sleep(2)
             game_loaded = True
 
     main.generate_request_headers(projects[project]['installation_owner'])
@@ -93,15 +94,15 @@ async def sync_test(project: int, report_channel: Optional[discord.DMChannel] = 
 
         while not tas_finished:
             try:
-                time.sleep(1)
+                await asyncio.sleep(1)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
-            except requests.ConnectTimeout:
+            except requests.Timeout:
                 pass
             else:
                 tas_finished = 'Running: False' in session_data.text
 
         log.info("TAS has finished")
-        time.sleep(5)
+        await asyncio.sleep(5)
 
         # determine if it synced or not
         with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
@@ -153,7 +154,7 @@ async def sync_test(project: int, report_channel: Optional[discord.DMChannel] = 
             except psutil.NoSuchProcess as error:
                 log.error(repr(error))
 
-    time.sleep(1)
+    await asyncio.sleep(1)
     projects[project]['last_run_validation'] = int(time.time())
     utils.save_projects()
     improvements_channel = client.get_channel(project)

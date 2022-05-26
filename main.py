@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import sys
-import time
+import urllib.parse
 from typing import Optional
 
 import discord
@@ -231,7 +231,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool):
     pin = projects[channel.id]['pin']
     subdir = projects[channel.id]['subdir']
     repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
-    package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{subdir}' if subdir else \
+    package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
     text_out = text.format(name, repo_url, package_url, sync_timestamp)
 

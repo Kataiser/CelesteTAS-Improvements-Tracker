@@ -1,4 +1,5 @@
 import argparse
+import ctypes
 import datetime
 import time
 import traceback
@@ -16,7 +17,7 @@ client = discord.Client()
 debug = False
 
 
-def bot():
+def start():
     global debug
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
@@ -51,14 +52,6 @@ async def on_ready():
     log.info(f"Logged in as {client.user}")
     downtime_message_count = 0
 
-    if not debug:
-        self_process = psutil.Process()
-        self_process.nice(psutil.IDLE_PRIORITY_CLASS)
-        self_process.ionice(psutil.IOPRIO_VERYLOW)
-        log.info("Set process priorities")
-    else:
-        log.info("Skipped setting priorities")
-
     for improvements_channel in projects:
         downtime_messages = await client.get_channel(improvements_channel).history(limit=20).flatten()
         downtime_messages.reverse()  # make chronological
@@ -68,6 +61,14 @@ async def on_ready():
             await main.process_improvement_message(message)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
+
+    if not debug:
+        self_process = psutil.Process()
+        self_process.nice(psutil.IDLE_PRIORITY_CLASS)
+        self_process.ionice(psutil.IOPRIO_VERYLOW)
+        log.info("Set process priorities")
+    else:
+        log.info("Skipped setting priorities")
 
 
 @client.event
@@ -105,6 +106,7 @@ async def on_disconnect():
 async def on_error(*args):
     error = traceback.format_exc()
     log.error(error)
+    ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
 
 
 log, history_log = main.create_loggers()
@@ -113,4 +115,4 @@ game_sync.client = client
 
 
 if __name__ == '__main__':
-    bot()
+    start()

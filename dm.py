@@ -96,7 +96,6 @@ async def command_register_project(message: discord.Message):
             return
 
         log.warning("This project already exists, preserving some settings")
-        await message.channel.send("Project already exists, editing it")
         previous = {'pin': projects[improvements_channel_id]['pin'],
                     'mods': projects[improvements_channel_id]['mods'],
                     'path_cache': projects[improvements_channel_id]['path_cache']}
@@ -125,7 +124,7 @@ async def command_register_project(message: discord.Message):
             return
 
     # verify repo exists
-    repo_split = repo_and_subdir.split('/')
+    repo_split = repo_and_subdir.rstrip('/').split('/')
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
@@ -183,9 +182,13 @@ async def command_register_project(message: discord.Message):
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
     log.info(project_added_log)
     history_log.info(project_added_log)
-    add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_run_validation.lower() == 'y' else ""
-    await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
-                               f"run the command again and it will overwrite what was there before.{add_mods_text}")
+
+    if editing:
+        await message.channel.send("Successfully verified and edited project.")
+    else:
+        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_run_validation.lower() == 'y' else ""
+        await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
+                                   f"run the command again and it will overwrite what was there before.{add_mods_text}")
 
 
 async def command_add_mods(message: discord.Message):
