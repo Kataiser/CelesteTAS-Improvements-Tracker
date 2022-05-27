@@ -171,13 +171,15 @@ async def command_register_project(message: discord.Message):
                                          'path_cache': previous['path_cache'] if editing else {}}
 
     if not editing:
+        await message.channel.send("Generating path cache...")
         main.generate_path_cache(improvements_channel_id)
-        pinned_message = await main.edit_pin(improvements_channel, True)
+        pinned_message = await main.edit_pin(improvements_channel, create=True)
         await pinned_message.pin()
+        projects[improvements_channel_id]['pin'] = pinned_message.id
     else:
+        projects[improvements_channel_id]['pin'] = previous['pin']
         log.info("Skipped creating pinned message")
 
-    projects[improvements_channel_id]['pin'] = previous['pin'] if editing else pinned_message.id
     utils.save_projects()
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
     log.info(project_added_log)
@@ -300,14 +302,9 @@ async def command_run_sync_check(message: discord.Message):
             continue
 
         await message.channel.send(f"Running sync check for project \"{project['name']}\"...")
-        desync_text = await game_sync.sync_test(project_id, message.channel)
+        await game_sync.sync_test(project_id, message.channel)
         game_sync.post_cleanup()
         ran_validation = True
-
-        if desync_text:
-            await message.channel.send(desync_text)
-        else:
-            await message.channel.send(f"Sync check finished, 0 desyncs found (of {len(project['path_cache'])} file{plural(project['path_cache'])})")
 
     if not ran_validation:
         log.warning(f"No projects found matching: {project_search_name}")
@@ -333,6 +330,10 @@ async def command_rename_file(message: discord.Message):
     project_search_name = message_split[1].replace('_', ' ')
     filename_before, filename_after = message_split[2:]
     renamed_file = False
+
+    if filename_before == filename_after:
+        await message.channel.send("what")
+        return
 
     for project_id in projects:
         project = projects[project_id]
@@ -386,7 +387,7 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send("Rename successful")
         improvements_channel = client.get_channel(project_id)
         await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
-        await main.edit_pin(improvements_channel, False)
+        await main.edit_pin(improvements_channel)
 
     if not renamed_file:
         log.warning("No files renamed")

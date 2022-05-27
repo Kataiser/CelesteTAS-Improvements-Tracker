@@ -81,7 +81,7 @@ async def process_improvement_message(message: discord.Message):
                 history_log.info(history_data)
                 log.info("Added to history log")
                 await message.add_reaction('📝')
-                await edit_pin(message.channel, False)
+                await edit_pin(message.channel)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
@@ -150,14 +150,14 @@ def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
 # walk the project's repo and cache the path of all TAS files found
 def generate_path_cache(project_id: int):
     repo = projects[project_id]['repo']
-    path_cache = projects[project_id]['path_cache']
+    path_cache = {}
     project_subdir = projects[project_id]['subdir']
     log.info(f"Caching {repo} structure")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
 
     for item in r.json():
-        if item['type'] == 'dir':
+        if item['type'] == 'dir' and (item['name'].startswith(project_subdir) if project_subdir else True):
             # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
             dir_sha = item['sha']
             r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
@@ -168,11 +168,12 @@ def generate_path_cache(project_id: int):
                     subitem_name = subitem['path'].split('/')[-1]
                     subitem_full_path = f"{item['name']}/{subitem['path']}"
 
-                    if subitem_full_path.startswith(project_subdir) and subitem_name.endswith('.tas'):
+                    if subitem_name.endswith('.tas'):
                         path_cache[subitem_name] = subitem_full_path
         elif not project_subdir and item['name'].endswith('.tas'):
             path_cache[item['name']] = item['path']
 
+    projects[project_id]['path_cache'] = path_cache
     utils.save_projects()
     log.info(f"Cached: {path_cache}")
 
@@ -196,7 +197,7 @@ def is_processable_message(message: discord.Message) -> bool:
         return post_time > projects[message.channel.id]['install_time']
 
 
-async def edit_pin(channel: discord.TextChannel, create: bool):
+async def edit_pin(channel: discord.TextChannel, create: bool = False):
     lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if projects[channel.id]['is_lobby'] else ""
     level_text = "the name of the level/map"
     ensure_level = projects[channel.id]['ensure_level']

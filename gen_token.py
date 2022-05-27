@@ -1,4 +1,6 @@
 import datetime
+import functools
+import json
 import logging
 import time
 from typing import Optional
@@ -31,20 +33,30 @@ def generate_jwt() -> str:
 
 def generate_access_token(installation_owner: str) -> tuple:
     headers = {'Authorization': f'Bearer {generate_jwt()}', 'Accept': 'application/vnd.github.v3+json'}
-    r = requests.get('https://api.github.com/app/installations', headers=headers)
-    utils.handle_potential_request_error(r, 200)
-    installations = r.json()
-    log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
+    installations_saved = installations_file()
 
-    for installation in installations:
-        if installation['account']['login'] == installation_owner:
-            r = requests.post(installation['access_tokens_url'], headers=headers)
-            utils.handle_potential_request_error(r, 201)
-            access_token_data = r.json()
-            token_expiration_str = access_token_data['expires_at'][:-1]
-            token_expiration = datetime.datetime.fromisoformat(f'{token_expiration_str}+00:00')
-            log.info(f"Generated access token: {access_token_data}")
-            return access_token_data['token'], token_expiration.timestamp()
+    if installation_owner not in installations_file():
+        log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
+        installations_file.cache_clear()
+        r = requests.get('https://api.github.com/app/installations', headers=headers)
+        utils.handle_potential_request_error(r, 200)
+        installations = r.json()
+        log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
+
+        for installation in installations:
+            installations_saved[installation['account']['login']] = installation['id']
+
+        with open('installations.json', 'w') as installations_json_write:
+            json.dump(installations_saved, installations_json_write, indent=4)
+
+    installation_id = installations_saved[installation_owner]
+    r = requests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers)
+    utils.handle_potential_request_error(r, 201)
+    access_token_data = r.json()
+    token_expiration_str = access_token_data['expires_at'][:-1]
+    token_expiration = datetime.datetime.fromisoformat(f'{token_expiration_str}+00:00')
+    log.info(f"Generated access token: {access_token_data}")
+    return access_token_data['token'], token_expiration.timestamp()
 
 
 def access_token(installation_owner: str):
@@ -52,6 +64,12 @@ def access_token(installation_owner: str):
         tokens[installation_owner] = generate_access_token(installation_owner)
 
     return tokens[installation_owner][0]
+
+
+@functools.cache
+def installations_file() -> dict:
+    with open('installations.json', 'r') as installations_json_read:
+        return json.load(installations_json_read)
 
 
 tokens = {}
