@@ -153,7 +153,6 @@ def calculate_time_difference(time_old: str, time_new: str) -> int:
     return round((time_old_seconds - time_new_seconds) / 0.017)
 
 
-@functools.cache
 def as_lines(tas: bytes) -> List[str]:
     lines = tas.decode('UTF8').splitlines()
     log.info(f"Converted {len(tas)} bytes to {len(lines)} TAS lines")
