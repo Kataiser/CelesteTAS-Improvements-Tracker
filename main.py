@@ -52,7 +52,7 @@ async def process_improvement_message(message: discord.Message):
     generate_request_headers(projects[message.channel.id]['installation_owner'])
 
     for attachment in tas_attachments:
-        log.info(f"Processing {attachment.filename}")
+        log.info(f"Processing message from {utils.detailed_user(message)} at {attachment.filename}")
         repo = projects[message.channel.id]['repo']
         is_lobby = projects[message.channel.id]['is_lobby']
         r = requests.get(attachment.url)
@@ -105,7 +105,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
     file_path = get_file_repo_path(message.channel.id, filename)
-    chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.chapter_time})"
+    chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.finaltime})"
     user_github_account = get_user_github_account(message.author.id)
 
     if file_path:

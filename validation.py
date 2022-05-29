@@ -1,4 +1,3 @@
-import functools
 import logging
 import re
 from typing import List, Optional, Tuple
@@ -9,12 +8,12 @@ from utils import projects
 
 
 class ValidationResult:
-    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, chapter_time: str = None, timesave: str = None):
+    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, finaltime: str = None, timesave: str = None):
         self.valid_tas = valid_tas
         self.warning_text = warning_text
         self.log_text = log_text
         self.timesave = timesave
-        self.chapter_time = chapter_time
+        self.finaltime = finaltime
 
         if valid_tas:
             log.info("TAS file and improvement post have been validated")
@@ -30,26 +29,27 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
-    found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed, _ = parse_tas_file(tas_lines, True, lobby_channel)
+    # found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed, _ = parse_tas_file(tas_lines, True, lobby_channel)
+    breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
 
-    if len(found_breakpoints) == 1:
-        return ValidationResult(False, f"Breakpoint found on line {found_breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
-    elif len(found_breakpoints) > 1:
-        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(found_breakpoints)}, please remove them and post again.", f"{len(found_breakpoints)} breakpoints in {filename}")
-    elif not found_chaptertime:
+    if len(breakpoints) == 1:
+        return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
+    elif len(breakpoints) > 1:
+        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(breakpoints)}, please remove them and post again.", f"{len(breakpoints)} breakpoints in {filename}")
+    elif not found_finaltime:
         if lobby_channel:
-            return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
-        else:
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
+        else:
+            return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
 
     # validate chaptertime is in message content
     if lobby_channel:
-        if chapter_time not in message.content:
-            return ValidationResult(False, f"The file's final time ({chapter_time}) is missing in your message, please add it and post again.",
-                                    f"final time ({chapter_time}) missing in message content")
+        if finaltime not in message.content:
+            return ValidationResult(False, f"The file's final time ({finaltime}) is missing in your message, please add it and post again.",
+                                    f"final time ({finaltime}) missing in message content")
     else:
-        if chapter_time not in message.content and chapter_time_trimmed not in message.content:
-            chapter_time_notif = chapter_time if chapter_time == chapter_time_trimmed else chapter_time_trimmed
+        if finaltime not in message.content and finaltime_trimmed not in message.content:
+            chapter_time_notif = finaltime if finaltime == finaltime_trimmed else finaltime_trimmed
             return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
                                     f"ChapterTime ({chapter_time_notif}) missing in message content")
 
@@ -62,8 +62,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     if old_tas:
         # validate timesave frames is in message content
-        old_chapter_time, old_chapter_time_trimmed = parse_tas_file(as_lines(old_tas), False, lobby_channel)[2:4]
-        time_saved_num = calculate_time_difference(old_chapter_time, chapter_time)
+        old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[2:4]
+        time_saved_num = calculate_time_difference(old_finaltime, finaltime)
         time_saved_minus = f'-{abs(time_saved_num)}f'
         time_saved_plus = f'+{abs(time_saved_num)}f'
         time_saved_messages = re_timesave_frames.match(message.content)
@@ -96,50 +96,61 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         if "draft" not in message_lowercase:
             return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
 
-    return ValidationResult(True, chapter_time=chapter_time, timesave=time_saved_messages[0] if old_tas else None)
+    return ValidationResult(True, finaltime=finaltime, timesave=time_saved_messages[0] if old_tas else None)
 
 
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, is_lobby_file: bool) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
-    found_breakpoints = []
-    found_chaptertime = False
-    chaptertime_line = None
-    chapter_time = None
-    chapter_time_trimmed = None
-
-    if is_lobby_file:
-        re_lobby_time = re.compile(r'#\d+\.\d+')
+# get breakpoints and final time in one pass
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
+    breakpoints = []
+    found_finaltime = False
+    finaltime_line = None
+    finaltime = None
+    finaltime_trimmed = None
 
     for line in enumerate(tas_lines):
         if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
             log.info(f"Found breakpoint at line {line[0] + 1}")
-            found_breakpoints.append(str(line[0] + 1))
-        elif not found_chaptertime:
-            if not is_lobby_file and 'ChapterTime:' in line[1] and not line[1].startswith('#') and line[1].strip() != 'ChapterTime:':
-                found_chaptertime = True
-                chaptertime_line = line[0]
-            elif is_lobby_file and line[1].startswith('#') and re_lobby_time.match(line[1]):
-                found_chaptertime = True
-                chaptertime_line = line[0]
+            breakpoints.append(str(line[0] + 1))
+        elif not found_finaltime:
+            if re_chapter_time.match(line[1]):
+                found_finaltime = True
+                is_chaptertime = True
+                finaltime_line = line[0]
+            elif allow_comment_time and re_comment_time.match(line[1]):
+                found_finaltime = True
+                is_chaptertime = False
+                finaltime_line = line[0]
 
-    if found_chaptertime:
-        if is_lobby_file:
-            chapter_time = chapter_time_trimmed = tas_lines[chaptertime_line].lstrip('#0:').partition('(')[0]
+    if found_finaltime:
+        if is_chaptertime:
+            finaltime = tas_lines[finaltime_line].partition(' ')[2].partition('(')[0]
+            finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0')
         else:
-            chapter_time = tas_lines[chaptertime_line].partition(' ')[2].partition('(')[0]
-            chapter_time_trimmed = chapter_time.removeprefix('0:').removeprefix('0')
+            finaltime = finaltime_trimmed = tas_lines[finaltime_line].lstrip('#0:').partition('(')[0]
 
-    return found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed, chaptertime_line
+    return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
 
 
 def calculate_time_difference(time_old: str, time_new: str) -> int:
     if time_old == time_new:
         return 0
 
-    if ':' not in time_new:
+    old_has_colon = ':' in time_old
+    new_has_colon = ':' in time_new
+
+    if not old_has_colon and not new_has_colon:
         return round((float(time_old) - float(time_new)) / 0.017)
 
-    colon_partition_old = time_old.partition(':')
-    colon_partition_new = time_new.partition(':')
+    if old_has_colon:
+        colon_partition_old = time_old.partition(':')
+    else:
+        colon_partition_old = (0, None, time_old)
+
+    if new_has_colon:
+        colon_partition_new = time_new.partition(':')
+    else:
+        colon_partition_new = (0, None, time_new)
+
     dot_partition_old = colon_partition_old[2].partition('.')
     dot_partition_new = colon_partition_new[2].partition('.')
     minutes_old = colon_partition_old[0]
@@ -159,5 +170,7 @@ def as_lines(tas: bytes) -> List[str]:
     return lines
 
 
+re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
+re_comment_time = re.compile(r'#[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 log: Optional[logging.Logger] = None

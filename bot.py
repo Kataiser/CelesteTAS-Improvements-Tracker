@@ -86,6 +86,24 @@ async def on_message(message: discord.Message):
     await main.process_improvement_message(message)
 
 
+@client.event
+async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
+    deleted_reply = False
+
+    for improvements_channel in projects:
+        past_messages = await client.get_channel(improvements_channel).history(limit=20).flatten()
+
+        for message in past_messages:
+            if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
+                await message.delete()
+                log.info(f"Deleted bot reply message in project: {projects[improvements_channel]['name']}")
+                deleted_reply = True
+                break
+
+        if deleted_reply:
+            break
+
+
 @tasks.loop(hours=2)
 async def nightly():
     if datetime.datetime.now().hour in (4, 5):
