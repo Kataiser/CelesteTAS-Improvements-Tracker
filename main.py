@@ -118,8 +118,8 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
         data['message'] = f"{filename} draft by {author}{chapter_time}"
         subdir = projects[message.channel.id]['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
-        projects[message.channel.id]['path_cache'][filename] = file_path
-        utils.save_projects()
+        path_caches[message.channel.id][filename] = file_path
+        utils.save_path_caches()
 
         if not projects[message.channel.id]['commit_drafts']:
             return
@@ -138,19 +138,16 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
 # if a file exists in the repo, get its path
 def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
-    path_cache = projects[project_id]['path_cache']
-
-    if filename not in path_cache:
+    if filename not in path_caches[project_id]:
         generate_path_cache(project_id)
 
-    if filename in path_cache:
-        return path_cache[filename]
+    if filename in path_caches[project_id]:
+        return path_caches[project_id][filename]
 
 
 # walk the project's repo and cache the path of all TAS files found
 def generate_path_cache(project_id: int):
     repo = projects[project_id]['repo']
-    path_cache = {}
     project_subdir = projects[project_id]['subdir']
     log.info(f"Caching {repo} structure")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
@@ -169,13 +166,12 @@ def generate_path_cache(project_id: int):
                     subitem_full_path = f"{item['name']}/{subitem['path']}"
 
                     if subitem_name.endswith('.tas'):
-                        path_cache[subitem_name] = subitem_full_path
+                        path_caches[project_id][subitem_name] = subitem_full_path
         elif not project_subdir and item['name'].endswith('.tas'):
-            path_cache[item['name']] = item['path']
+            path_caches[project_id][item['name']] = item['path']
 
-    projects[project_id]['path_cache'] = path_cache
-    utils.save_projects()
-    log.info(f"Cached: {path_cache}")
+    utils.save_path_caches()
+    log.info(f"Cached: {path_caches[project_id]}")
 
 
 # we know the file exists, so get its SHA for updating
@@ -324,6 +320,7 @@ def create_loggers() -> (logging.Logger, logging.Logger):
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 project_logs = {}
-nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
+path_caches = {}
 headers = None
 login_time = None
+nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}

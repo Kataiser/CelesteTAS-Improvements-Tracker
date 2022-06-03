@@ -6,12 +6,13 @@ import traceback
 
 import discord
 import psutil
+from discord.ext import tasks
 
 import dm
 import game_sync
 import main
+import utils
 from utils import plural, projects
-from discord.ext import tasks
 
 client = discord.Client()
 debug = False
@@ -27,7 +28,9 @@ def start():
         print("DEBUG MODE")
 
     main.load_project_logs()
-    log.info(f"Loaded {len(projects)} project{plural(projects)} and {len(main.project_logs)} project message log{plural(main.project_logs)}")
+    utils.load_path_caches()
+    log.info(f"Loaded {len(projects)} project{plural(projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
+             f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
 
     with open('bot_token', 'r') as bot_token_file:
         bot_token = bot_token_file.read()

@@ -13,7 +13,6 @@ import win32api
 import yaml
 
 import game_sync
-import gen_token
 import main
 import utils
 from utils import plural, projects
@@ -98,8 +97,7 @@ async def command_register_project(message: discord.Message):
 
         log.warning("This project already exists, preserving some settings")
         previous = {'pin': projects[improvements_channel_id]['pin'],
-                    'mods': projects[improvements_channel_id]['mods'],
-                    'path_cache': projects[improvements_channel_id]['path_cache']}
+                    'mods': projects[improvements_channel_id]['mods']}
 
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
@@ -168,8 +166,7 @@ async def command_register_project(message: discord.Message):
                                          'last_run_validation': None,
                                          'pin': None,
                                          'subdir': subdir,
-                                         'mods': previous['mods'] if editing else [],
-                                         'path_cache': previous['path_cache'] if editing else {}}
+                                         'mods': previous['mods'] if editing else []}
 
     if not editing:
         await message.channel.send("Generating path cache...")
@@ -298,7 +295,7 @@ async def command_run_sync_check(message: discord.Message):
             log.warning(f"Trying to do run validation for project: {project['name']}, but it's disabled")
             await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled")
             continue
-        elif not project['path_cache']:
+        elif not main.path_caches[project_id]:
             log.warning(f"Trying to do run validation for project: {project['name']}, but it has no files")
             await message.channel.send(f"Project \"{project['name']}\" seems to have no files to sync check")
             continue
@@ -346,14 +343,14 @@ async def command_rename_file(message: discord.Message):
         main.generate_request_headers(project['installation_owner'])
         main.generate_path_cache(project_id)
 
-        if filename_before not in project['path_cache']:
+        if filename_before not in main.path_caches[project_id]:
             log.warning(f"{filename_before} not in project: {project['name']}")
 
         renaming_text = f"Renaming {filename_before} to {filename_after} in project \"{project['name']}\""
         log.info(renaming_text)
         await message.channel.send(renaming_text)
         repo = project['repo']
-        file_path = project['path_cache'][filename_before]
+        file_path = main.path_caches[project_id][filename_before]
         renamed_file = True
         user_github_account = main.get_user_github_account(message.author.id)
 
@@ -382,9 +379,9 @@ async def command_rename_file(message: discord.Message):
         r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
         utils.handle_potential_request_error(r, 201)
 
-        del project['path_cache'][filename_before]
-        project['path_cache'][filename_after] = file_path
-        utils.save_projects()
+        del main.path_caches[project_id][filename_before]
+        main.path_caches[project_id][filename_after] = file_path
+        utils.save_path_caches()
         log.info("Rename successful")
         await message.channel.send("Rename successful")
         improvements_channel = client.get_channel(project_id)
@@ -403,8 +400,7 @@ async def command_about(message: discord.Message):
       (No parameters)
     """
 
-    text = "Author: <@219955313334288385>" \
-           "\nProjects: {0}" \
+    text = "Projects: {0}" \
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
            "\nUptime: {3} hours" \
@@ -413,8 +409,11 @@ async def command_about(message: discord.Message):
 
     sync_checks = 0
     commits_made = 0
+    installations = set()
 
     for project_id in projects:
+        installations.add(projects[project_id]['installation_owner'])
+
         if projects[project_id]['do_run_validation']:
             sync_checks += 1
 
@@ -425,7 +424,7 @@ async def command_about(message: discord.Message):
 
     await message.channel.send(text.format(len(projects),
                                            len(client.guilds),
-                                           len(gen_token.installations_file()),
+                                           len(installations),
                                            round((time.time() - main.login_time) / 3600, 1),
                                            sync_checks,
                                            commits_made))

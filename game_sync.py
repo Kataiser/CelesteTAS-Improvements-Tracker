@@ -32,7 +32,7 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     log.info(f"Running sync test for project: {project['name']}")
     installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
     mods = project['mods']
-    path_cache = project['path_cache']
+    path_cache = main.path_caches[project_id]
     repo = project['repo']
     blacklist = []
     desyncs = []

@@ -5,6 +5,8 @@ from typing import Optional, Sized, Union
 import discord
 import requests
 
+import main
+
 
 def plural(count: Union[int, Sized]) -> str:
     if isinstance(count, int):
@@ -23,7 +25,7 @@ def detailed_user(message: discord.Message):
     return f'{message.author.name}#{message.author.discriminator} ({message.author.id})'
 
 
-def load_projects():
+def load_projects() -> dict:
     with open('projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = json.load(projects_json)
         projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
@@ -38,6 +40,18 @@ def save_projects():
     with open('projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
         json.dump(projects, projects_json, ensure_ascii=False, indent=4)
+
+
+def load_path_caches():
+    with open('path_caches.json', 'r', encoding='UTF8') as path_caches_json:
+        path_caches_loaded = json.load(path_caches_json)
+        main.path_caches = {int(k): path_caches_loaded[k] for k in path_caches_loaded}
+
+
+def save_path_caches():
+    with open('path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
+        path_caches_json.truncate()
+        json.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4)
 
 
 def validate_project_formats(projects: dict):
@@ -58,16 +72,11 @@ def validate_project_formats(projects: dict):
             assert isinstance(project['last_run_validation'], int) or project['last_run_validation'] is None
             assert isinstance(project['subdir'], str)
             assert isinstance(project['mods'], list)
-            assert isinstance(project['path_cache'], dict)
 
             for mod in project['mods']:
                 assert isinstance(mod, str); assert len(mod) > 0
 
-            for file in project['path_cache']:
-                assert isinstance(file, str); assert len(file) > 0
-                path = project['path_cache'][file]; assert isinstance(path, str); assert len(path) > 0
-
-            assert len(project) == 14
+            assert len(project) == 13
         except (KeyError, AssertionError) as error:
             log.error(f"Invalid format for project {project_id}: {repr(error)}")
 
