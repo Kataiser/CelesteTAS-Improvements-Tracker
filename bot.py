@@ -50,6 +50,7 @@ def start():
 @client.event
 async def on_ready():
     log.info(f"Logged in as {client.user}")
+    main.login_time = time.time()
     downtime_message_count = 0
 
     for improvements_channel in projects:
@@ -88,6 +89,7 @@ async def on_message(message: discord.Message):
 
 @client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
+    await client.wait_until_ready()
     deleted_reply = False
 
     for improvements_channel in projects:

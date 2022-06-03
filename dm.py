@@ -13,6 +13,7 @@ import win32api
 import yaml
 
 import game_sync
+import gen_token
 import main
 import utils
 from utils import plural, projects
@@ -176,6 +177,7 @@ async def command_register_project(message: discord.Message):
         pinned_message = await main.edit_pin(improvements_channel, create=True)
         await pinned_message.pin()
         projects[improvements_channel_id]['pin'] = pinned_message.id
+        main.project_logs[improvements_channel_id] = []
     else:
         projects[improvements_channel_id]['pin'] = previous['pin']
         log.info("Skipped creating pinned message")
@@ -324,7 +326,7 @@ async def command_rename_file(message: discord.Message):
 
     if len(message_split) != 4 or not re.match(r'rename_file .+ .+\.tas .+\.tas', message.content):
         log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help run_sync_check`")
+        await message.channel.send("Incorrect command format, see `help rename_file`")
         return
 
     project_search_name = message_split[1].replace('_', ' ')
@@ -394,6 +396,66 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send(f"{filename_before} not found in any project named {project_search_name}")
 
 
+async def command_about(message: discord.Message):
+    """
+    about
+
+      (No parameters)
+    """
+
+    text = "Author: <@219955313334288385>" \
+           "\nProjects: {0}" \
+           "\nServers: {1}" \
+           "\nGithub installations: {2}" \
+           "\nUptime: {3} hours" \
+           "\nNightly sync check: {4} projects" \
+           "\nCommits made: {5}"
+
+    sync_checks = 0
+    commits_made = 0
+
+    for project_id in projects:
+        if projects[project_id]['do_run_validation']:
+            sync_checks += 1
+
+    with open('history.log', 'r') as history_log_file:
+        for line in history_log_file:
+            if 'Added project' not in line and 'Edited project' not in line:
+                commits_made += 1
+
+    await message.channel.send(text.format(len(projects),
+                                           len(client.guilds),
+                                           len(gen_token.installations_file()),
+                                           round((time.time() - main.login_time) / 3600, 1),
+                                           sync_checks,
+                                           commits_made))
+
+
+async def command_about_project(message: discord.Message):
+    """
+    about PROJECT_NAME
+
+      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will show info for all of them
+    """
+
+    message_split = message.content.split()
+
+    if len(message_split) != 4 or not re.match(r'about_project .+', message.content):
+        log.warning("Bad command format")
+        await message.channel.send("Incorrect command format, see `help about`")
+        return
+
+    project_search_name = message_split[1].replace('_', ' ')
+
+    for project_id in projects:
+        project = projects[project_id]
+
+        if project['name'] != project_search_name:
+            continue
+
+        await message.channel.send('Not yet implemented')
+
+
 # verify that the user editing the project is the admin (or Kataiser)
 async def not_admin(message: discord.Message, improvements_channel_id: int):
     if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
@@ -427,6 +489,8 @@ history_log: Optional[logging.Logger] = None
 
 
 command_functions = {'help': command_help,
+                     'about': command_about,
+                     'about_project': command_about_project,
                      'register_project': command_register_project,
                      'rename_file': command_rename_file,
                      'add_mods': command_add_mods,

@@ -52,7 +52,7 @@ async def process_improvement_message(message: discord.Message):
     generate_request_headers(projects[message.channel.id]['installation_owner'])
 
     for attachment in tas_attachments:
-        log.info(f"Processing message from {utils.detailed_user(message)} at {attachment.filename}")
+        log.info(f"Processing message from {utils.detailed_user(message)} at {message.jump_url}")
         repo = projects[message.channel.id]['repo']
         is_lobby = projects[message.channel.id]['is_lobby']
         r = requests.get(attachment.url)
@@ -326,3 +326,4 @@ history_log: Optional[logging.Logger] = None
 project_logs = {}
 nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
 headers = None
+login_time = None
