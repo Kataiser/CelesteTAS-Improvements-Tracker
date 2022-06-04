@@ -21,7 +21,7 @@ async def run_syncs():
     log.info("Running all sync tests")
 
     for project_id in projects:
-        if projects[project_id]['do_run_validation'] and projects[project_id]['path_cache']:
+        if projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
             await sync_test(project_id)
 
     post_cleanup()

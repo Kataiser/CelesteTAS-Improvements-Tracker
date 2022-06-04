@@ -21,8 +21,11 @@ def handle_potential_request_error(req: requests.Response, code: int):
         log.warning(req.text)
 
 
-def detailed_user(message: discord.Message):
-    return f'{message.author.name}#{message.author.discriminator} ({message.author.id})'
+def detailed_user(message: Optional[discord.Message], user: discord.User = None):
+    if message:
+        user = message.author
+
+    return f'{user.name}#{user.discriminator} ({user.id})'
 
 
 def load_projects() -> dict:

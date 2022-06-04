@@ -400,7 +400,8 @@ async def command_about(message: discord.Message):
       (No parameters)
     """
 
-    text = "Projects: {0}" \
+    text = "Source: <https://github.com/Kataiser/CelesteTAS-Improvements-Tracker>" \
+           "\nProjects: {0}" \
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
            "\nUptime: {3} hours" \
@@ -422,12 +423,15 @@ async def command_about(message: discord.Message):
             if 'Added project' not in line and 'Edited project' not in line:
                 commits_made += 1
 
-    await message.channel.send(text.format(len(projects),
-                                           len(client.guilds),
-                                           len(installations),
-                                           round((time.time() - main.login_time) / 3600, 1),
-                                           sync_checks,
-                                           commits_made))
+    text_out = text.format(len(projects),
+                           len(client.guilds),
+                           len(installations),
+                           round((time.time() - main.login_time) / 3600, 1),
+                           sync_checks,
+                           commits_made)
+
+    log.info(text_out)
+    await message.channel.send(text_out)
 
 
 async def command_about_project(message: discord.Message):
@@ -439,12 +443,25 @@ async def command_about_project(message: discord.Message):
 
     message_split = message.content.split()
 
-    if len(message_split) != 4 or not re.match(r'about_project .+', message.content):
+    if len(message_split) != 2 or not re.match(r'about_project .+', message.content):
         log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help about`")
+        await message.channel.send("Incorrect command format, see `help about_project`")
         return
 
     project_search_name = message_split[1].replace('_', ' ')
+    found_matching_project = False
+    text = "Name: **{0}**" \
+           "\nRepo: <{1}>" \
+           "\nImprovement channel: <#{2}>" \
+           "\nAdmin: {3}" \
+           "\nGithub installation owner: {4}" \
+           "\nInstall time: <t:{5}>" \
+           "\nPin: {6}" \
+           "\nCommit drafts: `{7}`" \
+           "\nIs lobby: `{8}`" \
+           "\nEnsure level name in posts: `{9}`" \
+           "\nDo sync check: `{10}`" \
+           "{11}"
 
     for project_id in projects:
         project = projects[project_id]
@@ -452,7 +469,39 @@ async def command_about_project(message: discord.Message):
         if project['name'] != project_search_name:
             continue
 
-        await message.channel.send('Not yet implemented')
+        if project['do_run_validation']:
+            last_run = project['last_run_validation']
+
+            if last_run:
+                last_sync_check = f"\nLast sync check: <t:{last_run}>"
+            else:
+                last_sync_check = "\nLast sync check: `Not yet run`"
+        else:
+            last_sync_check = ""
+
+        repo = project['repo']
+        subdir = project['subdir']
+        admin = await client.fetch_user(project['admin'])
+        text_out = text.format(project['name'],
+                               f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}',
+                               project_id,
+                               utils.detailed_user(None, admin),
+                               project['installation_owner'],
+                               project['install_time'],
+                               client.get_channel(project_id).get_partial_message(project['pin']).jump_url,
+                               project['commit_drafts'],
+                               project['is_lobby'],
+                               project['ensure_level'],
+                               project['do_run_validation'],
+                               last_sync_check)
+
+        log.info(text_out)
+        await message.channel.send(text_out)
+        found_matching_project = True
+
+    if not found_matching_project:
+        log.info("Found no matching projects")
+        await message.channel.send(f"Found no projects matching that name")
 
 
 # verify that the user editing the project is the admin (or Kataiser)
@@ -485,7 +534,6 @@ def get_mod_dependencies(mod: str) -> list:
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
-
 
 command_functions = {'help': command_help,
                      'about': command_about,

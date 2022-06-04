@@ -29,8 +29,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
-    # found_breakpoints, found_chaptertime, chapter_time, chapter_time_trimmed, _ = parse_tas_file(tas_lines, True, lobby_channel)
     breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
+    is_dash_save = re_dash_saves.search(message.content) is not None
 
     if len(breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
@@ -43,15 +43,16 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
 
     # validate chaptertime is in message content
-    if lobby_channel:
-        if finaltime not in message.content:
-            return ValidationResult(False, f"The file's final time ({finaltime}) is missing in your message, please add it and post again.",
-                                    f"final time ({finaltime}) missing in message content")
-    else:
-        if finaltime not in message.content and finaltime_trimmed not in message.content:
-            chapter_time_notif = finaltime if finaltime == finaltime_trimmed else finaltime_trimmed
-            return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
-                                    f"ChapterTime ({chapter_time_notif}) missing in message content")
+    if not is_dash_save:
+        if lobby_channel:
+            if finaltime not in message.content:
+                return ValidationResult(False, f"The file's final time ({finaltime}) is missing in your message, please add it and post again.",
+                                        f"final time ({finaltime}) missing in message content")
+        else:
+            if finaltime not in message.content and finaltime_trimmed not in message.content:
+                chapter_time_notif = finaltime if finaltime == finaltime_trimmed else finaltime_trimmed
+                return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
+                                        f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     # validate level
     if projects[message.channel.id]['ensure_level']:
@@ -60,13 +61,13 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         if level not in message_lowercase.replace('_', '').replace(' ', ''):
             return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
-    if old_tas:
+    if old_tas and not is_dash_save:
         # validate timesave frames is in message content
         old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[2:4]
         time_saved_num = calculate_time_difference(old_finaltime, finaltime)
         time_saved_minus = f'-{abs(time_saved_num)}f'
         time_saved_plus = f'+{abs(time_saved_num)}f'
-        time_saved_messages = re_timesave_frames.match(message.content)
+        time_saved_messages = re_timesave_frames.search(message.content)
         aleph_moment = " (you suck at math lol)" if message.author.id == 238029047567876096 else ""
         # ok this logic is weird cause it can be '-f', '+f', or in the case of 0 frames saved, either one
 
@@ -91,7 +92,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
                                                f"please fix and post again{aleph_moment}.",
                                         f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
-    else:
+    elif not old_tas:
         # validate draft text
         if "draft" not in message_lowercase:
             return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
@@ -173,4 +174,5 @@ def as_lines(tas: bytes) -> List[str]:
 re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
+re_dash_saves = re.compile(r'[-+]\d+x')
 log: Optional[logging.Logger] = None
