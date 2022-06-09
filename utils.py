@@ -17,7 +17,7 @@ def plural(count: Union[int, Sized]) -> str:
 
 def handle_potential_request_error(req: requests.Response, code: int):
     if req.status_code != code:
-        log.warning(f"Bad HTTP status_code: {req.status_code}, should be {code}")
+        log.warning(f"Bad HTTP status_code: {req.status_code}, should be {code} (url={req.url})")
         log.warning(req.text)
 
 

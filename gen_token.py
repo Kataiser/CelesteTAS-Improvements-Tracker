@@ -15,14 +15,19 @@ from utils import plural
 def generate_jwt() -> str:
     current_time = time.time()
 
-    if '_jwt' in tokens and current_time < tokens['_jwt'][1]:
-        return tokens['_jwt'][0]
+    if '_jwt' in tokens:
+        time_remaining = tokens['_jwt'][1] - current_time
+
+        if time_remaining < 15:
+            return tokens['_jwt'][0]
+        else:
+            log.info(f"Reused JWT with {time_remaining} seconds remaining")
 
     with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
         private = pem_file.read()
 
     payload = {'iat': round(current_time - 60),
-               'exp': round(current_time + (9.75 * 60)),
+               'exp': round(current_time + (9.5 * 60)),
                'iss': '196447'}
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
@@ -60,8 +65,15 @@ def generate_access_token(installation_owner: str) -> tuple:
 
 
 def access_token(installation_owner: str):
-    if installation_owner not in tokens or time.time() - tokens[installation_owner][1] > 9.5 * 60:
+    if installation_owner not in tokens:
         tokens[installation_owner] = generate_access_token(installation_owner)
+    else:
+        token_age = time.time() - tokens[installation_owner][1]
+
+        if token_age > 9 * 60:
+            tokens[installation_owner] = generate_access_token(installation_owner)
+        else:
+            log.info(f"Reusing {round(token_age / 60, 2)} min old access token")
 
     return tokens[installation_owner][0]
 

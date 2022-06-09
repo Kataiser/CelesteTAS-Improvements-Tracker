@@ -52,6 +52,7 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     log.info(launching_game_text)
     subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
+    last_game_loading_notify = time.perf_counter()
     await dm_report(report_channel, launching_game_text)
 
     # make sure path cache is correct while the game is launching
@@ -63,7 +64,13 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     while not game_loaded:
         try:
             await asyncio.sleep(2)
+            current_time = time.perf_counter()
             requests.get('http://localhost:32270/', timeout=2)
+
+            if current_time - last_game_loading_notify > 30:
+                await dm_report(report_channel, "Game is still loading")
+                last_game_loading_notify = current_time
+
         except requests.ConnectTimeout:
             pass
         else:

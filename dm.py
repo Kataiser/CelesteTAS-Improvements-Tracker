@@ -20,7 +20,7 @@ from utils import plural, projects
 
 async def handle(message: discord.Message):
     log.info(f"Recieved DM from {utils.detailed_user(message)}: \"{message.content}\"")
-    command = message.content.partition(' ')[0]
+    command = message.content.partition(' ')[0].lower()
 
     if command in command_functions:
         log.info(f"Handling '{command}' command")
@@ -68,7 +68,7 @@ async def command_register_project(message: discord.Message):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
 
-      NAME: The name of the project (with underscores instead of spaces), ex: Into_the_Jungle, Strawberry_Jam, Celeste_maingame, Celeste_mindash
+      NAME: The name of the project (in quotes), ex: "Into the Jungle", "Strawberry Jam", "Celeste maingame", "Celeste mindash"
       IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
       REPOSITORY: Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo
       ACCOUNT: Your GitHub account name
@@ -78,9 +78,9 @@ async def command_register_project(message: discord.Message):
       DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (Y or N)
     """
 
-    message_split = message.content.split()
+    message_split = re_command_split.split(message.content)
 
-    if len(message_split) != 9 or not re.match(r'register_project .+ \d+ .+/.+ .+ [YyNn] [YyNn] [YyNn] [YyNn]', message.content):
+    if len(message_split) != 9 or not re.match(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN]', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help register_project`")
         return
@@ -154,7 +154,7 @@ async def command_register_project(message: discord.Message):
 
     log.info("Verification successful")
 
-    projects[improvements_channel_id] = {'name': name.replace('_', ' '),
+    projects[improvements_channel_id] = {'name': name.replace('"', ''),
                                          'repo': repo,
                                          'installation_owner': account,
                                          'admin': message.author.id,
@@ -187,7 +187,7 @@ async def command_register_project(message: discord.Message):
     if editing:
         await message.channel.send("Successfully verified and edited project.")
     else:
-        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_run_validation.lower() == 'y' else ""
+        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`."  if do_run_validation.lower() == 'y' else ""
         await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}")
 
@@ -196,24 +196,24 @@ async def command_add_mods(message: discord.Message):
     """
     add_mods PROJECT_NAME MODS
 
-      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will update all of them
+      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
-    message_split = message.content.split()
+    message_split = re_command_split.split(message.content)
 
-    if len(message_split) < 3 or not re.match(r'add_mods .+ .+', message.content):
+    if len(message_split) < 3 or not re.match(r'(?i)add_mods .+ .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help add_mods`")
         return
 
-    project_search_name = message_split[1].replace('_', ' ')
+    project_search_name = message_split[1].replace('"', '').lower()
     project_mods_added = False
 
     for project_id in projects:
         project = projects[project_id]
 
-        if project['name'] != project_search_name:
+        if project['name'].lower() != project_search_name:
             continue
         elif await not_admin(message, project_id):
             break
@@ -265,17 +265,17 @@ async def command_run_sync_check(message: discord.Message):
     """
     run_sync_check PROJECT_NAME
 
-      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will run it for all of them
+      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will run it for all of them
     """
 
-    message_split = message.content.split()
+    message_split = re_command_split.split(message.content)
 
-    if len(message_split) != 2 or not re.match(r'run_sync_check .+', message.content):
+    if len(message_split) != 2 or not re.match(r'(?i)run_sync_check .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help run_sync_check`")
         return
 
-    project_search_name = message_split[1].replace('_', ' ')
+    project_search_name = message_split[1].replace('"', '').lower()
     ran_validation = False
     idle_time = (win32api.GetTickCount() - win32api.GetLastInputInfo()) / 1000
     log.info(f"Idle time: {idle_time} seconds")
@@ -287,7 +287,7 @@ async def command_run_sync_check(message: discord.Message):
     for project_id in projects:
         project = projects[project_id]
 
-        if project['name'] != project_search_name:
+        if project['name'].lower() != project_search_name:
             continue
         elif await not_admin(message, project_id):
             break
@@ -314,19 +314,19 @@ async def command_rename_file(message: discord.Message):
     """
     rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
 
-      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will search in all of them
+      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will search in all of them
       FILENAME_BEFORE: The current name of the TAS file you want to rename (with .tas)
       FILENAME_AFTER: What you want the TAS file to be renamed to (with .tas)
     """
 
-    message_split = message.content.split()
+    message_split = re_command_split.split(message.content)
 
-    if len(message_split) != 4 or not re.match(r'rename_file .+ .+\.tas .+\.tas', message.content):
+    if len(message_split) != 4 or not re.match(r'(?i)rename_file .+ .+\.tas .+\.tas', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help rename_file`")
         return
 
-    project_search_name = message_split[1].replace('_', ' ')
+    project_search_name = message_split[1].replace('"', '').lower()
     filename_before, filename_after = message_split[2:]
     renamed_file = False
 
@@ -337,7 +337,7 @@ async def command_rename_file(message: discord.Message):
     for project_id in projects:
         project = projects[project_id]
 
-        if project['name'] != project_search_name:
+        if project['name'].lower() != project_search_name:
             continue
 
         main.generate_request_headers(project['installation_owner'])
@@ -438,17 +438,17 @@ async def command_about_project(message: discord.Message):
     """
     about PROJECT_NAME
 
-      PROJECT_NAME: The name of your project (underscores instead of spaces). If you have multiple improvement channels with the same project name, this will show info for all of them
+      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will show info for all of them
     """
 
-    message_split = message.content.split()
+    message_split = re_command_split.split(message.content)
 
-    if len(message_split) != 2 or not re.match(r'about_project .+', message.content):
+    if len(message_split) != 2 or not re.match(r'(?i)about_project .+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help about_project`")
         return
 
-    project_search_name = message_split[1].replace('_', ' ')
+    project_search_name = message_split[1].replace('"', '').lower()
     found_matching_project = False
     text = "Name: **{0}**" \
            "\nRepo: <{1}>" \
@@ -466,7 +466,7 @@ async def command_about_project(message: discord.Message):
     for project_id in projects:
         project = projects[project_id]
 
-        if project['name'] != project_search_name:
+        if project['name'].lower() != project_search_name:
             continue
 
         if project['do_run_validation']:
@@ -534,6 +534,7 @@ def get_mod_dependencies(mod: str) -> list:
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
+re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
 
 command_functions = {'help': command_help,
                      'about': command_about,

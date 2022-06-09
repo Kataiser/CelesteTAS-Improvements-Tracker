@@ -54,6 +54,7 @@ def start():
 async def on_ready():
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
+    log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
     downtime_message_count = 0
 
     for improvements_channel in projects:

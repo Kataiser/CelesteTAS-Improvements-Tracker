@@ -4,7 +4,7 @@ project_logs/
 test_tases/
 *.pem
 bot_token
-CelesteTAS Improvements Bot.exe
+CelesteTAS Improvements Tracker.exe
 bot.log
 history.log
 improvements bot icon 32.ico

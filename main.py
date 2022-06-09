@@ -153,6 +153,9 @@ def generate_path_cache(project_id: int):
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
 
+    if project_id not in path_caches:
+        path_caches[project_id] = {}
+
     for item in r.json():
         if item['type'] == 'dir' and (item['name'].startswith(project_subdir) if project_subdir else True):
             # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
