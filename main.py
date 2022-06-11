@@ -206,7 +206,8 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            f"Room(s) affected is ideal, and{'' if ensure_level else f' {level_text},'} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
            "\nPackage DL: <{2}>" \
-           "\nLast sync check: {3}" \
+           "\nAdmin: <@{3}>" \
+           "\nLast sync check: {4}" \
            "\n\nBot reactions key:" \
            "\n```" \
            "\n📝 = Successfully verified and committed" \
@@ -233,7 +234,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    text_out = text.format(name, repo_url, package_url, sync_timestamp)
+    text_out = text.format(name, repo_url, package_url, projects[channel.id]['admin'], sync_timestamp)
 
     if create:
         log.info("Creating pin")

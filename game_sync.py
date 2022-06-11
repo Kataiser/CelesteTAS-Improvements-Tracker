@@ -64,15 +64,13 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     while not game_loaded:
         try:
             await asyncio.sleep(2)
-            current_time = time.perf_counter()
             requests.get('http://localhost:32270/', timeout=2)
+        except requests.ConnectTimeout:
+            current_time = time.perf_counter()
 
-            if current_time - last_game_loading_notify > 30:
+            if current_time - last_game_loading_notify > 60:
                 await dm_report(report_channel, "Game is still loading")
                 last_game_loading_notify = current_time
-
-        except requests.ConnectTimeout:
-            pass
         else:
             log.info("Game loaded")
             await asyncio.sleep(2)
