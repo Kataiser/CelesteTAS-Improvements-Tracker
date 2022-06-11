@@ -20,9 +20,14 @@ from utils import plural, projects
 async def run_syncs():
     log.info("Running all sync tests")
 
-    for project_id in projects:
-        if projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
-            await sync_test(project_id)
+    try:
+        for project_id in projects:
+            if projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
+                await sync_test(project_id)
+    except Exception:
+        await close_game()
+        post_cleanup()
+        raise
 
     post_cleanup()
 
@@ -139,38 +144,7 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         await dm_report(report_channel, sync_text)
         files_timed += 1
 
-    closing_game_text = "Closing the game and Studio"
-    log.info(closing_game_text)
-    await dm_report(report_channel, closing_game_text)
-
-    try:
-        # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/tasklist
-        processes = str(subprocess.check_output('tasklist /fi "STATUS eq running"')).split(r'\r\n')
-    except subprocess.CalledProcessError as error:
-        processes = []
-        log.error(repr(error))
-
-    for process_line in processes:
-        if '.exe' not in process_line:
-            continue
-
-        process_name = process_line.split('.exe')[0]
-        process_pid = int(process_line.split('.exe')[1].split()[0])
-
-        if process_name == 'Celeste':
-            try:
-                psutil.Process(process_pid).kill()
-                log.info("Closed Celeste")
-            except psutil.NoSuchProcess as error:
-                log.error(repr(error))
-        elif 'studio' in process_name.lower() and 'celeste' in process_name.lower():
-            try:
-                psutil.Process(process_pid).kill()
-                log.info("Closed Studio")
-            except psutil.NoSuchProcess as error:
-                log.error(repr(error))
-
-    await asyncio.sleep(1)
+    await close_game(report_channel)
     project['last_run_validation'] = int(time.time())
     utils.save_projects()
     improvements_channel = client.get_channel(project_id)
@@ -221,6 +195,49 @@ def post_cleanup():
             shutil.rmtree(dir_to_remove)
 
     log.info(f"Deleted {files_removed} file{plural(files_removed)} and {dirs_removed} dir{plural(dirs_to_remove)} from game install")
+
+
+async def close_game(report_channel: Optional[discord.DMChannel] = None):
+    closed = False
+
+    try:
+        # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/tasklist
+        processes = str(subprocess.check_output('tasklist /fi "STATUS eq running"')).split(r'\r\n')
+    except subprocess.CalledProcessError as error:
+        processes = []
+        log.error(repr(error))
+
+    for process_line in processes:
+        if '.exe' not in process_line:
+            continue
+
+        process_name = process_line.split('.exe')[0]
+        process_pid = int(process_line.split('.exe')[1].split()[0])
+
+        if process_name == 'Celeste':
+            try:
+                psutil.Process(process_pid).kill()
+                log.info("Closed Celeste")
+                closed = True
+            except psutil.NoSuchProcess as error:
+                log.error(repr(error))
+        elif 'studio' in process_name.lower() and 'celeste' in process_name.lower():
+            try:
+                psutil.Process(process_pid).kill()
+                log.info("Closed Studio")
+                closed = True
+            except psutil.NoSuchProcess as error:
+                log.error(repr(error))
+
+    if closed:
+        closed_game_text = "Closed the game and Studio"
+        log.info(closed_game_text)
+        await dm_report(report_channel, closed_game_text)
+        await asyncio.sleep(1)
+    else:
+        game_not_closed_text = "Game was not running"
+        log.info(game_not_closed_text)
+        await dm_report(report_channel, game_not_closed_text)
 
 
 async def dm_report(report_channel: Optional[discord.DMChannel], text: str):

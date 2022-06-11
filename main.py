@@ -149,7 +149,8 @@ def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
 def generate_path_cache(project_id: int):
     repo = projects[project_id]['repo']
     project_subdir = projects[project_id]['subdir']
-    log.info(f"Caching {repo} structure")
+    project_subdir_base = project_subdir.partition('/')[0]
+    log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
 
@@ -157,7 +158,7 @@ def generate_path_cache(project_id: int):
         path_caches[project_id] = {}
 
     for item in r.json():
-        if item['type'] == 'dir' and (item['name'].startswith(project_subdir) if project_subdir else True):
+        if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
             # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
             dir_sha = item['sha']
             r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
@@ -168,7 +169,7 @@ def generate_path_cache(project_id: int):
                     subitem_name = subitem['path'].split('/')[-1]
                     subitem_full_path = f"{item['name']}/{subitem['path']}"
 
-                    if subitem_name.endswith('.tas'):
+                    if subitem_name.endswith('.tas') and (subitem_full_path.startswith(project_subdir) if project_subdir else True):
                         path_caches[project_id][subitem_name] = subitem_full_path
         elif not project_subdir and item['name'].endswith('.tas'):
             path_caches[project_id][item['name']] = item['path']

@@ -70,9 +70,9 @@ def access_token(installation_owner: str):
         time_remaining = tokens[installation_owner][1] - time.time()
 
         if time_remaining > 60:
-            tokens[installation_owner] = generate_access_token(installation_owner)
-        else:
             log.info(f"Reusing access token with {round(time_remaining / 60, 2)} mins remaining")
+        else:
+            tokens[installation_owner] = generate_access_token(installation_owner)
 
     return tokens[installation_owner][0]
 

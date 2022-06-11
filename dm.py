@@ -86,7 +86,7 @@ async def command_register_project(message: discord.Message):
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
-    _, name, improvements_channel_id, repo_and_subdir, account, commit_drafts, is_lobby, ensure_level, do_run_validation = message_split
+    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, do_run_validation = message_split
     improvements_channel_id = int(improvements_channel_id)
     editing = improvements_channel_id in projects
 
@@ -121,9 +121,17 @@ async def command_register_project(message: discord.Message):
             await message.channel.send(error)
             return
 
+    # verify github account exists
+    r = requests.get(f'https://api.github.com/users/{github_account}', headers={'Accept': 'application/vnd.github.v3+json'})
+    if r.status_code != 200:
+        log.error(f"GitHub account {github_account} doesn't seem to exist, status code is {r.status_code}")
+        await message.channel.send(f"GitHub account \"{github_account}\" doesn't seem to exist")
+        return
+
     # verify repo exists
     repo_split = repo_and_subdir.rstrip('/').split('/')
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
+    main.generate_request_headers(github_account)
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
         log.error(f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")
@@ -138,13 +146,6 @@ async def command_register_project(message: discord.Message):
             await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\"")
             return
 
-    # verify account exists
-    r = requests.get(f'https://api.github.com/users/{account}', headers={'Accept': 'application/vnd.github.v3+json'})
-    if r.status_code != 200:
-        log.error(f"GitHub account {account} doesn't seem to exist, status code is {r.status_code}")
-        await message.channel.send(f"GitHub account \"{account}\" doesn't seem to exist")
-        return
-
     # verify not adding run validation to a lobby
     if do_run_validation.lower() == 'y' and is_lobby.lower() == 'y':
         log.error("Can't add run validation to a lobby project")
@@ -155,7 +156,7 @@ async def command_register_project(message: discord.Message):
 
     projects[improvements_channel_id] = {'name': name.replace('"', ''),
                                          'repo': repo,
-                                         'installation_owner': account,
+                                         'installation_owner': github_account,
                                          'admin': message.author.id,
                                          'install_time': int(time.time()),
                                          'commit_drafts': commit_drafts.lower() == 'y',
@@ -300,9 +301,14 @@ async def command_run_sync_check(message: discord.Message):
             continue
 
         await message.channel.send(f"Running sync check for project \"{project['name']}\"...")
-        await game_sync.sync_test(project_id, message.channel)
-        game_sync.post_cleanup()
         ran_validation = True
+
+        try:
+            await game_sync.sync_test(project_id, message.channel)
+        except Exception:
+            await game_sync.close_game()
+            game_sync.post_cleanup()
+            raise
 
     if not ran_validation:
         log.warning(f"No projects found matching: {project_search_name}")
