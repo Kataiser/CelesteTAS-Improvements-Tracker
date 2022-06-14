@@ -31,6 +31,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     message_lowercase = message.content.lower()
     breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
     is_dash_save = re_dash_saves.search(message.content) is not None
+    got_timesave = False
 
     if len(breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
@@ -63,47 +64,51 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     if old_tas and not is_dash_save:
         # validate timesave frames is in message content
-        old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[2:4]
-        time_saved_num = calculate_time_difference(old_finaltime, finaltime)
-        time_saved_minus = f'-{abs(time_saved_num)}f'
-        time_saved_plus = f'+{abs(time_saved_num)}f'
-        time_saved_messages = re_timesave_frames.search(message.content)
-        aleph_moment = " (you suck at math lol)" if message.author.id == 238029047567876096 else ""
-        # ok this logic is weird cause it can be '-f', '+f', or in the case of 0 frames saved, either one
+        old_has_finaltime, old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[1:4]
 
-        if not time_saved_messages:
+        if old_has_finaltime:
+            time_saved_num = calculate_time_difference(old_finaltime, finaltime)
+            time_saved_minus = f'-{abs(time_saved_num)}f'
+            time_saved_plus = f'+{abs(time_saved_num)}f'
+            time_saved_messages = re_timesave_frames.search(message.content)
+            got_timesave = True
+            aleph_moment = " (you suck at math lol)" if message.author.id == 238029047567876096 else ""
+            # ok this logic is weird cause it can be '-f', '+f', or in the case of 0 frames saved, either one
+
+            if not time_saved_messages:
+                if time_saved_num == 0:
+                    time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
+                else:
+                    time_saved_options = time_saved_minus if time_saved_num >= 0 else time_saved_plus
+
+                return ValidationResult(False, f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct), and post again.",
+                                        f"no timesave in message (should be {time_saved_options})")
+
             if time_saved_num == 0:
-                time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
+                if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
+                    time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
+                    return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), please fix and post again.",
+                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
             else:
-                time_saved_options = time_saved_minus if time_saved_num >= 0 else time_saved_plus
+                time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
-            return ValidationResult(False, f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct), and post again.",
-                                    f"no timesave in message (should be {time_saved_options})")
-
-        if time_saved_num == 0:
-            if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
-                time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), please fix and post again.",
-                                        f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
+                if time_saved_messages[0] != time_saved_actual:
+                    return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
+                                                   f"please fix and post again{aleph_moment}.",
+                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
         else:
-            time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
-
-            if time_saved_messages[0] != time_saved_actual:
-                return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
-                                               f"please fix and post again{aleph_moment}.",
-                                        f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
+            log.info("Old file has no final time, skipping validating timesave")
     elif not old_tas:
         # validate draft text
         if "draft" not in message_lowercase:
             return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
 
-    return ValidationResult(True, finaltime=finaltime, timesave=time_saved_messages[0] if old_tas else None)
+    return ValidationResult(True, finaltime=finaltime, timesave=str(time_saved_messages[0]) if got_timesave else None)
 
 
 # get breakpoints and final time in one pass
 def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
     breakpoints = []
-    found_finaltime = False
     finaltime_line = None
     finaltime = None
     finaltime_trimmed = None
@@ -112,15 +117,15 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
         if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
             log.info(f"Found breakpoint at line {line[0] + 1}")
             breakpoints.append(str(line[0] + 1))
-        elif not found_finaltime:
+        else:
             if re_chapter_time.match(line[1]):
-                found_finaltime = True
                 is_chaptertime = True
                 finaltime_line = line[0]
             elif allow_comment_time and re_comment_time.match(line[1]):
-                found_finaltime = True
                 is_chaptertime = False
                 finaltime_line = line[0]
+
+    found_finaltime = finaltime_line is not None
 
     if found_finaltime:
         if is_chaptertime:

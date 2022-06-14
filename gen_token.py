@@ -18,8 +18,8 @@ def generate_jwt() -> str:
     if '_jwt' in tokens:
         time_remaining = tokens['_jwt'][1] - current_time
 
-        if time_remaining > 15:
-            log.info(f"Reused JWT with {time_remaining} seconds remaining")
+        if time_remaining > 30:
+            log.info(f"Reused JWT with {round(time_remaining / 60, 1)} mins remaining")
             return tokens['_jwt'][0]
 
     with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
@@ -69,8 +69,8 @@ def access_token(installation_owner: str):
     else:
         time_remaining = tokens[installation_owner][1] - time.time()
 
-        if time_remaining > 60:
-            log.info(f"Reusing access token with {round(time_remaining / 60, 2)} mins remaining")
+        if time_remaining > 30:
+            log.info(f"Reusing access token with {round(time_remaining / 60, 1)} mins remaining")
         else:
             tokens[installation_owner] = generate_access_token(installation_owner)
 

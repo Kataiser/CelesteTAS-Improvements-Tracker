@@ -461,7 +461,7 @@ async def command_about_project(message: discord.Message):
            "\nAdmin: {3}" \
            "\nGithub installation owner: {4}" \
            "\nInstall time: <t:{5}>" \
-           "\nPin: {6}" \
+           "\nPin: <{6}>" \
            "\nCommit drafts: `{7}`" \
            "\nIs lobby: `{8}`" \
            "\nEnsure level name in posts: `{9}`" \
