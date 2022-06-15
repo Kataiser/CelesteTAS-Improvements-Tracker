@@ -30,7 +30,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
     breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
-    is_dash_save = re_dash_saves.search(message.content) is not None
+    dash_saves = re_dash_saves.search(message.content)
+    is_dash_save = dash_saves is not None
     got_timesave = False
 
     if len(breakpoints) == 1:
@@ -103,7 +104,15 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         if "draft" not in message_lowercase:
             return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
 
-    return ValidationResult(True, finaltime=finaltime, timesave=str(time_saved_messages[0]) if got_timesave else None)
+    if got_timesave:
+        timesave = str(time_saved_messages[0])
+    elif is_dash_save:
+        # techically not timesave but whatever
+        timesave = str(dash_saves[0])
+    else:
+        timesave = None
+
+    return ValidationResult(True, finaltime=finaltime, timesave=timesave)
 
 
 # get breakpoints and final time in one pass

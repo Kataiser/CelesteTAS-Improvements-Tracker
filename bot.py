@@ -58,7 +58,7 @@ async def on_ready():
     downtime_message_count = 0
 
     for improvements_channel in projects:
-        downtime_messages = await client.get_channel(improvements_channel).history(limit=15).flatten()
+        downtime_messages = await client.get_channel(improvements_channel).history(limit=10).flatten()
         downtime_messages.reverse()  # make chronological
 
         for message in downtime_messages:

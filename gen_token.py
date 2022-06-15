@@ -41,11 +41,11 @@ def generate_access_token(installation_owner: str) -> tuple:
 
     if installation_owner not in installations_file():
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
-        installations_file.cache_clear()
         r = requests.get('https://api.github.com/app/installations', headers=headers)
         utils.handle_potential_request_error(r, 200)
         installations = r.json()
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
+        installations_file.cache_clear()
 
         for installation in installations:
             installations_saved[installation['account']['login']] = installation['id']
@@ -59,7 +59,7 @@ def generate_access_token(installation_owner: str) -> tuple:
     access_token_data = r.json()
     token_expiration_str = access_token_data['expires_at'][:-1]
     token_expiration = datetime.datetime.fromisoformat(f'{token_expiration_str}+00:00')
-    log.info(f"Generated access token: {access_token_data}")
+    log.info(f"Generated {installation_owner} access token: {access_token_data}")
     return access_token_data['token'], token_expiration.timestamp()
 
 
@@ -70,7 +70,7 @@ def access_token(installation_owner: str):
         time_remaining = tokens[installation_owner][1] - time.time()
 
         if time_remaining > 30:
-            log.info(f"Reusing access token with {round(time_remaining / 60, 1)} mins remaining")
+            log.info(f"Reusing {installation_owner} access token with {round(time_remaining / 60, 1)} mins remaining")
         else:
             tokens[installation_owner] = generate_access_token(installation_owner)
 
