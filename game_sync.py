@@ -154,7 +154,13 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         desyncs_formatted = '\n'.join(desyncs)
         desync_warning = f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (of {files_timed} file{plural(files_timed)} tested):" \
                          f"\n```\n{desyncs_formatted}```"
-        await improvements_channel.send(desync_warning)
+        last_message = (await improvements_channel.history(limit=1).flatten())[0]
+
+        # don't repeat the same warning twice in a row
+        if last_message.author != client.user or f'```\n{desyncs_formatted}```' not in last_message.content:
+            await improvements_channel.send(desync_warning)
+        else:
+            log.info("Not sending desync warning")
 
     if report_channel:
         if desyncs:
@@ -230,9 +236,7 @@ async def close_game(report_channel: Optional[discord.DMChannel] = None):
                 log.error(repr(error))
 
     if closed:
-        closed_game_text = "Closed the game and Studio"
-        log.info(closed_game_text)
-        await dm_report(report_channel, closed_game_text)
+        await dm_report(report_channel, "Closed the game and Studio")
         await asyncio.sleep(1)
     else:
         game_not_closed_text = "Game was not running"

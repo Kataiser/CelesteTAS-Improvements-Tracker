@@ -24,7 +24,7 @@ async def process_improvement_message(message: discord.Message):
     if not is_processable_message(message):
         return
 
-    log.info(f"Processing message at {message.jump_url}")
+    log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {projects[message.channel.id]['name']}) at {message.jump_url}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
     has_video = video_attachments or 'youtube.com/watch?v=' in message.content or 'youtu.be/' in message.content or 'streamable.com/' in message.content or 'gfycat.com/' in message.content
@@ -51,7 +51,7 @@ async def process_improvement_message(message: discord.Message):
     generate_request_headers(projects[message.channel.id]['installation_owner'])
 
     for attachment in tas_attachments:
-        log.info(f"Processing message from {utils.detailed_user(message)} at {message.jump_url}")
+        log.info(f"Processing file {attachment.filename} at {attachment.url}")
         repo = projects[message.channel.id]['repo']
         is_lobby = projects[message.channel.id]['is_lobby']
         r = requests.get(attachment.url)
@@ -65,6 +65,8 @@ async def process_improvement_message(message: discord.Message):
             r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
             utils.handle_potential_request_error(r, 200)
             old_file_content = base64.b64decode(r.json()['content'])
+        else:
+            log.info("No old version of file exists")
 
         validation_result = validation.validate(file_content, attachment.filename, message, old_file_content, is_lobby)
 

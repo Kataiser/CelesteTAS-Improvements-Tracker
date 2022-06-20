@@ -57,8 +57,14 @@ async def on_ready():
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
     downtime_message_count = 0
 
-    for improvements_channel in projects:
-        downtime_messages = await client.get_channel(improvements_channel).history(limit=10).flatten()
+    for improvements_channel_id in projects:
+        improvements_channel = client.get_channel(improvements_channel_id)
+
+        if not improvements_channel:
+            log.error(f"Can't access improvements channel for project {projects[improvements_channel_id]['name']}")
+            continue
+
+        downtime_messages = await client.get_channel(improvements_channel_id).history(limit=10).flatten()
         downtime_messages.reverse()  # make chronological
 
         for message in downtime_messages:
@@ -94,20 +100,15 @@ async def on_message(message: discord.Message):
 @client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     await client.wait_until_ready()
-    deleted_reply = False
 
-    for improvements_channel in projects:
-        past_messages = await client.get_channel(improvements_channel).history(limit=20).flatten()
+    if payload.channel_id in projects:
+        past_messages = await client.get_channel(payload.channel_id).history(limit=20).flatten()
 
         for message in past_messages:
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
-                log.info(f"Deleted bot reply message in project: {projects[improvements_channel]['name']}")
-                deleted_reply = True
+                log.info(f"Deleted bot reply message in project: {projects[payload.channel_id]['name']}")
                 break
-
-        if deleted_reply:
-            break
 
 
 @tasks.loop(hours=2)
