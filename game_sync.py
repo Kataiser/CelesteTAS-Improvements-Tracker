@@ -37,8 +37,9 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     log.info(f"Running sync test for project: {project['name']}")
     installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
     mods = project['mods']
-    path_cache = main.path_caches[project_id]
     repo = project['repo']
+    previous_desyncs = project['desyncs']
+    path_cache = main.path_caches[project_id]
     blacklist = []
     desyncs = []
     files_timed = 0
@@ -146,27 +147,28 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
 
     await close_game(report_channel)
     project['last_run_validation'] = int(time.time())
+    project['desyncs'] = desyncs
     utils.save_projects()
     improvements_channel = client.get_channel(project_id)
     await main.edit_pin(improvements_channel)
+    new_desyncs = [f for f in desyncs if f not in previous_desyncs]
+    log.info(f"All desyncs: {desyncs}")
+    log.info(f"New desyncs: {new_desyncs}")
+
+    if new_desyncs:
+        new_desyncs_formatted = '\n'.join(new_desyncs)
+        desync_warning = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
+                         f"\n```\n{new_desyncs_formatted}```"
+        await improvements_channel.send(desync_warning)
+        await dm_report(report_channel, desync_warning)
 
     if desyncs:
-        desyncs_formatted = '\n'.join(desyncs)
-        desync_warning = f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (of {files_timed} file{plural(files_timed)} tested):" \
-                         f"\n```\n{desyncs_formatted}```"
-        last_message = (await improvements_channel.history(limit=1).flatten())[0]
-
-        # don't repeat the same warning twice in a row
-        if last_message.author != client.user or f'```\n{desyncs_formatted}```' not in last_message.content:
-            await improvements_channel.send(desync_warning)
-        else:
-            log.info("Not sending desync warning")
-
-    if report_channel:
-        if desyncs:
-            await report_channel.send(desync_warning)
-        else:
-            await report_channel.send(f"Sync check finished, 0 desyncs found (of {files_timed} file{plural(files_timed)} tested)")
+        if not new_desyncs:
+            desyncs_formatted = '\n'.join(desyncs)
+            await dm_report(report_channel, f"Sync check finished, {len(new_desyncs)} desync{plural(new_desyncs)} found (0 new, {files_timed} file{plural(files_timed)} tested):"
+                                            f"\n```\n{desyncs_formatted}```")
+    else:
+        await dm_report(report_channel, f"Sync check finished, 0 desyncs found (of {files_timed} file{plural(files_timed)} tested)")
 
 
 # remove all files related to the debug save
@@ -246,7 +248,10 @@ async def close_game(report_channel: Optional[discord.DMChannel] = None):
 
 async def dm_report(report_channel: Optional[discord.DMChannel], text: str):
     if report_channel:
-        await report_channel.send(f"`{text}`")
+        if '```' in text:
+            await report_channel.send(text)
+        else:
+            await report_channel.send(f"`{text}`")
 
 
 log: Optional[logging.Logger] = None

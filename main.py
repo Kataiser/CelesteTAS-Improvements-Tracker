@@ -16,7 +16,7 @@ import game_sync
 import gen_token
 import utils
 import validation
-from utils import projects
+from utils import plural, projects
 
 
 # process a message posted in a registered improvements channel
@@ -37,7 +37,10 @@ async def process_improvement_message(message: discord.Message):
         log.info("No TAS file found 👍")
 
         if not has_video:
-            await message.add_reaction('👍')
+            if "bad bot" in message.content.lower():
+                await message.add_reaction('😢')
+            else:
+                await message.add_reaction('👍')
 
         add_project_log(message)
         log.info("Done processing message")
@@ -199,9 +202,12 @@ def is_processable_message(message: discord.Message) -> bool:
 
 
 async def edit_pin(channel: discord.TextChannel, create: bool = False):
-    lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if projects[channel.id]['is_lobby'] else ""
+    project = projects[channel.id]
+    lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if project['is_lobby'] else ""
     level_text = "the name of the level/map"
-    ensure_level = projects[channel.id]['ensure_level']
+    ensure_level = project['ensure_level']
+    desyncs = project['desyncs']
+    desyncs_text = "\n"
 
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
            f"a file, please include the amount of frames saved{f', {level_text},' if ensure_level else ''} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
@@ -209,8 +215,8 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
            "\nPackage DL: <{2}>" \
            "\nAdmin: <@{3}>" \
-           "\nLast sync check: {4}" \
-           "\n\nBot reactions key:" \
+           "\nLast sync check: {4}{5}" \
+           "\nBot reactions key:" \
            "\n```" \
            "\n📝 = Successfully verified and committed" \
            "\n👀 = Currently processing file" \
@@ -219,24 +225,28 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            "\n🤘 = Successfully verified draft but didn't commit" \
            "\n🍿 = Video in message```"
 
-    if projects[channel.id]['do_run_validation']:
-        last_run = projects[channel.id]['last_run_validation']
+    if project['do_run_validation']:
+        last_run = project['last_run_validation']
 
         if last_run:
             sync_timestamp = f"<t:{last_run}>"
         else:
             sync_timestamp = "`Not yet run`"
+
+        if desyncs:
+            desyncs_formatted = '\n'.join(desyncs)
+            desyncs_text = f"\n\nCurrently desyncing file{plural(desyncs)}:\n```\n{desyncs_formatted}```"
     else:
         sync_timestamp = "`Disabled`"
 
-    name = projects[channel.id]['name']
-    repo = projects[channel.id]['repo']
-    pin = projects[channel.id]['pin']
-    subdir = projects[channel.id]['subdir']
+    name = project['name']
+    repo = project['repo']
+    pin = project['pin']
+    subdir = project['subdir']
     repo_url = f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/main/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    text_out = text.format(name, repo_url, package_url, projects[channel.id]['admin'], sync_timestamp)
+    text_out = text.format(name, repo_url, package_url, project['admin'], sync_timestamp, desyncs_text)
 
     if create:
         log.info("Creating pin")

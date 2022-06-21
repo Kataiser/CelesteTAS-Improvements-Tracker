@@ -75,11 +75,12 @@ def validate_project_formats(projects: dict):
             assert isinstance(project['last_run_validation'], int) or project['last_run_validation'] is None
             assert isinstance(project['subdir'], str)
             assert isinstance(project['mods'], list)
+            assert isinstance(project['desyncs'], list)
 
             for mod in project['mods']:
                 assert isinstance(mod, str); assert len(mod) > 0
 
-            assert len(project) == 13
+            assert len(project) == 14
         except (KeyError, AssertionError) as error:
             log.error(f"Invalid format for project {project_id}: {repr(error)}")
 
