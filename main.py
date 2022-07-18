@@ -11,7 +11,7 @@ from typing import Optional
 import discord
 import requests
 
-import dm
+import commands
 import game_sync
 import gen_token
 import utils
@@ -20,8 +20,8 @@ from utils import plural, projects
 
 
 # process a message posted in a registered improvements channel
-async def process_improvement_message(message: discord.Message):
-    if not is_processable_message(message):
+async def process_improvement_message(message: discord.Message, skip_validation: bool = False):
+    if not skip_validation and not is_processable_message(message):
         return
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {projects[message.channel.id]['name']}) at {message.jump_url}")
@@ -49,7 +49,9 @@ async def process_improvement_message(message: discord.Message):
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
         # TODO: handle this better
 
-    await message.clear_reaction('❌')
+    if not skip_validation:
+        await message.clear_reaction('❌')
+        await message.clear_reaction('⏭')
     await message.add_reaction('👀')
     generate_request_headers(projects[message.channel.id]['installation_owner'])
 
@@ -60,25 +62,36 @@ async def process_improvement_message(message: discord.Message):
         r = requests.get(attachment.url)
         utils.handle_potential_request_error(r, 200)
         file_content = r.content
-        old_file_path = get_file_repo_path(message.channel.id, attachment.filename)
+        filename, filename_no_underscores = attachment.filename, attachment.filename.replace('_', ' ')
+
+        if filename not in path_caches[message.channel.id] and filename_no_underscores in path_caches[message.channel.id]:
+            log.info(f"Considering {filename} as {filename_no_underscores}")
+            filename = filename_no_underscores
+
+        old_file_path = get_file_repo_path(message.channel.id, filename)
         old_file_content = None
 
         if old_file_path:
             log.info("Downloading old version of file, for time reference")
             r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
-            utils.handle_potential_request_error(r, 200)
-            old_file_content = base64.b64decode(r.json()['content'])
+            r_json = r.json()
+
+            if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
+                del path_caches[message.channel.id][filename]
+                log.warning("File existed in path cache but doesn't seem to exist in repo")
+            else:
+                utils.handle_potential_request_error(r, 200)
+                old_file_content = base64.b64decode(r_json['content'])
         else:
             log.info("No old version of file exists")
 
-        validation_result = validation.validate(file_content, attachment.filename, message, old_file_content, is_lobby)
+        validation_result = validation.validate(file_content, filename, message, old_file_content, is_lobby, skip_validation)
 
         if validation_result.valid_tas:
             # I love it when
             # when timesave :)
             # (or drafts)
-            log.info(f"Committing {attachment.url} (maybe)")
-            commit_status = commit(message, attachment.filename, file_content, validation_result)
+            commit_status = commit(message, filename, file_content, validation_result)
 
             if commit_status:
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
@@ -92,19 +105,22 @@ async def process_improvement_message(message: discord.Message):
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
             await message.add_reaction('❌')
+            await message.add_reaction('⏭')
             await message.reply(validation_result.warning_text)
 
         if len(tas_attachments) > 1:
-            log.info(f"Done processing {attachment.filename}")
+            log.info(f"Done processing {filename}")
 
-    add_project_log(message)
+    if not skip_validation:
+        add_project_log(message)
+
     await message.clear_reaction('👀')
     log.info("Done processing message")
 
 
 # assumes already verified TAS
 def commit(message: discord.Message, filename: str, content: bytes, validation_result: validation.ValidationResult) -> Optional[tuple]:
-    log.info(f"Using project: {projects[message.channel.id]['name']} ({message.channel.id})")
+    log.info("Potentially committing file")
     repo = projects[message.channel.id]['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
@@ -130,7 +146,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
     if user_github_account:
         data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
-        log.info(f"Setting commit author to {data['author']}")
+        log.info(f"Set commit author to {data['author']}")
 
     log.info(f"Set commit message to \"{data['message']}\"")
     r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
@@ -221,6 +237,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            "\n📝 = Successfully verified and committed" \
            "\n👀 = Currently processing file" \
            "\n❌ = Invalid TAS file or post" \
+           "\n⏭ = React to commit invalid post anyway" \
            "\n👍 = Non-TAS containing message" \
            "\n🤘 = Successfully verified draft but didn't commit" \
            "\n🍿 = Video in message```"
@@ -325,10 +342,10 @@ def create_loggers() -> (logging.Logger, logging.Logger):
     gen_token.log = logger
     validation.log = logger
     utils.log = logger
-    dm.log = logger
+    commands.log = logger
     game_sync.log = logger
     history_log = history
-    dm.history_log = history
+    commands.history_log = history
 
     return logger, history
 

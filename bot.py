@@ -8,7 +8,7 @@ import discord
 import psutil
 from discord.ext import tasks
 
-import dm
+import commands
 import game_sync
 import main
 import utils
@@ -64,7 +64,8 @@ async def on_ready():
             log.error(f"Can't access improvements channel for project {projects[improvements_channel_id]['name']}")
             continue
 
-        downtime_messages = await client.get_channel(improvements_channel_id).history(limit=10).flatten()
+        messages_limit = 2 if debug else 10
+        downtime_messages = await client.get_channel(improvements_channel_id).history(limit=messages_limit).flatten()
         downtime_messages.reverse()  # make chronological
 
         for message in downtime_messages:
@@ -89,7 +90,7 @@ async def on_message(message: discord.Message):
     if message.author == client.user:
         return
     elif not message.guild:
-        await dm.handle(message)
+        await commands.handle(message)
         return
     elif message.channel.id not in projects:
         return
@@ -108,6 +109,25 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
                 log.info(f"Deleted bot reply message in project: {projects[payload.channel_id]['name']}")
+                break
+
+
+@client.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    await client.wait_until_ready()
+
+    if payload.emoji.name == '⏭' and payload.channel_id in projects:
+        for project_id in projects:
+            if payload.message_id in main.project_logs[project_id]:
+                message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
+
+                if payload.user_id in (message.author.id, projects[project_id]['admin'], 219955313334288385):
+                    request_user = await client.fetch_user(payload.user_id)
+                    log.info(f"{utils.detailed_user(user=request_user)} has requested committing invalid post")
+                    await message.clear_reaction('⏭')
+                    await message.reply(f"{request_user.mention} has requested committing invalid post")
+                    await main.process_improvement_message(message, skip_validation=True)
+
                 break
 
 
@@ -135,7 +155,7 @@ async def on_error(*args):
 
 
 log, history_log = main.create_loggers()
-dm.client = client
+commands.client = client
 game_sync.client = client
 
 

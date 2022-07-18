@@ -19,11 +19,11 @@ class ValidationResult:
             log.info("TAS file and improvement post have been validated")
 
 
-def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool) -> ValidationResult:
+def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool, skip_validation: bool = False) -> ValidationResult:
     log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
 
     # validate length
-    if len(tas) > 204800:  # 200 kb
+    if not skip_validation and len(tas) > 204800:  # 200 kb
         return ValidationResult(False, f"This TAS file is very large ({len(tas) / 2048} KB). For safety, it won't be processed.", f"{filename} being too long ({len(tas)} bytes)")
 
     # validate breakpoint doesn't exist and chaptertime does
@@ -33,6 +33,28 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     dash_saves = re_dash_saves.search(message.content)
     is_dash_save = dash_saves is not None
     got_timesave = False
+
+    if skip_validation:
+        log.info("Skipping validation actually")
+        # ok this is really ugly, but we do need final time and timesave
+
+        if old_tas and not is_dash_save:
+            old_has_finaltime, old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[1:4]
+
+            if old_has_finaltime:
+                time_saved_num = calculate_time_difference(old_finaltime, finaltime)
+                time_saved_text = f'-{time_saved_num}f' if time_saved_num >= 0 else f'+{abs(time_saved_num)}f'
+                got_timesave = True
+
+        if got_timesave:
+            timesave = time_saved_text
+        elif is_dash_save:
+            # techically not timesave but whatever
+            timesave = str(dash_saves[0])
+        else:
+            timesave = None
+
+        return ValidationResult(True, finaltime=finaltime, timesave=timesave)
 
     if len(breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
@@ -60,7 +82,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     if projects[message.channel.id]['ensure_level']:
         level = filename.lower().removesuffix('.tas').replace('_', '')
 
-        if level not in message_lowercase.replace('_', '').replace(' ', ''):
+        if level not in message_lowercase.replace('_', '').replace(' ', '').replace('\'', ''):
             return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
     if old_tas and not is_dash_save:

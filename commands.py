@@ -4,13 +4,11 @@ import logging
 import os
 import re
 import time
-import zipfile
 from typing import Optional
 
 import discord
 import requests
 import win32api
-import yaml
 
 import game_sync
 import main
@@ -166,7 +164,8 @@ async def command_register_project(message: discord.Message):
                                          'last_run_validation': None,
                                          'pin': None,
                                          'subdir': subdir,
-                                         'mods': previous['mods'] if editing else []}
+                                         'mods': previous['mods'] if editing else [],
+                                         'desyncs': []}
 
     if not editing:
         await message.channel.send("Generating path cache...")
@@ -228,21 +227,22 @@ async def command_add_mods(message: discord.Message):
         project_mods = set(project['mods'])
         log.info(f"{len(project_mods)} mod{plural(project_mods)} before adding: {project_mods}")
         project_mods = project_mods.union(mods_given)
-
-        for mod_given in mods_given:
-            project_mods = project_mods.union(get_mod_dependencies(mod_given))
-
         log.info(f"{len(project_mods)} mod{plural(project_mods)} after adding: {project_mods}")
         project['mods'] = list(project_mods)
         utils.save_projects()
         mods_missing = set()
+
+        for mod_given in mods_given:
+            all_project_mods = project_mods.union(game_sync.get_mod_dependencies(mod_given))
+
+        log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")
         installed_mods = [item.removesuffix('.zip') for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
 
-        for mod in project_mods:
+        for mod in all_project_mods:
             if mod not in installed_mods:
                 mods_missing.add(mod)
 
-        await message.channel.send(f"Project \"{project['name']}\" now has {len(project_mods)} mod{plural(project_mods)} to load for sync testing")
+        await message.channel.send(f"Project \"{project['name']}\" now has {len(all_project_mods)} mod{plural(all_project_mods)} to load for sync testing")
 
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
@@ -276,7 +276,7 @@ async def command_run_sync_check(message: discord.Message):
         return
 
     project_search_name = message_split[1].replace('"', '').lower()
-    ran_validation = False
+    matched_projects = False
     idle_time = (win32api.GetTickCount() - win32api.GetLastInputInfo()) / 1000
     log.info(f"Idle time: {idle_time} seconds")
 
@@ -291,17 +291,23 @@ async def command_run_sync_check(message: discord.Message):
             continue
         elif await not_admin(message, project_id):
             break
-        elif not project['do_run_validation']:
+
+        matched_projects = True
+
+        if not project['do_run_validation']:
             log.warning(f"Trying to do run validation for project: {project['name']}, but it's disabled")
             await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled")
             continue
-        elif not main.path_caches[project_id]:
+
+        if not main.path_caches[project_id]:
+            main.generate_path_cache(project_id)
+
+        if not main.path_caches[project_id]:
             log.warning(f"Trying to do run validation for project: {project['name']}, but it has no files")
             await message.channel.send(f"Project \"{project['name']}\" seems to have no files to sync check")
             continue
 
         await message.channel.send(f"Running sync check for project \"{project['name']}\"...")
-        ran_validation = True
 
         try:
             await game_sync.sync_test(project_id, message.channel)
@@ -310,9 +316,19 @@ async def command_run_sync_check(message: discord.Message):
             game_sync.post_cleanup()
             raise
 
-    if not ran_validation:
+    if not matched_projects:
         log.warning(f"No projects found matching: {project_search_name}")
         await message.channel.send("No projects (with sync checking enabled) matching that name found")
+
+
+async def command_run_sync_checks(message: discord.Message):
+    """
+    run_sync_checks
+
+      (No parameters)
+    """
+
+    await game_sync.run_syncs(message.channel)
 
 
 async def command_rename_file(message: discord.Message):
@@ -406,10 +422,10 @@ async def command_about(message: discord.Message):
     """
 
     text = "Source: <https://github.com/Kataiser/CelesteTAS-Improvements-Tracker>" \
-           "\nProjects: {0}" \
+           "\nProjects (improvement channels): {0}" \
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
-           "\nUptime: {3} hours" \
+           "\nCurrent uptime: {3} hours" \
            "\nNightly sync check: {4} projects" \
            "\nCommits made: {5}"
 
@@ -490,7 +506,7 @@ async def command_about_project(message: discord.Message):
         text_out = text.format(project['name'],
                                f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}',
                                project_id,
-                               utils.detailed_user(None, admin),
+                               utils.detailed_user(user=admin),
                                project['installation_owner'],
                                project['install_time'],
                                client.get_channel(project_id).get_partial_message(project['pin']).jump_url,
@@ -519,23 +535,6 @@ async def not_admin(message: discord.Message, improvements_channel_id: int):
         return True
 
 
-# TODO: make recursive (if necessary)
-def get_mod_dependencies(mod: str) -> list:
-    zip_path = f'E:\\Big downloads\\celeste\\Mods\\{mod}.zip'
-
-    if not os.path.isfile(zip_path):
-        return []
-
-    with zipfile.ZipFile(zip_path) as mod_zip:
-        if zipfile.Path(mod_zip, 'everest.yaml').is_file():
-            with mod_zip.open('everest.yaml') as everest_yaml:
-                mod_everest = yaml.safe_load(everest_yaml)
-        else:
-            return []
-
-    return [d['Name'] for d in mod_everest[0]['Dependencies'] if d['Name'] != 'Everest']
-
-
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
@@ -547,4 +546,5 @@ command_functions = {'help': command_help,
                      'register_project': command_register_project,
                      'rename_file': command_rename_file,
                      'add_mods': command_add_mods,
-                     'run_sync_check': command_run_sync_check}
+                     'run_sync_check': command_run_sync_check,
+                     'run_sync_checks': command_run_sync_checks}

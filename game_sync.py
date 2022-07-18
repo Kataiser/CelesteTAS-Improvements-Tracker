@@ -5,11 +5,13 @@ import os
 import shutil
 import subprocess
 import time
+import zipfile
 from typing import Optional
 
 import discord
 import psutil
 import requests
+import yaml
 
 import main
 import utils
@@ -17,13 +19,15 @@ import validation
 from utils import plural, projects
 
 
-async def run_syncs():
-    log.info("Running all sync tests")
+async def run_syncs(report_channel: Optional[discord.DMChannel] = None):
+    sync_tests_text = "Running all sync tests"
+    log.info(sync_tests_text)
+    await dm_report(report_channel, sync_tests_text)
 
     try:
         for project_id in projects:
             if projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
-                await sync_test(project_id)
+                await sync_test(project_id, report_channel)
     except Exception:
         await close_game()
         post_cleanup()
@@ -34,27 +38,23 @@ async def run_syncs():
 
 async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel] = None):
     project = projects[project_id]
-    log.info(f"Running sync test for project: {project['name']}")
-    installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
+    sync_test_text = f"Running sync test for project: {project['name']}"
+    log.info(sync_test_text)
+    await dm_report(report_channel, sync_test_text)
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
     path_cache = main.path_caches[project_id]
-    blacklist = []
     desyncs = []
+    mods_to_load = set(mods)
     files_timed = 0
     remove_debug_save_files()
 
-    # create the mod blacklist
-    for installed_mod in installed_mods:
-        if installed_mod.removesuffix('.zip') not in mods and installed_mod != 'CelesteTAS.zip':
-            blacklist.append(installed_mod)
+    for mod in mods:
+        mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
 
-    with open(r'E:\Big downloads\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
-        blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
-        blacklist_txt.write('\n'.join(blacklist))
-
-    launching_game_text = f"Created blacklist, launching game with {len(mods)} mod{plural(mods)}"
+    generate_blacklist(mods_to_load)
+    launching_game_text = f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}"
     log.info(launching_game_text)
     subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
@@ -165,10 +165,23 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     if desyncs:
         if not new_desyncs:
             desyncs_formatted = '\n'.join(desyncs)
-            await dm_report(report_channel, f"Sync check finished, {len(new_desyncs)} desync{plural(new_desyncs)} found (0 new, {files_timed} file{plural(files_timed)} tested):"
+            await dm_report(report_channel, f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (0 new, {files_timed} file{plural(files_timed)} tested):"
                                             f"\n```\n{desyncs_formatted}```")
     else:
         await dm_report(report_channel, f"Sync check finished, 0 desyncs found (of {files_timed} file{plural(files_timed)} tested)")
+
+
+def generate_blacklist(mods_to_load: set):
+    installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
+    blacklist = []
+
+    for installed_mod in installed_mods:
+        if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod != 'CelesteTAS.zip':
+            blacklist.append(installed_mod)
+
+    with open(r'E:\Big downloads\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
+        blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
+        blacklist_txt.write('\n'.join(blacklist))
 
 
 # remove all files related to the debug save
@@ -182,8 +195,9 @@ def remove_debug_save_files():
 
 
 def post_cleanup():
+    generate_blacklist(set())
     remove_debug_save_files()
-    files_to_remove = ['log.txt', 'temp.tas', 'Mods\\blacklist.txt']
+    files_to_remove = ['log.txt', 'temp.tas']
     dirs_to_remove = ['LogHistory', 'TAS Files\\Backups']
     files_removed = 0
     dirs_removed = 0
@@ -252,6 +266,23 @@ async def dm_report(report_channel: Optional[discord.DMChannel], text: str):
             await report_channel.send(text)
         else:
             await report_channel.send(f"`{text}`")
+
+
+# TODO: make recursive (if necessary)
+def get_mod_dependencies(mod: str) -> list:
+    zip_path = f'E:\\Big downloads\\celeste\\Mods\\{mod}.zip'
+
+    if not os.path.isfile(zip_path):
+        return []
+
+    with zipfile.ZipFile(zip_path) as mod_zip:
+        if zipfile.Path(mod_zip, 'everest.yaml').is_file():
+            with mod_zip.open('everest.yaml') as everest_yaml:
+                mod_everest = yaml.safe_load(everest_yaml)
+        else:
+            return []
+
+    return [d['Name'] for d in mod_everest[0]['Dependencies'] if d['Name'] != 'Everest']
 
 
 log: Optional[logging.Logger] = None

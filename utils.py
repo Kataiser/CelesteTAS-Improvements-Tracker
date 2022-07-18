@@ -21,7 +21,7 @@ def handle_potential_request_error(req: requests.Response, code: int):
         log.warning(req.text)
 
 
-def detailed_user(message: Optional[discord.Message], user: discord.User = None):
+def detailed_user(message: Optional[discord.Message] = None, user: discord.User = None):
     if message:
         user = message.author
 
