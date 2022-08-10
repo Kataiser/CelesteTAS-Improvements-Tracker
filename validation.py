@@ -55,6 +55,9 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             timesave = None
 
         return ValidationResult(True, finaltime=finaltime, timesave=timesave)
+    
+    if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
+            return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
 
     if len(breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
