@@ -16,6 +16,7 @@ from utils import plural, projects
 
 client = discord.Client()
 debug = False
+safe_mode = False
 
 
 def start():
@@ -52,12 +53,14 @@ def start():
 
 @client.event
 async def on_ready():
+    global safe_mode
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
     downtime_message_count = 0
+    projects_to_scan = main.safe_projects if safe_mode else projects
 
-    for improvements_channel_id in projects:
+    for improvements_channel_id in projects_to_scan:
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel:
@@ -157,6 +160,7 @@ async def on_error(*args):
 log, history_log = main.create_loggers()
 commands.client = client
 game_sync.client = client
+main.safe_mode = safe_mode
 
 
 if __name__ == '__main__':

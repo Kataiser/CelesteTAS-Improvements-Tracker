@@ -209,7 +209,7 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message) -> bool:
-    if message.id in project_logs[message.channel.id] or message.author.id == 970375635027525652 or message.type.value == 6:
+    if message.id in project_logs[message.channel.id] or message.author.id == 970375635027525652 or message.type.value == 6 or (safe_mode and message.channel.id not in safe_projects):
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that
@@ -356,4 +356,6 @@ project_logs = {}
 path_caches = {}
 headers = None
 login_time = None
+safe_mode = None
 nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
+safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564)
