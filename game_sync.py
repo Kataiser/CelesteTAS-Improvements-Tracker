@@ -44,7 +44,6 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
-    path_cache = main.path_caches[project_id]
     desyncs = []
     mods_to_load = set(mods)
     files_timed = 0
@@ -62,8 +61,9 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
     await dm_report(report_channel, launching_game_text)
 
     # make sure path cache is correct while the game is launching
-    main.generate_request_headers(project['installation_owner'])
+    main.generate_request_headers(project['installation_owner'], 300)
     main.generate_path_cache(project_id)
+    path_cache = main.path_caches[project_id]
     await dm_report(report_channel, "Generated repo structure cache")
 
     # wait for the game to load (handles mods updating as well)
@@ -81,6 +81,12 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
             log.info("Game loaded")
             await asyncio.sleep(2)
             game_loaded = True
+
+    for process in psutil.process_iter(['name']):
+        if process.name() == 'Celeste.exe':
+            process.nice(psutil.HIGH_PRIORITY_CLASS)
+            log.info("Set game process to high priority")
+            break
 
     for tas_filename in path_cache:
         log.info(f"Downloading {path_cache[tas_filename]}")

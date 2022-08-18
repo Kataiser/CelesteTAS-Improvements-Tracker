@@ -164,9 +164,9 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     if found_finaltime:
         if is_chaptertime:
             finaltime = tas_lines[finaltime_line].partition(' ')[2].partition('(')[0]
-            finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0')
+            finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
-            finaltime = finaltime_trimmed = tas_lines[finaltime_line].lstrip('#0:').partition('(')[0]
+            finaltime = finaltime_trimmed = tas_lines[finaltime_line].lstrip('#0:').partition('(')[0].strip()
 
     return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
 

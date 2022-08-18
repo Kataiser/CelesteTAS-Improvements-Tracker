@@ -173,9 +173,7 @@ def generate_path_cache(project_id: int):
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
-
-    if project_id not in path_caches:
-        path_caches[project_id] = {}
+    path_caches[project_id] = {}  # always start from scratch
 
     for item in r.json():
         if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
@@ -315,9 +313,9 @@ def add_project_log(message: discord.Message):
     log.info(f"Added message ID {message.id} to {project_log_path}")
 
 
-def generate_request_headers(installation_owner: str):
+def generate_request_headers(installation_owner: str, min_time: int = 30):
     global headers
-    headers = {'Authorization': f'token {gen_token.access_token(installation_owner)}', 'Accept': 'application/vnd.github.v3+json'}
+    headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
 def create_loggers() -> (logging.Logger, logging.Logger):

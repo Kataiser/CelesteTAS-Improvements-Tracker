@@ -12,13 +12,13 @@ import utils
 from utils import plural
 
 
-def generate_jwt() -> str:
+def generate_jwt(min_time: int) -> str:
     current_time = time.time()
 
     if '_jwt' in tokens:
         time_remaining = tokens['_jwt'][1] - current_time
 
-        if time_remaining > 30:
+        if time_remaining > min_time:
             log.info(f"Reused JWT with {round(time_remaining / 60, 1)} mins remaining")
             return tokens['_jwt'][0]
 
@@ -35,8 +35,8 @@ def generate_jwt() -> str:
     return generated_jwt
 
 
-def generate_access_token(installation_owner: str) -> tuple:
-    headers = {'Authorization': f'Bearer {generate_jwt()}', 'Accept': 'application/vnd.github.v3+json'}
+def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
+    headers = {'Authorization': f'Bearer {generate_jwt(min_jwt_time)}', 'Accept': 'application/vnd.github.v3+json'}
     installations_saved = installations_file()
 
     if installation_owner not in installations_file():
@@ -63,16 +63,16 @@ def generate_access_token(installation_owner: str) -> tuple:
     return access_token_data['token'], token_expiration.timestamp()
 
 
-def access_token(installation_owner: str):
+def access_token(installation_owner: str, min_time: int):
     if installation_owner not in tokens:
-        tokens[installation_owner] = generate_access_token(installation_owner)
+        tokens[installation_owner] = generate_access_token(installation_owner, min_time)
     else:
         time_remaining = tokens[installation_owner][1] - time.time()
 
-        if time_remaining > 30:
+        if time_remaining > min_time:
             log.info(f"Reusing {installation_owner} access token with {round(time_remaining / 60, 1)} mins remaining")
         else:
-            tokens[installation_owner] = generate_access_token(installation_owner)
+            tokens[installation_owner] = generate_access_token(installation_owner, min_time)
 
     return tokens[installation_owner][0]
 
