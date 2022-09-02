@@ -14,7 +14,14 @@ import main
 import utils
 from utils import plural, projects
 
-client = discord.Client()
+
+intents = discord.Intents.none()
+intents.guilds = True
+intents.messages = True
+intents.reactions = True
+intents.message_content = True
+
+client = discord.Client(intents=intents)
 debug = False
 safe_mode = False
 
@@ -38,9 +45,8 @@ def start():
 
     while True:
         try:
-            nightly.start()
             log.info("Logging in...")
-            client.run(bot_token)
+            client.run(bot_token, log_handler=None)
         except Exception as error:
             log.error(error)
 
@@ -54,6 +60,7 @@ def start():
 @client.event
 async def on_ready():
     global safe_mode
+    nightly.start()
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
@@ -67,11 +74,7 @@ async def on_ready():
             log.error(f"Can't access improvements channel for project {projects[improvements_channel_id]['name']}")
             continue
 
-        messages_limit = 2 if debug else 10
-        downtime_messages = await client.get_channel(improvements_channel_id).history(limit=messages_limit).flatten()
-        downtime_messages.reverse()  # make chronological
-
-        for message in downtime_messages:
+        async for message in improvements_channel.history(limit=2 if debug else 10, oldest_first=True):
             downtime_message_count += 1
             await main.process_improvement_message(message)
 
@@ -106,9 +109,7 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     await client.wait_until_ready()
 
     if payload.channel_id in projects:
-        past_messages = await client.get_channel(payload.channel_id).history(limit=20).flatten()
-
-        for message in past_messages:
+        async for message in client.get_channel(payload.channel_id).history(limit=20):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
                 log.info(f"Deleted bot reply message in project: {projects[payload.channel_id]['name']}")

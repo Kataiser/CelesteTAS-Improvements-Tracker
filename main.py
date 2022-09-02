@@ -207,7 +207,7 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message) -> bool:
-    if message.id in project_logs[message.channel.id] or message.author.id == 970375635027525652 or message.type.value == 6 or (safe_mode and message.channel.id not in safe_projects):
+    if message.id in project_logs[message.channel.id] or message.author.id == 970375635027525652 or (safe_mode and message.channel.id not in safe_projects):
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that
@@ -268,7 +268,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         return await channel.send(text_out)
     else:
         pin_message = channel.get_partial_message(pin)
-        await pin_message.edit(content=text_out, suppress=True)
+        await pin_message.edit(content=text_out)
         log.info("Edited pin")
         return pin_message
 

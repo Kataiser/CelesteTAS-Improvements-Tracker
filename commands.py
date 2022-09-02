@@ -69,10 +69,10 @@ async def command_register_project(message: discord.Message):
       IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
       REPOSITORY: Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo
       ACCOUNT: Your GitHub account name
-      COMMIT_DRAFTS: Automatically commit drafts to the root directory (Y or N)
-      IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently (Y or N)
-      ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file (Y or N)
-      DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (Y or N)
+      COMMIT_DRAFTS: Automatically commit drafts to the root directory [Y or N]
+      IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently [Y or N]
+      ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file [Y or N]
+      DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (recommended) [Y or N]
     """
 
     message_split = re_command_split.split(message.content)
