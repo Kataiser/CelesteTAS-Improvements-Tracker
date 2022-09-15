@@ -83,9 +83,9 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate level
     if projects[message.channel.id]['ensure_level']:
-        level = filename.lower().removesuffix('.tas').replace('_', '')
+        level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '')
 
-        if level not in message_lowercase.replace('_', '').replace(' ', '').replace('\'', ''):
+        if level not in re_remove_punctuation.subn('', message_lowercase)[0].replace('_', ''):
             return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
 
     if old_tas and not is_dash_save:
@@ -113,7 +113,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             if time_saved_num == 0:
                 if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
                     time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
-                    return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), please fix and post again.",
+                    return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), "
+                                            f"please fix and post again.",
                                             f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
             else:
                 time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
@@ -214,4 +215,5 @@ re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
+re_remove_punctuation = re.compile(r'\W')
 log: Optional[logging.Logger] = None

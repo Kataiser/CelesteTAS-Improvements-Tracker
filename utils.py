@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional, Sized, Union
+from typing import Any, Optional, Sized, Union
 
 import discord
 import requests
@@ -45,6 +45,14 @@ def save_projects():
         json.dump(projects, projects_json, ensure_ascii=False, indent=4)
 
 
+def add_project_key(key: str, value: Any):
+    for project_id in projects:
+        projects[project_id][key] = value
+
+    save_projects()
+    log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
+
+
 def load_path_caches():
     with open('path_caches.json', 'r', encoding='UTF8') as path_caches_json:
         path_caches_loaded = json.load(path_caches_json)
@@ -76,11 +84,12 @@ def validate_project_formats(projects: dict):
             assert isinstance(project['subdir'], str)
             assert isinstance(project['mods'], list)
             assert isinstance(project['desyncs'], list)
+            assert isinstance(project['last_commit_time'], int)
 
             for mod in project['mods']:
                 assert isinstance(mod, str); assert len(mod) > 0
 
-            assert len(project) == 14
+            assert len(project) == 15
         except (KeyError, AssertionError) as error:
             log.error(f"Invalid format for project {project_id}: {repr(error)}")
 

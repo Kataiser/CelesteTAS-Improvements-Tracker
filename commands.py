@@ -106,11 +106,11 @@ async def command_register_project(message: discord.Message):
 
     # verify needed permissions in improvements channel
     improvements_channel_permissions = improvements_channel.permissions_for(improvements_channel.guild.me)
-    permissions_needed = {"View Channel": improvements_channel_permissions.read_messages,
-                          "Send Messages": improvements_channel_permissions.send_messages,
-                          "Read Messages": improvements_channel_permissions.read_messages,
-                          "Read Message History": improvements_channel_permissions.read_message_history,
-                          "Add Reactions": improvements_channel_permissions.add_reactions}
+    permissions_needed = {'View Channel': improvements_channel_permissions.read_messages,
+                          'Send Messages': improvements_channel_permissions.send_messages,
+                          'Read Messages': improvements_channel_permissions.read_messages,
+                          'Read Message History': improvements_channel_permissions.read_message_history,
+                          'Add Reactions': improvements_channel_permissions.add_reactions}
 
     for permission in permissions_needed:
         if not permissions_needed[permission]:
@@ -152,11 +152,12 @@ async def command_register_project(message: discord.Message):
 
     log.info("Verification successful")
 
+    current_time = int(time.time())
     projects[improvements_channel_id] = {'name': name.replace('"', ''),
                                          'repo': repo,
                                          'installation_owner': github_account,
                                          'admin': message.author.id,
-                                         'install_time': int(time.time()),
+                                         'install_time': current_time,
                                          'commit_drafts': commit_drafts.lower() == 'y',
                                          'is_lobby': is_lobby.lower() == 'y',
                                          'ensure_level': ensure_level.lower() == 'y',
@@ -165,7 +166,8 @@ async def command_register_project(message: discord.Message):
                                          'pin': None,
                                          'subdir': subdir,
                                          'mods': previous['mods'] if editing else [],
-                                         'desyncs': []}
+                                         'desyncs': [],
+                                         'last_commit_time': current_time}
 
     if not editing:
         await message.channel.send("Generating path cache...")

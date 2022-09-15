@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import sys
+import time
 import urllib.parse
 from typing import Optional
 
@@ -92,6 +93,8 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             # when timesave :)
             # (or drafts)
             commit_status = commit(message, filename, file_content, validation_result)
+            projects[message.channel.id]['last_commit_time'] = int(time.time())
+            utils.save_projects()
 
             if commit_status:
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)

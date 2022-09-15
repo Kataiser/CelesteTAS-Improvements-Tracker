@@ -30,7 +30,7 @@ def generate_jwt(min_time: int) -> str:
                'iss': '196447'}
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
-    log.info(f"Generated JWT: {generated_jwt}")
+    log.info("Generated JWT")
     tokens['_jwt'] = (generated_jwt, payload['exp'])
     return generated_jwt
 

@@ -152,9 +152,10 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         files_timed += 1
 
     await close_game(report_channel)
-    project['last_run_validation'] = int(time.time())
+    current_time = int(time.time())
+    project['last_run_validation'] = current_time
     project['desyncs'] = desyncs
-    utils.save_projects()
+    time_since_last_commit = current_time - project['last_commit_time']
     improvements_channel = client.get_channel(project_id)
     await main.edit_pin(improvements_channel)
     new_desyncs = [f for f in desyncs if f not in previous_desyncs]
@@ -175,6 +176,13 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
                                             f"\n```\n{desyncs_formatted}```")
     else:
         await dm_report(report_channel, f"Sync check finished, 0 desyncs found (of {files_timed} file{plural(files_timed)} tested)")
+
+    if time_since_last_commit > 2600000 and project['do_run_validation']:
+        project['do_run_validation'] = False
+        log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
+        await improvements_channel.send("Disabled nightly sync checking after a month of no improvements.")
+
+    utils.save_projects()
 
 
 def generate_blacklist(mods_to_load: set):
