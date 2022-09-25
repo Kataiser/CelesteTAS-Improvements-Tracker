@@ -92,9 +92,10 @@ async def command_register_project(message: discord.Message):
         if await not_admin(message, improvements_channel_id):
             return
 
-        log.warning("This project already exists, preserving some settings")
+        log.warning("This project already exists, preserving some keys")
         previous = {'pin': projects[improvements_channel_id]['pin'],
-                    'mods': projects[improvements_channel_id]['mods']}
+                    'mods': projects[improvements_channel_id]['mods'],
+                    'last_run_validation': projects[improvements_channel_id]['last_run_validation']}
 
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
@@ -165,7 +166,7 @@ async def command_register_project(message: discord.Message):
                                          'last_run_validation': None,
                                          'pin': None,
                                          'subdir': subdir,
-                                         'mods': previous['mods'] if editing else [],
+                                         'mods': [],
                                          'desyncs': [],
                                          'last_commit_time': current_time}
 
@@ -177,8 +178,10 @@ async def command_register_project(message: discord.Message):
         projects[improvements_channel_id]['pin'] = pinned_message.id
         main.project_logs[improvements_channel_id] = []
     else:
-        projects[improvements_channel_id]['pin'] = previous['pin']
         log.info("Skipped creating pinned message")
+
+        for previous_key in previous:
+            projects[improvements_channel_id][previous_key] = previous[previous_key]
 
     utils.save_projects()
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
@@ -428,11 +431,10 @@ async def command_about(message: discord.Message):
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
            "\nCurrent uptime: {3} hours" \
-           "\nNightly sync check: {4} projects" \
-           "\nCommits made: {5}"
+           "\nNightly sync check: {4} project{6}" \
+           "\nImprovements/drafts processed and committed: {5}"
 
     sync_checks = 0
-    commits_made = 0
     installations = set()
 
     for project_id in projects:
@@ -442,16 +444,15 @@ async def command_about(message: discord.Message):
             sync_checks += 1
 
     with open('history.log', 'r') as history_log_file:
-        for line in history_log_file:
-            if 'Added project' not in line and 'Edited project' not in line:
-                commits_made += 1
+        commits_made = len([line for line in history_log_file if 'Added project' not in line and 'Edited project' not in line])
 
     text_out = text.format(len(projects),
                            len(client.guilds),
                            len(installations),
                            round((time.time() - main.login_time) / 3600, 1),
                            sync_checks,
-                           commits_made)
+                           commits_made,
+                           plural(sync_checks))
 
     log.info(text_out)
     await message.channel.send(text_out)

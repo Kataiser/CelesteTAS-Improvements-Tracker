@@ -109,7 +109,11 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
             await message.add_reaction('❌')
             await message.add_reaction('⏭')
-            await message.reply(validation_result.warning_text)
+
+            if len(tas_attachments) > 1:
+                await message.reply(f"`{attachment.filename}`\n{validation_result.warning_text}")
+            else:
+                await message.reply(validation_result.warning_text)
 
         if len(tas_attachments) > 1:
             log.info(f"Done processing {filename}")
@@ -128,7 +132,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
     file_path = get_file_repo_path(message.channel.id, filename)
-    chapter_time = "" if projects[message.channel.id]['is_lobby'] else f" ({validation_result.finaltime})"
+    chapter_time = f" ({validation_result.finaltime})" if validation_result.finaltime else ""
     user_github_account = get_user_github_account(message.author.id)
 
     if file_path:

@@ -60,7 +60,6 @@ def start():
 @client.event
 async def on_ready():
     global safe_mode
-    nightly.start()
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
@@ -79,6 +78,14 @@ async def on_ready():
             await main.process_improvement_message(message)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
+
+    try:
+        nightly.start()
+    except RuntimeError as error:
+        if str(error) == "Task is already launched and is not completed.":
+            log.warning("Skipped starting nightly task")
+        else:
+            raise
 
     if not debug:
         self_process = psutil.Process()
