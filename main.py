@@ -1,4 +1,5 @@
 import base64
+import copy
 import datetime
 import functools
 import json
@@ -137,7 +138,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
     if file_path:
         draft = False
-        timesave = "Updated: " if projects[message.channel.id]['is_lobby'] else f"{validation_result.timesave} "
+        timesave = f"{validation_result.timesave} " if validation_result.timesave else "Updated: "
         data['sha'] = get_sha(repo, file_path)
         data['message'] = f"{timesave}{filename}{chapter_time} from {author}"
     else:
@@ -180,6 +181,7 @@ def generate_path_cache(project_id: int):
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
+    old_path_cache = copy.copy(path_caches[project_id])
     path_caches[project_id] = {}  # always start from scratch
 
     for item in r.json():
@@ -199,7 +201,9 @@ def generate_path_cache(project_id: int):
         elif not project_subdir and item['name'].endswith('.tas'):
             path_caches[project_id][item['name']] = item['path']
 
-    utils.save_path_caches()
+    if path_caches[project_id] != old_path_cache:
+        utils.save_path_caches()
+
     log.info(f"Cached: {path_caches[project_id]}")
 
 

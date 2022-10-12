@@ -43,7 +43,7 @@ async def command_help(message: discord.Message):
         except AttributeError:
             log.error(f"{command_functions[message_split[1]]} has no docstring")
     else:
-        add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(76864))
+        add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(76864), scopes=('bot',))
         commands_available = '\n'.join(command_functions)
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \

@@ -60,9 +60,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
 
     if len(breakpoints) == 1:
-        return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it and post again.", f"breakpoint in {filename}")
+        return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it (Ctrl+P in Studio) and post again.", f"breakpoint in {filename}")
     elif len(breakpoints) > 1:
-        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(breakpoints)}, please remove them and post again.", f"{len(breakpoints)} breakpoints in {filename}")
+        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(breakpoints)}, please remove them (Ctrl+P in Studio) and post again.",
+                                f"{len(breakpoints)} breakpoints in {filename}")
     elif not found_finaltime:
         if lobby_channel:
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
