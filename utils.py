@@ -1,9 +1,9 @@
-import json
 import logging
 from typing import Any, Optional, Sized, Union
 
 import discord
 import requests
+import ujson
 
 import main
 
@@ -30,7 +30,7 @@ def detailed_user(message: Optional[discord.Message] = None, user: discord.User 
 
 def load_projects() -> dict:
     with open('projects.json', 'r', encoding='UTF8') as projects_json:
-        projects_loaded = json.load(projects_json)
+        projects_loaded = ujson.load(projects_json)
         projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
 
     validate_project_formats(projects_fixed)
@@ -42,7 +42,7 @@ def save_projects():
 
     with open('projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
-        json.dump(projects, projects_json, ensure_ascii=False, indent=4)
+        ujson.dump(projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
 
 def add_project_key(key: str, value: Any):
@@ -55,14 +55,14 @@ def add_project_key(key: str, value: Any):
 
 def load_path_caches():
     with open('path_caches.json', 'r', encoding='UTF8') as path_caches_json:
-        path_caches_loaded = json.load(path_caches_json)
+        path_caches_loaded = ujson.load(path_caches_json)
         main.path_caches = {int(k): path_caches_loaded[k] for k in path_caches_loaded}
 
 
 def save_path_caches():
     with open('path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
         path_caches_json.truncate()
-        json.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4)
+        ujson.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
 
 def validate_project_formats(projects: dict):

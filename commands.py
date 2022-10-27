@@ -1,5 +1,4 @@
 import base64
-import json
 import logging
 import os
 import re
@@ -8,6 +7,7 @@ from typing import Optional
 
 import discord
 import requests
+import ujson
 import win32api
 
 import game_sync
@@ -140,7 +140,7 @@ async def command_register_project(message: discord.Message):
     # verify subdir exists in repo
     if subdir:
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}', headers={'Accept': 'application/vnd.github.v3+json'})
-        if r.status_code != 200 or 'type' in r.json():
+        if r.status_code != 200 or 'type' in ujson.loads(r.content):
             log.error(f"Directory {subdir} doesn't seem to exist in repo {repo}, status code is {r.status_code}")
             await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\"")
             return
@@ -383,7 +383,7 @@ async def command_rename_file(message: discord.Message):
         log.info(f"Downloading {filename_before}")
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
         utils.handle_potential_request_error(r, 200)
-        tas_downloaded = base64.b64decode(r.json()['content'])
+        tas_downloaded = base64.b64decode(ujson.loads(r.content)['content'])
 
         # commit 1: delete old file
         log.info("Performing delete commit")
@@ -391,7 +391,7 @@ async def command_rename_file(message: discord.Message):
         if user_github_account:
             data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
             log.info(f"Setting commit author to {data['author']}")
-        r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
+        r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=ujson.dumps(data))
         utils.handle_potential_request_error(r, 200)
         time.sleep(1)  # just to be safe
 
@@ -402,7 +402,7 @@ async def command_rename_file(message: discord.Message):
         if user_github_account:
             data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
             log.info(f"Setting commit author to {data['author']}")
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=json.dumps(data))
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=ujson.dumps(data))
         utils.handle_potential_request_error(r, 201)
 
         del main.path_caches[project_id][filename_before]

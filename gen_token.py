@@ -1,12 +1,12 @@
 import datetime
 import functools
-import json
 import logging
 import time
 from typing import Optional
 
 import jwt
 import requests
+import ujson
 
 import utils
 from utils import plural
@@ -43,7 +43,7 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
         r = requests.get('https://api.github.com/app/installations', headers=headers)
         utils.handle_potential_request_error(r, 200)
-        installations = r.json()
+        installations = ujson.loads(r.content)
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
         installations_file.cache_clear()
 
@@ -51,12 +51,12 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
             installations_saved[installation['account']['login']] = installation['id']
 
         with open('installations.json', 'w') as installations_json_write:
-            json.dump(installations_saved, installations_json_write, indent=4)
+            ujson.dump(installations_saved, installations_json_write, indent=4)
 
     installation_id = installations_saved[installation_owner]
     r = requests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers)
     utils.handle_potential_request_error(r, 201)
-    access_token_data = r.json()
+    access_token_data = ujson.loads(r.content)
     token_expiration_str = access_token_data['expires_at'][:-1]
     token_expiration = datetime.datetime.fromisoformat(f'{token_expiration_str}+00:00')
     log.info(f"Generated {installation_owner} access token: {access_token_data}")
@@ -80,7 +80,7 @@ def access_token(installation_owner: str, min_time: int):
 @functools.cache
 def installations_file() -> dict:
     with open('installations.json', 'r') as installations_json_read:
-        return json.load(installations_json_read)
+        return ujson.load(installations_json_read)
 
 
 tokens = {}

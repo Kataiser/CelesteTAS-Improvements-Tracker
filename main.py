@@ -2,7 +2,6 @@ import base64
 import copy
 import datetime
 import functools
-import json
 import logging
 import os
 import sys
@@ -12,6 +11,7 @@ from typing import Optional
 
 import discord
 import requests
+import ujson
 
 import commands
 import game_sync
@@ -76,7 +76,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         if old_file_path:
             log.info("Downloading old version of file, for time reference")
             r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
-            r_json = r.json()
+            r_json = ujson.loads(r.content)
 
             if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
                 del path_caches[message.channel.id][filename]
@@ -157,9 +157,9 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
         log.info(f"Set commit author to {data['author']}")
 
     log.info(f"Set commit message to \"{data['message']}\"")
-    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=json.dumps(data))
+    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=ujson.dumps(data))
     utils.handle_potential_request_error(r, 201 if draft else 200)
-    commit_url = r.json()['commit']['html_url']
+    commit_url = ujson.loads(r.content)['commit']['html_url']
     log.info(f"Successfully committed: {commit_url}")
     return data['message'], commit_url
 
@@ -184,14 +184,14 @@ def generate_path_cache(project_id: int):
     old_path_cache = copy.copy(path_caches[project_id])
     path_caches[project_id] = {}  # always start from scratch
 
-    for item in r.json():
+    for item in ujson.loads(r.content):
         if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
             # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
             dir_sha = item['sha']
             r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
             utils.handle_potential_request_error(r, 200)
 
-            for subitem in r.json()['tree']:
+            for subitem in ujson.loads(r.content)['tree']:
                 if subitem['type'] == 'blob':
                     subitem_name = subitem['path'].split('/')[-1]
                     subitem_full_path = f"{item['name']}/{subitem['path']}"
@@ -211,7 +211,7 @@ def generate_path_cache(project_id: int):
 def get_sha(repo: str, file_path: str) -> str:
     r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers)
     utils.handle_potential_request_error(r, 200)
-    repo_contents = r.json()
+    repo_contents = ujson.loads(r.content)
     log.info(f"Found SHA of {file_path}: {repo_contents['sha']}")
     return repo_contents['sha']
 
@@ -287,7 +287,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 @functools.cache
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
     with open('githubs.json', 'r') as githubs_json:
-        github_accounts = json.load(githubs_json)
+        github_accounts = ujson.load(githubs_json)
 
     if str(discord_id) in github_accounts:
         return github_accounts[str(discord_id)]

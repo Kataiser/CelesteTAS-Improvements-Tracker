@@ -11,6 +11,7 @@ from typing import Optional
 import discord
 import psutil
 import requests
+import ujson
 import yaml
 
 import main
@@ -92,7 +93,7 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         log.info(f"Downloading {path_cache[tas_filename]}")
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers)
         utils.handle_potential_request_error(r, 200)
-        tas_read = base64.b64decode(r.json()['content'])
+        tas_read = base64.b64decode(ujson.loads(r.content)['content'])
 
         # set up temp tas file
         tas_lines = validation.as_lines(tas_read)
