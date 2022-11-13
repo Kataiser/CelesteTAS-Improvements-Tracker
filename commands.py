@@ -18,11 +18,12 @@ from utils import plural, projects
 
 async def handle(message: discord.Message):
     log.info(f"Recieved DM from {utils.detailed_user(message)}: \"{message.content}\"")
-    command = message.content.partition(' ')[0].lower()
+    command_name = message.content.partition(' ')[0].lower()
 
-    if command in command_functions:
-        log.info(f"Handling '{command}' command")
-        await command_functions[command](message)
+    if command_name in command_functions:
+        log.info(f"Handling '{command_name}' command")
+        await report_command_used(command_name, message)
+        await command_functions[command_name](message)
     else:
         await message.channel.send("Unrecognized command, try `help`")
 
@@ -47,14 +48,12 @@ async def command_help(message: discord.Message):
         commands_available = '\n'.join(command_functions)
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
-                   "\n\n1. Tell Kataiser that you're adding a new project. Theoretically this process doesn't need him, but realistically it's probably broken and/or janky, " \
-                   "and also he'd like to know. Maybe this step can be removed at some point." \
-                   "\n2. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
+                   "\n\n1. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
-                   f"\n3. Add bot to your server: <{add_bot_link}>" \
-                   "\n4. Disable the View Channels permissions for all channels that are not the improvements channel. This is because otherwise every message in every server the bot's in " \
+                   f"\n2. Add bot to your server: <{add_bot_link}>" \
+                   "\n3. Disable the View Channels permissions for all channels that are not the improvements channel. This is because otherwise every message in every server the bot's in " \
                    "will be processed, and since the bot is being hosted on Kataiser's machine, he doesn't want that background CPU usage." \
-                   "\n5. Run the `register_project` command, see `help register_project` for parameters." \
+                   "\n4. Run the `register_project` command, see `help register_project` for parameters." \
                    "\n\nAvailable commands:" \
                    f"\n```\n{commands_available}```"
 
@@ -89,11 +88,12 @@ async def command_register_project(message: discord.Message):
     editing = improvements_channel_id in projects
 
     if editing:
-        if await not_admin(message, improvements_channel_id):
+        if not await is_admin(message, improvements_channel_id):
             return
 
-        log.warning("This project already exists, preserving some keys")
-        previous = {'pin': projects[improvements_channel_id]['pin'],
+        log.info("This project already exists, preserving some keys")
+        previous = {'install_time': projects[improvements_channel_id]['install_time'],
+                    'pin': projects[improvements_channel_id]['pin'],
                     'mods': projects[improvements_channel_id]['mods'],
                     'last_run_validation': projects[improvements_channel_id]['last_run_validation']}
 
@@ -219,7 +219,7 @@ async def command_add_mods(message: discord.Message):
 
         if project['name'].lower() != project_search_name:
             continue
-        elif await not_admin(message, project_id):
+        elif not await is_admin(message, project_id):
             break
         elif not project['do_run_validation']:
             log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
@@ -294,7 +294,7 @@ async def command_run_sync_check(message: discord.Message):
 
         if project['name'].lower() != project_search_name:
             continue
-        elif await not_admin(message, project_id):
+        elif not await is_admin(message, project_id):
             break
 
         matched_projects = True
@@ -529,19 +529,30 @@ async def command_about_project(message: discord.Message):
 
 
 # verify that the user editing the project is the admin (or Kataiser)
-async def not_admin(message: discord.Message, improvements_channel_id: int):
+async def is_admin(message: discord.Message, improvements_channel_id: int):
     if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
-        return False
+        return True
     else:
         log.warning("Not project admin")
         await message.channel.send("Not allowed, you are not the project admin")
-        return True
+        return False
+
+
+# DM Kataiser when an important command is used
+async def report_command_used(command_name: str, message: discord.Message):
+    try:
+        if command_functions[command_name] in reportable_commands and message.author.id != 219955313334288385:
+            await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: \"{message.content}\"")
+            log.info("Reported command usage to Kataiser")
+    except Exception as error:
+        log.error(f"Coudln't report command usage to Kataiser: {repr(error)}")
 
 
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
+reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_run_sync_check, command_run_sync_checks)
 
 command_functions = {'help': command_help,
                      'about': command_about,
