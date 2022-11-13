@@ -170,6 +170,9 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
         else:
             finaltime = finaltime_trimmed = tas_lines[finaltime_line].lstrip('#0:').partition('(')[0].strip()
 
+        finaltime = re_remove_non_digits.sub('', finaltime)
+        finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
+
     return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
 
 
@@ -217,4 +220,5 @@ re_comment_time = re.compile(r'#[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')
+re_remove_non_digits = re.compile(r'[^\d.]')
 log: Optional[logging.Logger] = None

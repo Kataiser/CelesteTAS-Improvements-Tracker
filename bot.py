@@ -127,7 +127,7 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await client.wait_until_ready()
 
-    if payload.emoji.name == '⏭' and payload.channel_id in projects:
+    if '⏭' in payload.emoji.name and payload.channel_id in projects:
         for project_id in projects:
             if payload.message_id in main.project_logs[project_id]:
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
