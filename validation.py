@@ -220,5 +220,5 @@ re_comment_time = re.compile(r'#[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')
-re_remove_non_digits = re.compile(r'[^\d.]')
+re_remove_non_digits = re.compile(r'[^\d.:]')
 log: Optional[logging.Logger] = None

@@ -333,7 +333,11 @@ async def command_run_sync_checks(message: discord.Message):
       (No parameters)
     """
 
-    await game_sync.run_syncs(message.channel)
+    if message.author.id == 219955313334288385:
+        await game_sync.run_syncs(message.channel)
+    else:
+        log.warning("Not Kataiser")
+        await message.channel.send("Not allowed, you are not Kataiser")
 
 
 async def command_rename_file(message: discord.Message):
@@ -370,9 +374,12 @@ async def command_rename_file(message: discord.Message):
         main.generate_path_cache(project_id)
 
         if filename_before not in main.path_caches[project_id]:
-            log.warning(f"{filename_before} not in project: {project['name']}")
+            not_found_text = f"{filename_before} not in project {project['name']}"
+            log.warning(not_found_text)
+            await message.channel.send(not_found_text)
+            return
 
-        renaming_text = f"Renaming {filename_before} to {filename_after} in project \"{project['name']}\""
+        renaming_text = f"Renaming `{filename_before}` to `{filename_after}` in project \"{project['name']}\""
         log.info(renaming_text)
         await message.channel.send(renaming_text)
         repo = project['repo']
@@ -395,24 +402,33 @@ async def command_rename_file(message: discord.Message):
         utils.handle_potential_request_error(r, 200)
         time.sleep(1)  # just to be safe
 
-        # commit 2: create new file
+        # commit 2: create new file (or overwrite)
         log.info("Performing recreate commit")
-        file_path = file_path.replace(filename_before, filename_after)
+        file_path_after = file_path.replace(filename_before, filename_after)
         data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
+        if filename_after in main.path_caches[project_id]:
+            data['sha'] = main.get_sha(repo, file_path_after)
+            expected_status = 200
+        else:
+            expected_status = 201
         if user_github_account:
             data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
             log.info(f"Setting commit author to {data['author']}")
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=ujson.dumps(data))
-        utils.handle_potential_request_error(r, 201)
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_after}', headers=main.headers, data=ujson.dumps(data))
+        utils.handle_potential_request_error(r, expected_status)
 
-        del main.path_caches[project_id][filename_before]
-        main.path_caches[project_id][filename_after] = file_path
-        utils.save_path_caches()
-        log.info("Rename successful")
-        await message.channel.send("Rename successful")
-        improvements_channel = client.get_channel(project_id)
-        await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
-        await main.edit_pin(improvements_channel)
+        if r.status_code == expected_status:
+            del main.path_caches[project_id][filename_before]
+            main.path_caches[project_id][filename_after] = file_path_after
+            utils.save_path_caches()
+            log.info("Rename successful")
+            await message.channel.send("Rename successful")
+            improvements_channel = client.get_channel(project_id)
+            await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
+            await main.edit_pin(improvements_channel)
+        else:
+            log.error("Rename unsuccessful")
+            await message.channel.send("Rename unsuccessful")
 
     if not renamed_file:
         log.warning("No files renamed")
@@ -552,7 +568,7 @@ client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
-reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_run_sync_check, command_run_sync_checks)
+reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_run_sync_check)
 
 command_functions = {'help': command_help,
                      'about': command_about,
