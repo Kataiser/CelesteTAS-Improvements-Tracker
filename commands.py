@@ -64,7 +64,7 @@ async def command_register_project(message: discord.Message):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
 
-      NAME: The name of the project (in quotes), ex: "Into the Jungle", "Strawberry Jam", "Celeste maingame", "Celeste mindash"
+      NAME: The name of the project (in quotes if needed), ex: "Into the Jungle", "Strawberry Jam", "Celeste maingame", "Celeste mindash"
       IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
       REPOSITORY: Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo
       ACCOUNT: Your GitHub account name
@@ -200,7 +200,7 @@ async def command_add_mods(message: discord.Message):
     """
     add_mods PROJECT_NAME MODS
 
-      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will update all of them
+      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
@@ -270,7 +270,7 @@ async def command_run_sync_check(message: discord.Message):
     """
     run_sync_check PROJECT_NAME
 
-      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will run it for all of them
+      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will run it for all of them
     """
 
     message_split = re_command_split.split(message.content)
@@ -344,7 +344,7 @@ async def command_rename_file(message: discord.Message):
     """
     rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
 
-      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will search in all of them
+      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
       FILENAME_BEFORE: The current name of the TAS file you want to rename (with .tas)
       FILENAME_AFTER: What you want the TAS file to be renamed to (with .tas)
     """
@@ -478,7 +478,7 @@ async def command_about_project(message: discord.Message):
     """
     about PROJECT_NAME
 
-      PROJECT_NAME: The name of your project (in quotes). If you have multiple improvement channels with the same project name, this will show info for all of them
+      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will show info for all of them
     """
 
     message_split = re_command_split.split(message.content)

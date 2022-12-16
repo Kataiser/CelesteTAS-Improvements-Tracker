@@ -40,6 +40,10 @@ def start():
     log.info(f"Loaded {len(projects)} project{plural(projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
              f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
 
+    if not len(projects) == len(main.project_logs) == len(main.path_caches):
+        log.critical("Project data components are not equal, exiting")
+        return
+
     with open('bot_token', 'r') as bot_token_file:
         bot_token = bot_token_file.read()
 
@@ -136,7 +140,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
                     request_user = await client.fetch_user(payload.user_id)
                     log.info(f"{utils.detailed_user(user=request_user)} has requested committing invalid post")
                     await message.clear_reaction('⏭')
-                    await message.reply(f"{request_user.mention} has requested committing invalid post")
+                    await message.reply(f"{request_user.mention} has requested committing invalid post.")
                     await main.process_improvement_message(message, skip_validation=True)
 
                 break

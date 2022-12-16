@@ -181,7 +181,7 @@ def generate_path_cache(project_id: int):
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
-    old_path_cache = copy.copy(path_caches[project_id])
+    old_path_cache = copy.copy(path_caches[project_id]) if project_id in path_caches else None
     path_caches[project_id] = {}  # always start from scratch
 
     for item in ujson.loads(r.content):
