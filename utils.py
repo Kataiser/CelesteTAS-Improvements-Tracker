@@ -1,4 +1,7 @@
 import logging
+import os
+import subprocess
+import time
 from typing import Any, Optional, Sized, Union
 
 import discord
@@ -50,6 +53,7 @@ def add_project_key(key: str, value: Any):
         projects[project_id][key] = value
 
     save_projects()
+    sync_data_repo()
     log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
 
 
@@ -63,6 +67,26 @@ def save_path_caches():
     with open('improvements-bot-data\\path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
         path_caches_json.truncate()
         ujson.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
+
+
+def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False):
+    log.info("Syncing data repo")
+    working_dir = os.getcwd()
+
+    try:
+        os.chdir('improvements-bot-data')
+        subprocess.run('git pull')  # fingers crossed no conflicts occur
+
+        if not only_pull and b'working tree clean' not in subprocess.run('git status', capture_output=True).stdout:
+            # fingers crossed here too
+            log.info("Committing changes to data repo")
+            subprocess.run('git add *')
+            subprocess.run(f'git commit -m {commit_message if commit_message else int(time.time())}')
+            subprocess.run('git push')
+    except Exception as error:
+        log.error(f"Error updating data repo: {repr(error)}")
+
+    os.chdir(working_dir)
 
 
 def validate_project_formats(projects: dict):
@@ -96,3 +120,5 @@ def validate_project_formats(projects: dict):
 
 log: Optional[logging.Logger] = None
 projects = load_projects()
+
+sync_data_repo()

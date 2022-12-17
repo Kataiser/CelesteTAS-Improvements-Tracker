@@ -185,6 +185,7 @@ async def command_register_project(message: discord.Message):
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
     log.info(project_added_log)
     history_log.info(project_added_log)
+    utils.sync_data_repo()
 
     if editing:
         await message.channel.send("Successfully verified and edited project.")
@@ -233,6 +234,7 @@ async def command_add_mods(message: discord.Message):
         log.info(f"{len(project_mods)} mod{plural(project_mods)} after adding: {project_mods}")
         project['mods'] = list(project_mods)
         utils.save_projects()
+        utils.sync_data_repo()
         mods_missing = set()
 
         for mod_given in mods_given:
@@ -304,6 +306,7 @@ async def command_run_sync_check(message: discord.Message):
 
         if not main.path_caches[project_id]:
             main.generate_path_cache(project_id)
+            utils.sync_data_repo()
 
         if not main.path_caches[project_id]:
             log.warning(f"Trying to do run validation for project: {project['name']}, but it has no files")
@@ -424,6 +427,7 @@ async def command_rename_file(message: discord.Message):
             improvements_channel = client.get_channel(project_id)
             await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
             await main.edit_pin(improvements_channel)
+            utils.sync_data_repo()
         else:
             log.error("Rename unsuccessful")
             await message.channel.send("Rename unsuccessful")

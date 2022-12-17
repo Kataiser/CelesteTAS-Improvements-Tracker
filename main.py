@@ -56,6 +56,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         await message.clear_reaction('⏭')
     await message.add_reaction('👀')
     generate_request_headers(projects[message.channel.id]['installation_owner'])
+    committed = False
 
     for attachment in tas_attachments:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
@@ -98,6 +99,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             utils.save_projects()
 
             if commit_status:
+                committed = True
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
                 history_log.info(history_data)
                 log.info("Added to history log")
@@ -122,6 +124,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
     if not skip_validation:
         add_project_log(message)
 
+    utils.sync_data_repo(commit_status[0] if committed else None)
     await message.clear_reaction('👀')
     log.info("Done processing message")
 
@@ -170,6 +173,7 @@ def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
         generate_path_cache(project_id)
 
     if filename in path_caches[project_id]:
+        utils.sync_data_repo()
         return path_caches[project_id][filename]
 
 
