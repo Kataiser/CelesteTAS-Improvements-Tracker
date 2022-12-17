@@ -75,14 +75,14 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
 
     try:
         os.chdir('improvements-bot-data')
-        subprocess.run('git pull')  # fingers crossed no conflicts occur
+        subprocess.run('git pull', stdout=subprocess.DEVNULL)  # fingers crossed no conflicts occur
 
         if not only_pull and b'working tree clean' not in subprocess.run('git status', capture_output=True).stdout:
             # fingers crossed here too
             log.info("Committing changes to data repo")
-            subprocess.run('git add *')
-            subprocess.run(f'git commit -m {commit_message if commit_message else int(time.time())}')
-            subprocess.run('git push')
+            subprocess.run('git add *', stdout=subprocess.DEVNULL)
+            subprocess.run(f'git commit -m {commit_message if commit_message else int(time.time())}', stdout=subprocess.DEVNULL)
+            subprocess.run('git push', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as error:
         log.error(f"Error updating data repo: {repr(error)}")
 
