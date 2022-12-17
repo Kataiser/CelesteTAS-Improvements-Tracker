@@ -53,7 +53,7 @@ def add_project_key(key: str, value: Any):
         projects[project_id][key] = value
 
     save_projects()
-    sync_data_repo()
+    sync_data_repo(f"Bulk added project key: {key}")
     log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
 
 
@@ -75,7 +75,7 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
 
     try:
         os.chdir('improvements-bot-data')
-        subprocess.run('git pull', stdout=subprocess.DEVNULL)  # fingers crossed no conflicts occur
+        subprocess.run('git pull', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # fingers crossed no conflicts occur
 
         if not only_pull and b'working tree clean' not in subprocess.run('git status', capture_output=True).stdout:
             # fingers crossed here too
