@@ -29,7 +29,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {projects[message.channel.id]['name']}) at {message.jump_url}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
-    has_video = video_attachments or 'youtube.com/watch?v=' in message.content or 'youtu.be/' in message.content or 'streamable.com/' in message.content or 'gfycat.com/' in message.content
+    has_video = video_attachments or [s for s in ('youtube.com/watch?v=', 'youtu.be/', 'streamable.com/', 'gfycat.com/') if s in message.content]
 
     if has_video:
         log.info("Video found 🍿")

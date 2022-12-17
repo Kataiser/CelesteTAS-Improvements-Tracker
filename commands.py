@@ -51,9 +51,7 @@ async def command_help(message: discord.Message):
                    "\n\n1. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
                    f"\n2. Add bot to your server: <{add_bot_link}>" \
-                   "\n3. Disable the View Channels permissions for all channels that are not the improvements channel. This is because otherwise every message in every server the bot's in " \
-                   "will be processed, and since the bot is being hosted on Kataiser's machine, he doesn't want that background CPU usage." \
-                   "\n4. Run the `register_project` command, see `help register_project` for parameters." \
+                   "\n3. Run the `register_project` command, see `help register_project` for parameters." \
                    "\n\nAvailable commands:" \
                    f"\n```\n{commands_available}```"
 
