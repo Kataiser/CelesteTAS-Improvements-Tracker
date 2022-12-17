@@ -286,7 +286,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
 @functools.cache
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
-    with open('githubs.json', 'r') as githubs_json:
+    with open('improvements-bot-data\\githubs.json', 'r') as githubs_json:
         github_accounts = ujson.load(githubs_json)
 
     if str(discord_id) in github_accounts:
@@ -300,7 +300,7 @@ def load_project_logs():
         return
 
     for project in projects:
-        project_log_path = f'project_logs\\{project}.bin'
+        project_log_path = f'improvements-bot-data\\project_logs\\{project}.bin'
 
         if not os.path.isfile(project_log_path):
             open(project_log_path, 'w').close()
@@ -314,7 +314,7 @@ def load_project_logs():
 
 
 def add_project_log(message: discord.Message):
-    project_log_path = f'project_logs\\{message.channel.id}.bin'
+    project_log_path = f'improvements-bot-data\\project_logs\\{message.channel.id}.bin'
 
     with open(project_log_path, 'ab') as project_log_db:
         # yes this format is basically unnecessary, but I think it's cool :)
@@ -342,7 +342,7 @@ def create_loggers() -> (logging.Logger, logging.Logger):
 
     history = logging.getLogger('history')
     history.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
+    file_handler = logging.FileHandler(filename='improvements-bot-data\\history.log', encoding='UTF8', mode='a')
     file_handler.setFormatter(log_formatter)
     history.addHandler(file_handler)
 

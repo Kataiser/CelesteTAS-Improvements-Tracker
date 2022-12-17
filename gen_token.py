@@ -50,7 +50,7 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         for installation in installations:
             installations_saved[installation['account']['login']] = installation['id']
 
-        with open('installations.json', 'w') as installations_json_write:
+        with open('improvements-bot-data\\installations.json', 'w') as installations_json_write:
             ujson.dump(installations_saved, installations_json_write, indent=4)
 
     installation_id = installations_saved[installation_owner]
@@ -79,7 +79,7 @@ def access_token(installation_owner: str, min_time: int):
 
 @functools.cache
 def installations_file() -> dict:
-    with open('installations.json', 'r') as installations_json_read:
+    with open('improvements-bot-data\\installations.json', 'r') as installations_json_read:
         return ujson.load(installations_json_read)
 
 

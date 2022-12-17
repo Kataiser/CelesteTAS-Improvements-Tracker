@@ -457,7 +457,7 @@ async def command_about(message: discord.Message):
         if projects[project_id]['do_run_validation']:
             sync_checks += 1
 
-    with open('history.log', 'r') as history_log_file:
+    with open('improvements-bot-data\\history.log', 'r') as history_log_file:
         commits_made = len([line for line in history_log_file if 'Added project' not in line and 'Edited project' not in line])
 
     text_out = text.format(len(projects),
