@@ -45,6 +45,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
                 await message.add_reaction('👍')
 
         add_project_log(message)
+        utils.sync_data_repo()
         log.info("Done processing message")
         return
     elif len(tas_attachments) > 1:
