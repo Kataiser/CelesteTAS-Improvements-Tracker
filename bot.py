@@ -77,7 +77,7 @@ async def on_ready():
             log.error(f"Can't access improvements channel for project {projects[improvements_channel_id]['name']}")
             continue
 
-        for message in reversed([m async for m in improvements_channel.history(limit=2 if debug else 10)]):
+        for message in reversed([m async for m in improvements_channel.history(limit=2 if debug else 20)]):
             downtime_message_count += 1
             await main.process_improvement_message(message)
 
