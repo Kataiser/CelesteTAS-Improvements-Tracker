@@ -120,5 +120,3 @@ def validate_project_formats(projects: dict):
 
 log: Optional[logging.Logger] = None
 projects = load_projects()
-
-sync_data_repo()
