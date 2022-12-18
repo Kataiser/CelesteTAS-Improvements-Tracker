@@ -81,7 +81,7 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
             # fingers crossed here too
             log.info("Committing changes to data repo")
             subprocess.run('git add *', stdout=subprocess.DEVNULL)
-            subprocess.run(f'git commit -m {commit_message if commit_message else int(time.time())}', stdout=subprocess.DEVNULL)
+            subprocess.run(f'git commit -m"{commit_message if commit_message else int(time.time())}"', stdout=subprocess.DEVNULL)
             subprocess.run('git push', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as error:
         log.error(f"Error updating data repo: {repr(error)}")
