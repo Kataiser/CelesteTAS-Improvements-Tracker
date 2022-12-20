@@ -357,6 +357,7 @@ def create_loggers() -> (logging.Logger, logging.Logger):
     game_sync.log = logger
     history_log = history
     commands.history_log = history
+    utils.history_log = history
 
     return logger, history
 

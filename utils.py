@@ -71,6 +71,7 @@ def save_path_caches():
 
 def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False):
     log.info("Syncing data repo")
+    history_log.handlers[0].flush()
     working_dir = os.getcwd()
 
     try:
@@ -119,4 +120,5 @@ def validate_project_formats(projects: dict):
 
 
 log: Optional[logging.Logger] = None
+history_log: Optional[logging.Logger] = None
 projects = load_projects()
