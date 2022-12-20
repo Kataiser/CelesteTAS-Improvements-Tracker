@@ -124,9 +124,9 @@ async def process_improvement_message(message: discord.Message, skip_validation:
     if not skip_validation:
         add_project_log(message)
 
-    utils.sync_data_repo(commit_status[0] if committed else None)
     await message.clear_reaction('👀')
     log.info("Done processing message")
+    utils.sync_data_repo(commit_status[0] if committed else None)
 
 
 # assumes already verified TAS
@@ -303,27 +303,26 @@ def load_project_logs():
         return
 
     for project in projects:
-        project_log_path = f'improvements-bot-data\\project_logs\\{project}.bin'
+        project_log_path = f'improvements-bot-data\\project_logs\\{project}.json'
 
         if not os.path.isfile(project_log_path):
-            open(project_log_path, 'w').close()
+            with open(project_log_path, 'w') as project_log_db:
+                project_log_db.write('[]')
+
             project_logs[project] = []
             log.info(f"Created {project_log_path}")
         else:
-            with open(project_log_path, 'rb') as project_log_db:
-                project_log_read = project_log_db.read()
-
-            project_logs[project] = list(memoryview(project_log_read).cast('Q'))
+            with open(project_log_path, 'r') as project_log_db:
+                project_logs[project] = ujson.load(project_log_db)
 
 
 def add_project_log(message: discord.Message):
-    project_log_path = f'improvements-bot-data\\project_logs\\{message.channel.id}.bin'
-
-    with open(project_log_path, 'ab') as project_log_db:
-        # yes this format is basically unnecessary, but I think it's cool :)
-        project_log_db.write(message.id.to_bytes(8, byteorder='little'))
-
     project_logs[message.channel.id].append(message.id)
+    project_log_path = f'improvements-bot-data\\project_logs\\{message.channel.id}.json'
+
+    with open(project_log_path, 'w') as project_log_db:
+        ujson.dump(project_logs[message.channel.id], project_log_db, indent=2)
+
     log.info(f"Added message ID {message.id} to {project_log_path}")
 
 
