@@ -295,7 +295,7 @@ async def handle_game_sync_results(client: discord.Client):
         results = ujson.load(game_sync_results)
 
     for project_id in results:
-        log.info(f"Handling game sync results for project {projects[int(project_id)]}")
+        log.info(f"Handling game sync results for project {projects[int(project_id)]['name']}")
         report_text = results[project_id]
         improvements_channel = client.get_channel(int(project_id))
         await edit_pin(improvements_channel)
