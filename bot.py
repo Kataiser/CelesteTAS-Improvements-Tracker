@@ -4,7 +4,6 @@ import time
 import traceback
 
 import discord
-import psutil
 
 import commands
 import main
@@ -80,14 +79,6 @@ async def on_ready():
             await main.process_improvement_message(message)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
-
-    if not debug:
-        self_process = psutil.Process()
-        self_process.nice(psutil.IDLE_PRIORITY_CLASS)
-        self_process.ionice(psutil.IOPRIO_VERYLOW)
-        log.info("Set process priorities")
-    else:
-        log.info("Skipped setting priorities")
 
 
 @client.event
