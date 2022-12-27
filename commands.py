@@ -8,7 +8,6 @@ from typing import Optional
 import discord
 import requests
 import ujson
-import win32api
 
 import game_sync
 import main
@@ -266,80 +265,6 @@ async def command_add_category(message: discord.Message):
     await message.channel.send("Not yet implemented")
 
 
-async def command_run_sync_check(message: discord.Message):
-    """
-    run_sync_check PROJECT_NAME
-
-      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will run it for all of them
-    """
-
-    message_split = re_command_split.split(message.content)
-
-    if len(message_split) != 2 or not re.match(r'(?i)run_sync_check .+', message.content):
-        log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help run_sync_check`")
-        return
-
-    project_search_name = message_split[1].replace('"', '').lower()
-    matched_projects = False
-    idle_time = (win32api.GetTickCount() - win32api.GetLastInputInfo()) / 1000
-    log.info(f"Idle time: {idle_time} seconds")
-
-    if idle_time < 720 and message.author.id != 219955313334288385:  # 12 mins
-        await message.channel.send("Kataiser is not currently AFK, so maybe running the game on his PC is not a great idea right now")
-        return
-
-    for project_id in projects:
-        project = projects[project_id]
-
-        if project['name'].lower() != project_search_name:
-            continue
-        elif not await is_admin(message, project_id):
-            break
-
-        matched_projects = True
-
-        if not project['do_run_validation']:
-            log.warning(f"Trying to do run validation for project: {project['name']}, but it's disabled")
-            await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled")
-            continue
-
-        if not main.path_caches[project_id]:
-            main.generate_path_cache(project_id)
-
-        if not main.path_caches[project_id]:
-            log.warning(f"Trying to do run validation for project: {project['name']}, but it has no files")
-            await message.channel.send(f"Project \"{project['name']}\" seems to have no files to sync check")
-            continue
-
-        await message.channel.send(f"Running sync check for project \"{project['name']}\"...")
-
-        try:
-            await game_sync.sync_test(project_id, message.channel)
-        except Exception:
-            await game_sync.close_game()
-            game_sync.post_cleanup()
-            raise
-
-    if not matched_projects:
-        log.warning(f"No projects found matching: {project_search_name}")
-        await message.channel.send("No projects (with sync checking enabled) matching that name found")
-
-
-async def command_run_sync_checks(message: discord.Message):
-    """
-    run_sync_checks
-
-      (No parameters)
-    """
-
-    if message.author.id == 219955313334288385:
-        await game_sync.run_syncs(message.channel)
-    else:
-        log.warning("Not Kataiser")
-        await message.channel.send("Not allowed, you are not Kataiser")
-
-
 async def command_rename_file(message: discord.Message):
     """
     rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
@@ -561,20 +486,18 @@ async def report_command_used(command_name: str, message: discord.Message):
             await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: \"{message.content}\"")
             log.info("Reported command usage to Kataiser")
     except Exception as error:
-        log.error(f"Coudln't report command usage to Kataiser: {repr(error)}")
+        log.error(f"Couldn't report command usage to Kataiser: {repr(error)}")
 
 
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
-reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_run_sync_check)
+reportable_commands = (command_register_project, command_rename_file, command_add_mods)
 
 command_functions = {'help': command_help,
                      'about': command_about,
                      'about_project': command_about_project,
                      'register_project': command_register_project,
                      'rename_file': command_rename_file,
-                     'add_mods': command_add_mods,
-                     'run_sync_check': command_run_sync_check,
-                     'run_sync_checks': command_run_sync_checks}
+                     'add_mods': command_add_mods}

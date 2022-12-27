@@ -71,8 +71,12 @@ def save_path_caches():
 
 def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False):
     log.info("Syncing data repo")
-    history_log.handlers[0].flush()
     working_dir = os.getcwd()
+
+    try:
+        history_log.handlers[0].flush()
+    except AttributeError:
+        pass
 
     try:
         os.chdir('improvements-bot-data')
@@ -80,9 +84,10 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
 
         if not only_pull and b'working tree clean' not in subprocess.run('git status', capture_output=True).stdout:
             # fingers crossed here too
-            log.info("Committing changes to data repo")
+            commit_message = commit_message if commit_message else int(time.time())
+            log.info(f"Committing changes to data repo with message \"{commit_message}\"")
             subprocess.run('git add *', stdout=subprocess.DEVNULL)
-            subprocess.run(f'git commit -m"{commit_message if commit_message else int(time.time())}"', stdout=subprocess.DEVNULL)
+            subprocess.run(f'git commit -m"{commit_message}"', stdout=subprocess.DEVNULL)
             subprocess.run('git push', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as error:
         log.error(f"Error updating data repo: {repr(error)}")

@@ -14,7 +14,6 @@ import requests
 import ujson
 
 import commands
-import game_sync
 import gen_token
 import utils
 import validation
@@ -231,15 +230,16 @@ def is_processable_message(message: discord.Message) -> bool:
 
 async def edit_pin(channel: discord.TextChannel, create: bool = False):
     project = projects[channel.id]
-    lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if project['is_lobby'] else ""
-    level_text = "the name of the level/map"
     ensure_level = project['ensure_level']
     desyncs = project['desyncs']
     desyncs_text = "\n"
+    lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if project['is_lobby'] else ""
+    level_text_ensure = ", the name of the level/map," if ensure_level else ''
+    level_text_not_ensure = "" if ensure_level else " the name of the level/map,"
 
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
-           f"a file, please include the amount of frames saved{f', {level_text},' if ensure_level else ''} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
-           f"Room(s) affected is ideal, and{'' if ensure_level else f' {level_text},'} previous ChapterTime, category affected, and video are optional." \
+           f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
+           f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
            "\nPackage DL: <{2}>" \
            "\nAdmin: <@{3}>" \
@@ -287,6 +287,26 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         return pin_message
 
 
+async def handle_game_sync_results(client: discord.Client):
+    if not os.path.isfile('improvements-bot-data\\game_sync_results.json'):
+        return
+
+    with open('improvements-bot-data\\game_sync_results.json', 'r', encoding='UTF8') as game_sync_results:
+        results = ujson.load(game_sync_results)
+
+    for project_id in results:
+        log.info(f"Handling game sync results for project {projects[int(project_id)]}")
+        report_text = results[project_id]
+        improvements_channel = client.get_channel(int(project_id))
+        await edit_pin(improvements_channel)
+
+        if report_text:
+            await improvements_channel.send(report_text)
+
+    os.remove('improvements-bot-data\\game_sync_results.json')
+    utils.sync_data_repo("Removed sync results file")
+
+
 @functools.cache
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
     with open('improvements-bot-data\\githubs.json', 'r') as githubs_json:
@@ -331,10 +351,13 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_loggers() -> (logging.Logger, logging.Logger):
+def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
+    if os.path.isfile('bot.log'):
+        os.replace('bot.log', 'bot_old.log')
+
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
+    file_handler = logging.FileHandler(filename=main_filename, encoding='UTF8', mode='w')
     log_formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
@@ -354,7 +377,6 @@ def create_loggers() -> (logging.Logger, logging.Logger):
     validation.log = logger
     utils.log = logger
     commands.log = logger
-    game_sync.log = logger
     history_log = history
     commands.history_log = history
     utils.history_log = history
