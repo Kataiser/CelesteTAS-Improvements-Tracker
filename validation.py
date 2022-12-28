@@ -216,7 +216,7 @@ def as_lines(tas: bytes) -> List[str]:
 
 
 re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
-re_comment_time = re.compile(r'#[\d:]*\d+\.\d+')
+re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')
