@@ -144,7 +144,7 @@ async def on_error(*args):
     ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
 
     if not debug:
-        await (await client.fetch_user(219955313334288385)).send(f"```\n{error}```")
+        await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
 
 
 log, history_log = main.create_loggers('bot.log')
