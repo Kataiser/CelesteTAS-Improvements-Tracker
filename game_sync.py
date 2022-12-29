@@ -42,7 +42,7 @@ def run_syncs():
         with open('improvements-bot-data\\game_sync_results.json', 'w', encoding='UTF8') as game_sync_results:
             ujson.dump(results, game_sync_results, indent=4)
 
-        log.info("Created results_file")
+        log.info("Created results file")
         utils.sync_data_repo(f"Game sync results file for {len(results)} project{plural(results)}")
     else:
         log.info("Didn't create results file")
@@ -169,6 +169,7 @@ def sync_test(project_id: int) -> Optional[str]:
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
         report_text = "Disabled nightly sync checking after a month of no improvements."
 
+    utils.projects[project_id] = project  # yes this is dumb
     utils.save_projects()
     return report_text
 
