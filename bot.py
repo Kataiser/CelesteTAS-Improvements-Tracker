@@ -30,7 +30,7 @@ def start():
     if debug:
         print("DEBUG MODE")
 
-    utils.sync_data_repo()
+    utils.sync_data_repo(only_pull=True)
     log.info(f"Loaded {len(projects)} project{plural(projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
              f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
 

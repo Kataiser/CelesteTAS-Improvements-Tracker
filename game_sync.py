@@ -95,6 +95,10 @@ def sync_test(project_id: int) -> Optional[str]:
             break
 
     for tas_filename in path_cache:
+        if tas_filename == 'translocation.tas':
+            files_timed += 1
+            continue
+
         log.info(f"Downloading {path_cache[tas_filename]}")
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers)
         utils.handle_potential_request_error(r, 200)
