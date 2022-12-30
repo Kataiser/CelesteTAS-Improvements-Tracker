@@ -148,6 +148,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     finaltime_line = None
     finaltime = None
     finaltime_trimmed = None
+    found_chaptertime = False
 
     for line in enumerate(tas_lines):
         if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
@@ -155,16 +156,16 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             breakpoints.append(str(line[0] + 1))
         else:
             if re_chapter_time.match(line[1]):
-                is_chaptertime = True
+                found_chaptertime = True
                 finaltime_line = line[0]
-            elif allow_comment_time and re_comment_time.match(line[1]):
-                is_chaptertime = False
+            elif allow_comment_time and not found_chaptertime and re_comment_time.match(line[1]):
+                found_chaptertime = False
                 finaltime_line = line[0]
 
     found_finaltime = finaltime_line is not None
 
     if found_finaltime:
-        if is_chaptertime:
+        if found_chaptertime:
             finaltime = tas_lines[finaltime_line].partition(' ')[2].partition('(')[0]
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
