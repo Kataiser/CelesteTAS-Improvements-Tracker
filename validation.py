@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import discord
 
-from utils import projects
+import main
 
 
 class ValidationResult:
@@ -83,7 +83,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                                         f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     # validate level
-    if projects[message.channel.id]['ensure_level']:
+    if main.projects[message.channel.id]['ensure_level']:
         level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '')
 
         if level not in re_remove_punctuation.subn('', message_lowercase)[0].replace('_', ''):

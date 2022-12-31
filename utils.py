@@ -70,7 +70,6 @@ def save_path_caches():
 
 
 def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False):
-    global projects
     log.info("Syncing data repo")
     working_dir = os.getcwd()
 
@@ -94,7 +93,7 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
         log.error(f"Error updating data repo: {repr(error)}")
 
     os.chdir(working_dir)
-    projects = load_projects()
+    main.projects = load_projects()
     main.load_project_logs()
     load_path_caches()
 
@@ -130,4 +129,3 @@ def validate_project_formats(projects: dict):
 
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
-projects = load_projects()

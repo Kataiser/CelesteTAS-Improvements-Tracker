@@ -15,7 +15,7 @@ import yaml
 import main
 import utils
 import validation
-from utils import plural, projects
+from utils import plural
 
 
 def run_syncs():
@@ -28,8 +28,8 @@ def run_syncs():
     results = {}
 
     try:
-        for project_id in projects:
-            if projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
+        for project_id in main.projects:
+            if main.projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
                 results[project_id] = sync_test(project_id)
     except Exception:
         close_game()
@@ -49,7 +49,7 @@ def run_syncs():
 
 
 def sync_test(project_id: int) -> Optional[str]:
-    project = projects[project_id]
+    project = main.projects[project_id]
     log.info(f"Running sync test for project: {project['name']}")
     mods = project['mods']
     repo = project['repo']

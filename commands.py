@@ -12,7 +12,7 @@ import ujson
 import game_sync
 import main
 import utils
-from utils import plural, projects
+from utils import plural
 
 
 async def handle(message: discord.Message):
@@ -82,17 +82,17 @@ async def command_register_project(message: discord.Message):
     await message.channel.send("Verifying...")
     _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, do_run_validation = message_split
     improvements_channel_id = int(improvements_channel_id)
-    editing = improvements_channel_id in projects
+    editing = improvements_channel_id in main.projects
 
     if editing:
         if not await is_admin(message, improvements_channel_id):
             return
 
         log.info("This project already exists, preserving some keys")
-        previous = {'install_time': projects[improvements_channel_id]['install_time'],
-                    'pin': projects[improvements_channel_id]['pin'],
-                    'mods': projects[improvements_channel_id]['mods'],
-                    'last_run_validation': projects[improvements_channel_id]['last_run_validation']}
+        previous = {'install_time': main.projects[improvements_channel_id]['install_time'],
+                    'pin': main.projects[improvements_channel_id]['pin'],
+                    'mods': main.projects[improvements_channel_id]['mods'],
+                    'last_run_validation': main.projects[improvements_channel_id]['last_run_validation']}
 
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
@@ -151,37 +151,37 @@ async def command_register_project(message: discord.Message):
     log.info("Verification successful")
 
     current_time = int(time.time())
-    projects[improvements_channel_id] = {'name': name.replace('"', ''),
-                                         'repo': repo,
-                                         'installation_owner': github_account,
-                                         'admin': message.author.id,
-                                         'install_time': current_time,
-                                         'commit_drafts': commit_drafts.lower() == 'y',
-                                         'is_lobby': is_lobby.lower() == 'y',
-                                         'ensure_level': ensure_level.lower() == 'y',
-                                         'do_run_validation': do_run_validation.lower() == 'y',
-                                         'last_run_validation': None,
-                                         'pin': None,
-                                         'subdir': subdir,
-                                         'mods': [],
-                                         'desyncs': [],
-                                         'last_commit_time': current_time}
+    main.projects[improvements_channel_id] = {'name': name.replace('"', ''),
+                                              'repo': repo,
+                                              'installation_owner': github_account,
+                                              'admin': message.author.id,
+                                              'install_time': current_time,
+                                              'commit_drafts': commit_drafts.lower() == 'y',
+                                              'is_lobby': is_lobby.lower() == 'y',
+                                              'ensure_level': ensure_level.lower() == 'y',
+                                              'do_run_validation': do_run_validation.lower() == 'y',
+                                              'last_run_validation': None,
+                                              'pin': None,
+                                              'subdir': subdir,
+                                              'mods': [],
+                                              'desyncs': [],
+                                              'last_commit_time': current_time}
 
     if not editing:
         await message.channel.send("Generating path cache...")
         main.generate_path_cache(improvements_channel_id)
         pinned_message = await main.edit_pin(improvements_channel, create=True)
         await pinned_message.pin()
-        projects[improvements_channel_id]['pin'] = pinned_message.id
+        main.projects[improvements_channel_id]['pin'] = pinned_message.id
         main.project_logs[improvements_channel_id] = []
     else:
         log.info("Skipped creating pinned message")
 
         for previous_key in previous:
-            projects[improvements_channel_id][previous_key] = previous[previous_key]
+            main.projects[improvements_channel_id][previous_key] = previous[previous_key]
 
     utils.save_projects()
-    project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {projects[improvements_channel_id]}"
+    project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {main.projects[improvements_channel_id]}"
     log.info(project_added_log)
     history_log.info(project_added_log)
     utils.sync_data_repo(f"Added/edited project {name}")
@@ -189,7 +189,7 @@ async def command_register_project(message: discord.Message):
     if editing:
         await message.channel.send("Successfully verified and edited project.")
     else:
-        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`."  if do_run_validation.lower() == 'y' else ""
+        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_run_validation.lower() == 'y' else ""
         await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}")
 
@@ -212,8 +212,8 @@ async def command_add_mods(message: discord.Message):
     project_search_name = message_split[1].replace('"', '').lower()
     project_mods_added = False
 
-    for project_id in projects:
-        project = projects[project_id]
+    for project_id in main.projects:
+        project = main.projects[project_id]
 
         if project['name'].lower() != project_search_name:
             continue
@@ -289,8 +289,8 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send("what")
         return
 
-    for project_id in projects:
-        project = projects[project_id]
+    for project_id in main.projects:
+        project = main.projects[project_id]
 
         if project['name'].lower() != project_search_name:
             continue
@@ -378,16 +378,16 @@ async def command_about(message: discord.Message):
     sync_checks = 0
     installations = set()
 
-    for project_id in projects:
-        installations.add(projects[project_id]['installation_owner'])
+    for project_id in main.projects:
+        installations.add(main.projects[project_id]['installation_owner'])
 
-        if projects[project_id]['do_run_validation']:
+        if main.projects[project_id]['do_run_validation']:
             sync_checks += 1
 
     with open('improvements-bot-data\\history.log', 'r') as history_log_file:
         commits_made = len([line for line in history_log_file if 'Added project' not in line and 'Edited project' not in line])
 
-    text_out = text.format(len(projects),
+    text_out = text.format(len(main.projects),
                            len(client.guilds),
                            len(installations),
                            round((time.time() - main.login_time) / 3600, 1),
@@ -428,8 +428,8 @@ async def command_about_project(message: discord.Message):
            "\nDo sync check: `{10}`" \
            "{11}"
 
-    for project_id in projects:
-        project = projects[project_id]
+    for project_id in main.projects:
+        project = main.projects[project_id]
 
         if project['name'].lower() != project_search_name:
             continue
@@ -471,7 +471,7 @@ async def command_about_project(message: discord.Message):
 
 # verify that the user editing the project is the admin (or Kataiser)
 async def is_admin(message: discord.Message, improvements_channel_id: int):
-    if message.author.id in (projects[improvements_channel_id]['admin'], 219955313334288385):
+    if message.author.id in (main.projects[improvements_channel_id]['admin'], 219955313334288385):
         return True
     else:
         log.warning("Not project admin")

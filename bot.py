@@ -8,7 +8,7 @@ import discord
 import commands
 import main
 import utils
-from utils import plural, projects
+from utils import plural
 
 intents = discord.Intents.none()
 intents.guilds = True
@@ -31,10 +31,10 @@ def start():
         print("DEBUG MODE")
 
     utils.sync_data_repo(only_pull=True)
-    log.info(f"Loaded {len(projects)} project{plural(projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
+    log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
              f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
 
-    if not len(projects) == len(main.project_logs) == len(main.path_caches):
+    if not len(main.projects) == len(main.project_logs) == len(main.path_caches):
         log.critical("Project data component lengths are not equal, exiting")
         return
 
@@ -63,13 +63,13 @@ async def on_ready():
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
     await main.handle_game_sync_results(client)
     downtime_message_count = 0
-    projects_to_scan = main.safe_projects if safe_mode else projects
+    projects_to_scan = main.safe_projects if safe_mode else main.projects
 
     for improvements_channel_id in projects_to_scan:
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel:
-            log.error(f"Can't access improvements channel for project {projects[improvements_channel_id]['name']}")
+            log.error(f"Can't access improvements channel for project {main.projects[improvements_channel_id]['name']}")
             continue
 
         for message in reversed([m async for m in improvements_channel.history(limit=2 if debug else 20)]):
@@ -88,7 +88,7 @@ async def on_message(message: discord.Message):
     elif not message.guild:
         await commands.handle(message)
         return
-    elif message.channel.id not in projects:
+    elif message.channel.id not in main.projects:
         return
 
     await main.process_improvement_message(message)
@@ -98,11 +98,11 @@ async def on_message(message: discord.Message):
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     await client.wait_until_ready()
 
-    if payload.channel_id in projects:
+    if payload.channel_id in main.projects:
         async for message in client.get_channel(payload.channel_id).history(limit=20):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
-                log.info(f"Deleted bot reply message in project: {projects[payload.channel_id]['name']}")
+                log.info(f"Deleted bot reply message in project: {main.projects[payload.channel_id]['name']}")
                 break
 
 
@@ -110,12 +110,12 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await client.wait_until_ready()
 
-    if '⏭' in payload.emoji.name and payload.channel_id in projects:
-        for project_id in projects:
+    if '⏭' in payload.emoji.name and payload.channel_id in main.projects:
+        for project_id in main.projects:
             if payload.message_id in main.project_logs[project_id]:
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
-                if payload.user_id in (message.author.id, projects[project_id]['admin'], 219955313334288385):
+                if payload.user_id in (message.author.id, main.projects[project_id]['admin'], 219955313334288385):
                     request_user = await client.fetch_user(payload.user_id)
                     log.info(f"{utils.detailed_user(user=request_user)} has requested committing invalid post")
                     await message.clear_reaction('⏭')

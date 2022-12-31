@@ -17,7 +17,7 @@ import commands
 import gen_token
 import utils
 import validation
-from utils import plural, projects
+from utils import plural
 
 
 # process a message posted in a registered improvements channel
@@ -386,6 +386,7 @@ def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
 
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
+projects = utils.load_projects()
 project_logs = {}
 path_caches = {}
 headers = None
