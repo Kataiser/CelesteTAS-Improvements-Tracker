@@ -41,20 +41,20 @@ def load_projects() -> dict:
 
 
 def save_projects():
-    validate_project_formats(projects)
+    validate_project_formats(main.projects)
 
     with open('improvements-bot-data\\projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
-        ujson.dump(projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
+        ujson.dump(main.projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
 
 def add_project_key(key: str, value: Any):
-    for project_id in projects:
-        projects[project_id][key] = value
+    for project_id in main.projects:
+        main.projects[project_id][key] = value
 
     save_projects()
     sync_data_repo(f"Bulk added project key: {key}")
-    log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
+    log.info(f"Added `{key}: {value}` to {len(main.projects)} projects, be sure to update validate_project_formats and command_register_project")
 
 
 def load_path_caches():
