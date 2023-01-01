@@ -2,9 +2,10 @@ import logging
 import os
 import subprocess
 import time
-from typing import Any, Optional, Sized, Union
+from typing import Any, Callable, Optional, Sized, Union
 
 import discord
+import fastjsonschema
 import requests
 import ujson
 
@@ -100,32 +101,14 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
 
 def validate_project_formats(projects: dict):
     for project_id in projects:
-        project = projects[project_id]
+        validate_project_schema(projects[project_id])
 
-        try:
-            name = project['name']; assert isinstance(name, str); assert len(name) > 0
-            repo = project['repo']; assert isinstance(repo, str); assert len(repo) > 0
-            installation_owner = project['installation_owner']; assert isinstance(installation_owner, str); assert len(installation_owner) > 0
-            assert isinstance(project['admin'], int)
-            assert isinstance(project['install_time'], int)
-            assert isinstance(project['commit_drafts'], bool)
-            assert isinstance(project['is_lobby'], bool)
-            assert isinstance(project['ensure_level'], bool)
-            assert isinstance(project['pin'], int)
-            assert isinstance(project['do_run_validation'], bool)
-            assert isinstance(project['last_run_validation'], int) or project['last_run_validation'] is None
-            assert isinstance(project['subdir'], str)
-            assert isinstance(project['mods'], list)
-            assert isinstance(project['desyncs'], list)
-            assert isinstance(project['last_commit_time'], int)
 
-            for mod in project['mods']:
-                assert isinstance(mod, str); assert len(mod) > 0
-
-            assert len(project) == 15
-        except (KeyError, AssertionError) as error:
-            log.error(f"Invalid format for project {project_id}: {repr(error)}")
+def load_project_schema() -> Callable:
+    with open('project_schema.json', 'r') as projects_schema_file:
+        return fastjsonschema.compile(ujson.load(projects_schema_file))
 
 
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
+validate_project_schema = load_project_schema()

@@ -10,6 +10,7 @@ import main
 import utils
 from utils import plural
 
+
 intents = discord.Intents.none()
 intents.guilds = True
 intents.messages = True
