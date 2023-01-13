@@ -72,6 +72,7 @@ def save_path_caches():
 
 def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False):
     log.info("Syncing data repo")
+    time.sleep(0.2)  # to let any files fully update
     working_dir = os.getcwd()
 
     try:
@@ -82,9 +83,12 @@ def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False
     try:
         os.chdir('improvements-bot-data')
         subprocess.run('git pull', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # fingers crossed no conflicts occur
+        git_status = subprocess.run('git status', capture_output=True).stdout
 
-        if not only_pull and b'working tree clean' not in subprocess.run('git status', capture_output=True).stdout:
-            # fingers crossed here too
+        if not only_pull and b'working tree clean' not in git_status:  # fingers crossed here too
+            if b'Your branch is up to date' not in git_status:
+                log.error("Outdated branch")
+
             commit_message = commit_message if commit_message else int(time.time())
             log.info(f"Committing changes to data repo with message \"{commit_message}\"")
             subprocess.run('git add *', stdout=subprocess.DEVNULL)
