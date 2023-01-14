@@ -191,7 +191,7 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
 
 
 def generate_blacklist(mods_to_load: set):
-    installed_mods = [item for item in os.listdir(r'C:\Users\Administrator\Desktop\celeste\celeste\Mods') if item.endswith('.zip')]
+    installed_mods = [item for item in os.listdir(r'C:\Users\Administrator\Desktop\celeste\Mods') if item.endswith('.zip')]
     blacklist = []
 
     for installed_mod in installed_mods:
@@ -205,7 +205,7 @@ def generate_blacklist(mods_to_load: set):
 
 # remove all files related to the debug save
 def remove_debug_save_files():
-    debug_save_files = [file for file in os.listdir(r'C:\Users\Administrator\Desktop\celeste\celeste\Saves') if file.startswith('debug')]
+    debug_save_files = [file for file in os.listdir(r'C:\Users\Administrator\Desktop\celeste\Saves') if file.startswith('debug')]
 
     for debug_save_file in debug_save_files:
         os.remove(f'C:\\Users\\Administrator\\Desktop\\celeste\\Saves\\{debug_save_file}')
