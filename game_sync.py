@@ -124,7 +124,7 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
 
         while not tas_finished:
             try:
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
             except requests.Timeout:
                 pass
