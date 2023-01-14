@@ -34,6 +34,9 @@ def start():
     if debug:
         print("DEBUG MODE")
 
+    main.projects = utils.load_projects()
+    main.load_project_logs()
+    main.path_caches = utils.load_path_caches()
     log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
              f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
 
