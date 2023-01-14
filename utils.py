@@ -1,7 +1,4 @@
 import logging
-import os
-import subprocess
-import time
 from typing import Any, Callable, Optional, Sized, Union
 
 import discord
@@ -33,7 +30,7 @@ def detailed_user(message: Optional[discord.Message] = None, user: Optional[disc
 
 
 def load_projects() -> dict:
-    with open('improvements-bot-data\\projects.json', 'r', encoding='UTF8') as projects_json:
+    with open('projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = ujson.load(projects_json)
         projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
 
@@ -44,7 +41,7 @@ def load_projects() -> dict:
 def save_projects():
     validate_project_formats(main.projects)
 
-    with open('improvements-bot-data\\projects.json', 'r+', encoding='UTF8') as projects_json:
+    with open('projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
         ujson.dump(main.projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
@@ -54,53 +51,19 @@ def add_project_key(key: str, value: Any):
         main.projects[project_id][key] = value
 
     save_projects()
-    sync_data_repo(f"Bulk added project key: {key}")
     log.info(f"Added `{key}: {value}` to {len(main.projects)} projects, be sure to update validate_project_formats and command_register_project")
 
 
 def load_path_caches():
-    with open('improvements-bot-data\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
+    with open('path_caches.json', 'r', encoding='UTF8') as path_caches_json:
         path_caches_loaded = ujson.load(path_caches_json)
         main.path_caches = {int(k): path_caches_loaded[k] for k in path_caches_loaded}
 
 
 def save_path_caches():
-    with open('improvements-bot-data\\path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
+    with open('path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
         path_caches_json.truncate()
         ujson.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
-
-
-def sync_data_repo(commit_message: Optional[str] = None, only_pull: bool = False):
-    log.info("Syncing data repo")
-    time.sleep(0.2)  # to let any files fully update
-    working_dir = os.getcwd()
-
-    try:
-        history_log.handlers[0].flush()
-    except AttributeError:
-        pass
-
-    try:
-        os.chdir('improvements-bot-data')
-        subprocess.run('git pull', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # fingers crossed no conflicts occur
-        git_status = subprocess.run('git status', capture_output=True).stdout
-
-        if not only_pull and b'working tree clean' not in git_status:  # fingers crossed here too
-            if b'Your branch is up to date' not in git_status:
-                log.error("Outdated branch")
-
-            commit_message = commit_message if commit_message else int(time.time())
-            log.info(f"Committing changes to data repo with message \"{commit_message}\"")
-            subprocess.run('git add *', stdout=subprocess.DEVNULL)
-            subprocess.run(f'git commit -m"{commit_message}"', stdout=subprocess.DEVNULL)
-            subprocess.run('git push', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception as error:
-        log.error(f"Error updating data repo: {repr(error)}")
-
-    os.chdir(working_dir)
-    main.projects = load_projects()
-    main.load_project_logs()
-    load_path_caches()
 
 
 def validate_project_formats(projects: dict):
