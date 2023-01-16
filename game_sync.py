@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import logging
 import os
@@ -8,7 +7,6 @@ import time
 import zipfile
 from typing import Optional
 
-import discord
 import psutil
 import requests
 import ujson
@@ -20,28 +18,37 @@ import validation
 from utils import plural
 
 
-async def run_syncs(report_channel: Optional[discord.DMChannel] = None):
-    sync_tests_text = "Running all sync tests"
-    log.info(sync_tests_text)
-    await dm_report(report_channel, sync_tests_text)
+def run_syncs():
+    global log
+    log = main.create_loggers('game_sync.log')[0]
+    log.info("Running all sync tests")
+    utils.projects = utils.load_projects()
+    utils.load_path_caches()
+    results = {}
 
     try:
         for project_id in main.projects:
             if main.projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
-                await sync_test(project_id, report_channel)
+                results[project_id] = sync_test(project_id)
     except Exception:
-        await close_game()
+        close_game()
         post_cleanup()
         raise
 
     post_cleanup()
 
+    if results:
+        with open('sync\\game_sync_results.json', 'w', encoding='UTF8') as game_sync_results:
+            ujson.dump(results, game_sync_results, indent=4)
 
-async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel] = None):
+        log.info("Created results file")
+    else:
+        log.info("Didn't create results file")
+
+
+def sync_test(project_id: int) -> Optional[str]:
     project = main.projects[project_id]
-    sync_test_text = f"Running sync test for project: {project['name']}"
-    log.info(sync_test_text)
-    await dm_report(report_channel, sync_test_text)
+    log.info(f"Running sync test for project: {project['name']}")
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -54,33 +61,29 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
 
     generate_blacklist(mods_to_load)
-    launching_game_text = f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}"
-    log.info(launching_game_text)
-    subprocess.Popen(r'C:\Users\Administrator\Desktop\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+    log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
+    subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
-    await dm_report(report_channel, launching_game_text)
 
     # make sure path cache is correct while the game is launching
     main.generate_request_headers(project['installation_owner'], 300)
     main.generate_path_cache(project_id)
     path_cache = main.path_caches[project_id]
-    await dm_report(report_channel, "Generated repo structure cache")
 
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
         try:
-            await asyncio.sleep(2)
+            time.sleep(2)
             requests.get('http://localhost:32270/', timeout=2)
         except requests.ConnectTimeout:
             current_time = time.perf_counter()
 
             if current_time - last_game_loading_notify > 60:
-                await dm_report(report_channel, "Game is still loading")
                 last_game_loading_notify = current_time
         else:
             log.info("Game loaded")
-            await asyncio.sleep(2)
+            time.sleep(2)
             game_loaded = True
 
     for process in psutil.process_iter(['name']):
@@ -104,27 +107,23 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         _, found_chaptertime, chapter_time, chapter_time_trimmed, chapter_time_line = validation.parse_tas_file(tas_lines, False, False)
 
         if not found_chaptertime:
-            no_chaptertime_text = f"{tas_filename} has no ChapterTime"
-            log.warning(no_chaptertime_text)
-            await dm_report(report_channel, no_chaptertime_text)
+            log.warning(f"{tas_filename} has no ChapterTime")
             continue
 
         tas_lines[chapter_time_line] = 'ChapterTime: '
         tas_lines.append('***')
 
-        with open(r'C:\Users\Administrator\Desktop\celeste\temp.tas', 'w', encoding='UTF8') as temp_tas:
+        with open(r'E:\Big downloads\celeste\temp.tas', 'w', encoding='UTF8') as temp_tas:
             temp_tas.write('\n'.join(tas_lines))
 
         # now run it
-        testing_timing_text = f"Testing timing of {tas_filename} ({chapter_time_trimmed})"
-        log.info(testing_timing_text)
-        requests.post(r'http://localhost:32270/tas/playtas?filePath=C:\Users\Administrator\Desktop\celeste\temp.tas')
+        log.info(f"Testing timing of {tas_filename} ({chapter_time_trimmed})")
+        requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas')
         tas_finished = False
-        await dm_report(report_channel, testing_timing_text)
 
         while not tas_finished:
             try:
-                await asyncio.sleep(2)
+                time.sleep(1)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
             except requests.Timeout:
                 pass
@@ -132,10 +131,10 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
                 tas_finished = 'Running: False' in session_data.text
 
         log.info("TAS has finished")
-        await asyncio.sleep(5)
+        time.sleep(5)
 
         # determine if it synced or not
-        with open(r'C:\Users\Administrator\Desktop\celeste\temp.tas', 'rb') as tas_file:
+        with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
             tas_read = tas_file.read()
 
         _, found_chaptertime, chapter_time_new, chapter_time_new_trimmed, _ = validation.parse_tas_file(validation.as_lines(tas_read), False, False)
@@ -143,72 +142,59 @@ async def sync_test(project_id: int, report_channel: Optional[discord.DMChannel]
         if found_chaptertime:
             frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
             synced = frame_diff == 0
-            sync_text = f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)"
-            log.info(sync_text)
+            log.info(f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
             if not synced:
                 desyncs.append(tas_filename)
         else:
-            sync_text = "Desynced (no ChapterTime)"
-            log.info(sync_text)
+            log.info("Desynced (no ChapterTime)")
             desyncs.append(tas_filename)
 
-        await dm_report(report_channel, sync_text)
         files_timed += 1
 
-    await close_game(report_channel)
+    close_game()
     current_time = int(time.time())
     project['last_run_validation'] = current_time
     project['desyncs'] = desyncs
     time_since_last_commit = current_time - project['last_commit_time']
-    improvements_channel = client.get_channel(project_id)
-    await main.edit_pin(improvements_channel)
     new_desyncs = [f for f in desyncs if f not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")
+    report_text = None
 
     if new_desyncs:
         new_desyncs_formatted = '\n'.join(new_desyncs)
-        desync_warning = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
-                         f"\n```\n{new_desyncs_formatted}```"
-        await improvements_channel.send(desync_warning)
-        await dm_report(report_channel, desync_warning)
-
-    if desyncs:
-        if not new_desyncs:
-            desyncs_formatted = '\n'.join(desyncs)
-            await dm_report(report_channel, f"Sync check finished, {len(desyncs)} desync{plural(desyncs)} found (0 new, {files_timed} file{plural(files_timed)} tested):"
-                                            f"\n```\n{desyncs_formatted}```")
-    else:
-        await dm_report(report_channel, f"Sync check finished, 0 desyncs found (of {files_timed} file{plural(files_timed)} tested)")
+        report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):\n```\n{new_desyncs_formatted}```"
 
     if time_since_last_commit > 2600000 and project['do_run_validation']:
         project['do_run_validation'] = False
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
-        await improvements_channel.send("Disabled nightly sync checking after a month of no improvements.")
+        report_text = "Disabled nightly sync checking after a month of no improvements."
 
+    utils.projects[project_id] = project  # yes this is dumb
     utils.save_projects()
+    return report_text
 
 
 def generate_blacklist(mods_to_load: set):
-    installed_mods = [item for item in os.listdir(r'C:\Users\Administrator\Desktop\celeste\Mods') if item.endswith('.zip')]
+    installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
     blacklist = []
 
     for installed_mod in installed_mods:
         if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod != 'CelesteTAS.zip':
             blacklist.append(installed_mod)
 
-    with open(r'C:\Users\Administrator\Desktop\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
+    with open(r'E:\Big downloads\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
 
 # remove all files related to the debug save
 def remove_debug_save_files():
-    debug_save_files = [file for file in os.listdir(r'C:\Users\Administrator\Desktop\celeste\Saves') if file.startswith('debug')]
+    debug_save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug')]
 
     for debug_save_file in debug_save_files:
-        os.remove(f'C:\\Users\\Administrator\\Desktop\\celeste\\Saves\\{debug_save_file}')
+        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
 
     log.info(f"Removed {len(debug_save_files)} debug save files")
 
@@ -222,14 +208,14 @@ def post_cleanup():
     dirs_removed = 0
 
     for file_to_remove in files_to_remove:
-        file_to_remove = f'C:\\Users\\Administrator\\Desktop\\celeste\\{file_to_remove}'
+        file_to_remove = f'E:\\Big downloads\\celeste\\{file_to_remove}'
 
         if os.path.isfile(file_to_remove):
             files_removed += 1
             os.remove(file_to_remove)
 
     for dir_to_remove in dirs_to_remove:
-        dir_to_remove = f'C:\\Users\\Administrator\\Desktop\\celeste\\{dir_to_remove}'
+        dir_to_remove = f'E:\\Big downloads\\celeste\\{dir_to_remove}'
 
         if os.path.isdir(dir_to_remove):
             dirs_removed += 1
@@ -238,7 +224,7 @@ def post_cleanup():
     log.info(f"Deleted {files_removed} file{plural(files_removed)} and {dirs_removed} dir{plural(dirs_to_remove)} from game install")
 
 
-async def close_game(report_channel: Optional[discord.DMChannel] = None):
+def close_game():
     closed = False
 
     try:
@@ -270,26 +256,13 @@ async def close_game(report_channel: Optional[discord.DMChannel] = None):
             except psutil.NoSuchProcess as error:
                 log.error(repr(error))
 
-    if closed:
-        await dm_report(report_channel, "Closed the game and Studio")
-        await asyncio.sleep(1)
-    else:
-        game_not_closed_text = "Game was not running"
-        log.info(game_not_closed_text)
-        await dm_report(report_channel, game_not_closed_text)
-
-
-async def dm_report(report_channel: Optional[discord.DMChannel], text: str):
-    if report_channel:
-        if '```' in text:
-            await report_channel.send(text)
-        else:
-            await report_channel.send(f"`{text}`")
+    if not closed:
+        log.info("Game was not running")
 
 
 # TODO: make recursive (if necessary)
 def get_mod_dependencies(mod: str) -> list:
-    zip_path = f'C:\\Users\\Administrator\\Desktop\\celeste\\Mods\\{mod}.zip'
+    zip_path = f'E:\\Big downloads\\celeste\\Mods\\{mod}.zip'
 
     if not os.path.isfile(zip_path):
         return []
@@ -305,8 +278,6 @@ def get_mod_dependencies(mod: str) -> list:
 
 
 log: Optional[logging.Logger] = None
-client: Optional[discord.Client] = None
-
 
 if __name__ == '__main__':
     run_syncs()

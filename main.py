@@ -14,7 +14,6 @@ import requests
 import ujson
 
 import commands
-import game_sync
 import gen_token
 import utils
 import validation
@@ -56,6 +55,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         await message.clear_reaction('⏭')
     await message.add_reaction('👀')
     generate_request_headers(projects[message.channel.id]['installation_owner'])
+    committed = False
 
     for attachment in tas_attachments:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
@@ -286,9 +286,28 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         return pin_message
 
 
+async def handle_game_sync_results(client: discord.Client):
+    if not os.path.isfile('sync\\game_sync_results.json'):
+        return
+
+    with open('sync\\game_sync_results.json', 'r', encoding='UTF8') as game_sync_results:
+        results = ujson.load(game_sync_results)
+
+    for project_id in results:
+        log.info(f"Handling game sync results for project {projects[int(project_id)]['name']}")
+        report_text = results[project_id]
+        improvements_channel = client.get_channel(int(project_id))
+        await edit_pin(improvements_channel)
+
+        if report_text:
+            await improvements_channel.send(report_text)
+
+    os.remove('sync\\game_sync_results.json')
+
+
 @functools.cache
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
-    with open('githubs.json', 'r') as githubs_json:
+    with open('sync\\githubs.json', 'r') as githubs_json:
         github_accounts = ujson.load(githubs_json)
 
     if str(discord_id) in github_accounts:
@@ -302,7 +321,7 @@ def load_project_logs():
         return
 
     for project in projects:
-        project_log_path = f'project_logs\\{project}.json'
+        project_log_path = f'sync\\project_logs\\{project}.json'
 
         if not os.path.isfile(project_log_path):
             with open(project_log_path, 'w') as project_log_db:
@@ -317,7 +336,7 @@ def load_project_logs():
 
 def add_project_log(message: discord.Message):
     project_logs[message.channel.id].append(message.id)
-    project_log_path = f'project_logs\\{message.channel.id}.json'
+    project_log_path = f'sync\\project_logs\\{message.channel.id}.json'
 
     with open(project_log_path, 'w') as project_log_db:
         ujson.dump(project_logs[message.channel.id], project_log_db, indent=2)
@@ -330,13 +349,13 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_loggers() -> (logging.Logger, logging.Logger):
+def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
     if os.path.isfile('bot.log'):
         os.replace('bot.log', 'bot_old.log')
 
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename='bot.log', encoding='UTF8', mode='w')
+    file_handler = logging.FileHandler(filename=main_filename, encoding='UTF8', mode='w')
     log_formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
@@ -346,7 +365,7 @@ def create_loggers() -> (logging.Logger, logging.Logger):
 
     history = logging.getLogger('history')
     history.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename='history.log', encoding='UTF8', mode='a')
+    file_handler = logging.FileHandler(filename='sync\\history.log', encoding='UTF8', mode='a')
     file_handler.setFormatter(log_formatter)
     history.addHandler(file_handler)
 
@@ -356,7 +375,6 @@ def create_loggers() -> (logging.Logger, logging.Logger):
     validation.log = logger
     utils.log = logger
     commands.log = logger
-    game_sync.log = logger
     history_log = history
     commands.history_log = history
     utils.history_log = history

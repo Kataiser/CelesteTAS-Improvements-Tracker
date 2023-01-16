@@ -1,14 +1,11 @@
 import argparse
 import ctypes
-import datetime
 import time
 import traceback
 
 import discord
-from discord.ext import tasks
 
 import commands
-import game_sync
 import main
 import utils
 from utils import plural
@@ -67,6 +64,7 @@ async def on_ready():
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
+    await main.handle_game_sync_results(client)
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else main.projects
 
@@ -82,14 +80,6 @@ async def on_ready():
             await main.process_improvement_message(message)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
-
-    try:
-        nightly.start()
-    except RuntimeError as error:
-        if str(error) == "Task is already launched and is not completed.":
-            log.warning("Skipped starting nightly task")
-        else:
-            raise
 
 
 @client.event
@@ -138,12 +128,6 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
                 break
 
 
-@tasks.loop(hours=2)
-async def nightly():
-    if datetime.datetime.now().hour in (4, 5):
-        await game_sync.run_syncs()
-
-
 @client.event
 async def on_connect():
     log.info("Connected to Discord")
@@ -164,9 +148,8 @@ async def on_error(*args):
         await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
 
 
-log, history_log = main.create_loggers()
+log, history_log = main.create_loggers('bot.log')
 commands.client = client
-game_sync.client = client
 main.client = client
 main.safe_mode = safe_mode
 

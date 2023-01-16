@@ -30,7 +30,7 @@ def detailed_user(message: Optional[discord.Message] = None, user: Optional[disc
 
 
 def load_projects() -> dict:
-    with open('projects.json', 'r', encoding='UTF8') as projects_json:
+    with open('sync\\projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = ujson.load(projects_json)
         projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
 
@@ -41,7 +41,7 @@ def load_projects() -> dict:
 def save_projects():
     validate_project_formats(main.projects)
 
-    with open('projects.json', 'r+', encoding='UTF8') as projects_json:
+    with open('sync\\projects.json', 'r+', encoding='UTF8') as projects_json:
         projects_json.truncate()
         ujson.dump(main.projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
@@ -55,13 +55,13 @@ def add_project_key(key: str, value: Any):
 
 
 def load_path_caches() -> dict:
-    with open('path_caches.json', 'r', encoding='UTF8') as path_caches_json:
+    with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
         path_caches_loaded = ujson.load(path_caches_json)
         return {int(k): path_caches_loaded[k] for k in path_caches_loaded}
 
 
 def save_path_caches():
-    with open('path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
+    with open('sync\\path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
         path_caches_json.truncate()
         ujson.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
