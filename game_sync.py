@@ -23,7 +23,7 @@ def run_syncs():
     log = main.create_loggers('game_sync.log')[0]
     log.info("Running all sync tests")
     utils.projects = utils.load_projects()
-    utils.load_path_caches()
+    main.path_caches = utils.load_path_caches()
     results = {}
 
     try:
