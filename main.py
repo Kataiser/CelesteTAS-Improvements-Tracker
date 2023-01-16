@@ -293,7 +293,6 @@ async def handle_game_sync_results(client: discord.Client):
 
     global projects, path_caches
     projects = utils.load_projects()
-    load_project_logs()
     path_caches = utils.load_path_caches()
 
     with open('sync\\game_sync_results.json', 'r', encoding='UTF8') as game_sync_results:

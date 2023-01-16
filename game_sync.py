@@ -171,7 +171,7 @@ def sync_test(project_id: int) -> Optional[str]:
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
         report_text = "Disabled nightly sync checking after a month of no improvements."
 
-    utils.projects[project_id] = project  # yes this is dumb
+    main.projects[project_id] = project  # yes this is dumb
     utils.save_projects()
     return report_text
 
