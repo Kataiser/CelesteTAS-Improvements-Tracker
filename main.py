@@ -12,6 +12,7 @@ from typing import Optional
 import discord
 import requests
 import ujson
+from discord.ext import tasks
 
 import commands
 import gen_token
@@ -55,7 +56,6 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         await message.clear_reaction('⏭')
     await message.add_reaction('👀')
     generate_request_headers(projects[message.channel.id]['installation_owner'])
-    committed = False
 
     for attachment in tas_attachments:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
@@ -286,9 +286,15 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         return pin_message
 
 
+@tasks.loop(minutes=1)
 async def handle_game_sync_results(client: discord.Client):
     if not os.path.isfile('sync\\game_sync_results.json'):
         return
+
+    global projects, path_caches
+    projects = utils.load_projects()
+    load_project_logs()
+    path_caches = utils.load_path_caches()
 
     with open('sync\\game_sync_results.json', 'r', encoding='UTF8') as game_sync_results:
         results = ujson.load(game_sync_results)

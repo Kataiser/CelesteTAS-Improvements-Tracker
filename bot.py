@@ -65,6 +65,7 @@ async def on_ready():
     main.login_time = time.time()
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
     await main.handle_game_sync_results(client)
+    main.handle_game_sync_results.start()
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else main.projects
 
