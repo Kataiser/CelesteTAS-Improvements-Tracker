@@ -287,11 +287,11 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
 
 @tasks.loop(minutes=1)
-async def handle_game_sync_results(client: discord.Client):
+async def handle_game_sync_results():
     if not os.path.isfile('sync\\game_sync_results.json'):
         return
 
-    global projects, path_caches
+    global projects, path_caches, client
     projects = utils.load_projects()
     path_caches = utils.load_path_caches()
 
@@ -394,6 +394,7 @@ project_logs = {}
 path_caches = {}
 headers = None
 login_time = None
+client = None
 safe_mode = None
 nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
 safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564)
