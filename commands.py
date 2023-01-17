@@ -446,7 +446,7 @@ async def command_about_project(message: discord.Message):
         subdir = project['subdir']
         admin = await client.fetch_user(project['admin'])
         text_out = text.format(project['name'],
-                               f'https://github.com/{repo}/tree/master/{subdir}' if subdir else f'https://github.com/{repo}',
+                               f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}',
                                project_id,
                                utils.detailed_user(user=admin),
                                project['installation_owner'],
