@@ -22,9 +22,11 @@ def handle_potential_request_error(req: requests.Response, code: int):
         log.warning(req.text)
 
 
-def detailed_user(message: Optional[discord.Message] = None, user: Optional[discord.User] = None):
+def detailed_user(message: Optional[discord.Message] = None, user: Optional[discord.User] = None) -> Optional[str]:
     if message:
         user = message.author
+    elif not user:
+        return
 
     return f'{user.name}#{user.discriminator} ({user.id})'
 
