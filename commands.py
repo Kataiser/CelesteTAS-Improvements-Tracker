@@ -92,7 +92,8 @@ async def command_register_project(message: discord.Message):
         previous = {'install_time': main.projects[improvements_channel_id]['install_time'],
                     'pin': main.projects[improvements_channel_id]['pin'],
                     'mods': main.projects[improvements_channel_id]['mods'],
-                    'last_run_validation': main.projects[improvements_channel_id]['last_run_validation']}
+                    'last_run_validation': main.projects[improvements_channel_id]['last_run_validation'],
+                    'admins': main.projects[improvements_channel_id]['admins']}
 
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
@@ -154,7 +155,7 @@ async def command_register_project(message: discord.Message):
     main.projects[improvements_channel_id] = {'name': name.replace('"', ''),
                                               'repo': repo,
                                               'installation_owner': github_account,
-                                              'admin': message.author.id,
+                                              'admins': (message.author.id,),
                                               'install_time': current_time,
                                               'commit_drafts': commit_drafts.lower() == 'y',
                                               'is_lobby': is_lobby.lower() == 'y',
@@ -358,6 +359,53 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send(f"{filename_before} not found in any project named {project_search_name}")
 
 
+async def command_add_admin(message: discord.Message):
+    """
+    add_admin PROJECT_NAME ADMIN_ID
+
+      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
+      ADMIN_ID: The Discord ID (not the username) of the user you're adding
+    """
+
+    message_split = re_command_split.split(message.content)
+
+    if len(message_split) != 3 or not re.match(r'(?i)add_admin .+ \d+', message.content):
+        log.warning("Bad command format")
+        await message.channel.send("Incorrect command format, see `help add_admin`")
+        return
+
+    project_search_name = message_split[1].replace('"', '').lower()
+    admin_id = int(message_split[2])
+
+    for project_id in main.projects:
+        project = main.projects[project_id]
+
+        if project['name'].lower() != project_search_name:
+            continue
+        elif not await is_admin(message, project_id):
+            continue
+
+        try:
+            new_admin = await client.fetch_user(admin_id)
+        except discord.NotFound:
+            log.error(f"User {admin_id} not found")
+            await message.channel.send(f"User with ID {admin_id} could not be found")
+            return
+
+        if admin_id in project['admins']:
+            already_admin = f"{utils.detailed_user(user=new_admin)} is already an admin for project \"{project['name']}\""
+            log.warning(already_admin)
+            await message.channel.send(already_admin)
+        else:
+            project['admins'].append(admin_id)
+            utils.save_projects()
+            added_admin = f"Added {utils.detailed_user(user=new_admin)} as an admin to project \"{project['name']}\""
+            log.info(added_admin)
+            await message.channel.send(added_admin)
+            await new_admin.send(f"{message.author.name} has added you as an admin to the \"{project['name']}\" TAS project.")
+            await main.edit_pin(client.get_channel(project_id))
+
+
 async def command_about(message: discord.Message):
     """
     about
@@ -416,7 +464,7 @@ async def command_about_project(message: discord.Message):
     text = "Name: **{0}**" \
            "\nRepo: <{1}>" \
            "\nImprovement channel: <#{2}>" \
-           "\nAdmin: {3}" \
+           "\nAdmin{12}: {3}" \
            "\nGithub installation owner: {4}" \
            "\nInstall time: <t:{5}>" \
            "\nPin: <{6}>" \
@@ -444,11 +492,11 @@ async def command_about_project(message: discord.Message):
 
         repo = project['repo']
         subdir = project['subdir']
-        admin = await client.fetch_user(project['admin'])
+        admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
         text_out = text.format(project['name'],
                                f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}',
                                project_id,
-                               utils.detailed_user(user=admin),
+                               ', '.join(admins),
                                project['installation_owner'],
                                project['install_time'],
                                client.get_channel(project_id).get_partial_message(project['pin']).jump_url,
@@ -456,7 +504,8 @@ async def command_about_project(message: discord.Message):
                                project['is_lobby'],
                                project['ensure_level'],
                                project['do_run_validation'],
-                               last_sync_check)
+                               last_sync_check,
+                               plural(admins))
 
         log.info(text_out)
         await message.channel.send(text_out)
@@ -467,13 +516,13 @@ async def command_about_project(message: discord.Message):
         await message.channel.send(f"Found no projects matching that name")
 
 
-# verify that the user editing the project is the admin (or Kataiser)
+# verify that the user editing the project is an admin (or Kataiser)
 async def is_admin(message: discord.Message, improvements_channel_id: int):
-    if message.author.id in (main.projects[improvements_channel_id]['admin'], 219955313334288385):
+    if message.author.id in (*main.projects[improvements_channel_id]['admins'], 219955313334288385):
         return True
     else:
         log.warning("Not project admin")
-        await message.channel.send("Not allowed, you are not the project admin")
+        await message.channel.send("Not allowed, you are not a project admin")
         return False
 
 
@@ -491,11 +540,12 @@ client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
-reportable_commands = (command_register_project, command_rename_file, command_add_mods)
+reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_add_admin)
 
 command_functions = {'help': command_help,
                      'about': command_about,
                      'about_project': command_about_project,
                      'register_project': command_register_project,
                      'rename_file': command_rename_file,
+                     'add_admin': command_add_admin,
                      'add_mods': command_add_mods}

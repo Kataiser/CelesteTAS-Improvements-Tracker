@@ -119,7 +119,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
             if payload.message_id in main.project_logs[project_id]:
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
-                if payload.user_id in (message.author.id, main.projects[project_id]['admin'], 219955313334288385):
+                if payload.user_id in (message.author.id, *main.projects[project_id]['admins'], 219955313334288385):
                     request_user = await client.fetch_user(payload.user_id)
                     log.info(f"{utils.detailed_user(user=request_user)} has requested committing invalid post")
                     await message.clear_reaction('⏭')

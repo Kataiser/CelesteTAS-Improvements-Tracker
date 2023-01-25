@@ -15,8 +15,12 @@
             "type": "string",
             "minLength": 1
         },
-        "admin": {
-            "type": "integer"
+        "admins": {
+            "type": "array",
+            "minLength": 1,
+            "items": {
+                "type": "integer"
+            }
         },
         "install_time": {
             "type": "integer"

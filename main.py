@@ -98,7 +98,6 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             utils.save_projects()
 
             if commit_status:
-                committed = True
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
                 history_log.info(history_data)
                 log.info("Added to history log")
@@ -241,7 +240,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
            "\nPackage DL: <{2}>" \
-           "\nAdmin: <@{3}>" \
+           "\nAdmin{6}: {3}" \
            "\nLast sync check: {4}{5}" \
            "\nBot reactions key:" \
            "\n```" \
@@ -271,10 +270,11 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     repo = project['repo']
     pin = project['pin']
     subdir = project['subdir']
+    admins = ', '.join([f'<@{admin}>' for admin in project['admins']])
     repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    text_out = text.format(name, repo_url, package_url, project['admin'], sync_timestamp, desyncs_text)
+    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']))
 
     if create:
         log.info("Creating pin")
