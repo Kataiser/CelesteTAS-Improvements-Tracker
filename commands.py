@@ -359,23 +359,25 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send(f"{filename_before} not found in any project named {project_search_name}")
 
 
-async def command_add_admin(message: discord.Message):
+async def command_edit_admin(message: discord.Message):
     """
-    add_admin PROJECT_NAME ADMIN_ID
+    edit_admin PROJECT_NAME ADMIN_ID ADDING
 
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
-      ADMIN_ID: The Discord ID (not the username) of the user you're adding
+      ADMIN_ID: The Discord ID (not the username) of the user you're adding or removing
+      ADDING: Y if adding admin, N if removing admin
     """
 
     message_split = re_command_split.split(message.content)
 
-    if len(message_split) != 3 or not re.match(r'(?i)add_admin .+ \d+', message.content):
+    if len(message_split) != 4 or not re.match(r'(?i)edit_admin .+ \d+', message.content):
         log.warning("Bad command format")
         await message.channel.send("Incorrect command format, see `help add_admin`")
         return
 
     project_search_name = message_split[1].replace('"', '').lower()
     admin_id = int(message_split[2])
+    adding = message_split[3].lower() == 'y'
 
     for project_id in main.projects:
         project = main.projects[project_id]
@@ -392,18 +394,32 @@ async def command_add_admin(message: discord.Message):
             await message.channel.send(f"User with ID {admin_id} could not be found")
             return
 
-        if admin_id in project['admins']:
-            already_admin = f"{utils.detailed_user(user=new_admin)} is already an admin for project \"{project['name']}\""
-            log.warning(already_admin)
-            await message.channel.send(already_admin)
+        if adding:
+            if admin_id in project['admins']:
+                already_admin = f"{utils.detailed_user(user=new_admin)} is already an admin for project \"{project['name']}\"."
+                log.warning(already_admin)
+                await message.channel.send(already_admin)
+            else:
+                project['admins'].append(admin_id)
+                utils.save_projects()
+                added_admin = f"Added {utils.detailed_user(user=new_admin)} as an admin to project \"{project['name']}\"."
+                log.info(added_admin)
+                await message.channel.send(added_admin)
+                await new_admin.send(f"{message.author.name} has added you as an admin to the \"{project['name']}\" TAS project.")
+                await main.edit_pin(client.get_channel(project_id))
         else:
-            project['admins'].append(admin_id)
-            utils.save_projects()
-            added_admin = f"Added {utils.detailed_user(user=new_admin)} as an admin to project \"{project['name']}\""
-            log.info(added_admin)
-            await message.channel.send(added_admin)
-            await new_admin.send(f"{message.author.name} has added you as an admin to the \"{project['name']}\" TAS project.")
-            await main.edit_pin(client.get_channel(project_id))
+            if admin_id in project['admins']:
+                project['admins'].remove(admin_id)
+                utils.save_projects()
+                removed_admin = f"Removed {utils.detailed_user(user=new_admin)} as an admin from project \"{project['name']}\"."
+                log.info(removed_admin)
+                await message.channel.send(removed_admin)
+                await new_admin.send(f"{message.author.name} has removed you as an admin from the \"{project['name']}\" TAS project.")
+                await main.edit_pin(client.get_channel(project_id))
+            else:
+                not_admin = f"{utils.detailed_user(user=new_admin)} is not an admin for project \"{project['name']}\"."
+                log.warning(not_admin)
+                await message.channel.send(not_admin)
 
 
 async def command_about(message: discord.Message):
@@ -540,12 +556,12 @@ client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 history_log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
-reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_add_admin)
+reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_edit_admin)
 
 command_functions = {'help': command_help,
                      'about': command_about,
                      'about_project': command_about_project,
                      'register_project': command_register_project,
                      'rename_file': command_rename_file,
-                     'add_admin': command_add_admin,
+                     'edit_admin': command_edit_admin,
                      'add_mods': command_add_mods}
