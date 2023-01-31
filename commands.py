@@ -47,10 +47,11 @@ async def command_help(message: discord.Message):
         commands_available = '\n'.join(command_functions)
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
-                   "\n\n1. Register GitHub app with your account and repo (you don't need to be the repo owner, admin permissions are enough): " \
+                   "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
                    f"\n2. Add bot to your server: <{add_bot_link}>" \
-                   "\n3. Run the `register_project` command, see `help register_project` for parameters." \
+                   "\n3. Run the `register_project` command, see `help register_project` for parameters. You can also use this to edit existing projects." \
+                   "\n4. (Optional) Add other admins with `edit_admins`, and add mod(s) for sync testing with `add_mods`." \
                    "\n\nAvailable commands:" \
                    f"\n```\n{commands_available}```"
 
@@ -546,7 +547,7 @@ async def is_admin(message: discord.Message, improvements_channel_id: int):
 async def report_command_used(command_name: str, message: discord.Message):
     try:
         if command_functions[command_name] in reportable_commands and message.author.id != 219955313334288385:
-            await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: \"{message.content}\"")
+            await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
             log.info("Reported command usage to Kataiser")
     except Exception as error:
         log.error(f"Couldn't report command usage to Kataiser: {repr(error)}")
