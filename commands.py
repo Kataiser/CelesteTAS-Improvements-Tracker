@@ -176,7 +176,7 @@ async def command_register_project(message: discord.Message):
         main.projects[improvements_channel_id]['pin'] = pinned_message.id
         main.project_logs[improvements_channel_id] = []
     else:
-        log.info("Skipped creating pinned message")
+        await main.edit_pin(improvements_channel)
 
         for previous_key in previous:
             main.projects[improvements_channel_id][previous_key] = previous[previous_key]
