@@ -24,6 +24,7 @@ safe_mode = False
 
 def start():
     global debug
+    log.info("Bot starting")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
     debug = parser.parse_args().debug

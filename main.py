@@ -367,6 +367,7 @@ def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
     logger.addHandler(stdout_handler)
+    logger.info("Log created")
 
     history = logging.getLogger('history')
     history.setLevel(logging.DEBUG)
