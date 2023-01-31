@@ -1,4 +1,5 @@
 import base64
+import functools
 import logging
 import os
 import shutil
@@ -262,7 +263,7 @@ def close_game():
 
 # TODO: make recursive (if necessary)
 def get_mod_dependencies(mod: str) -> list:
-    zip_path = f'E:\\Big downloads\\celeste\\Mods\\{mod}.zip'
+    zip_path = f'{mods_dir()}\\{mod}.zip'
 
     if not os.path.isfile(zip_path):
         return []
@@ -275,6 +276,19 @@ def get_mod_dependencies(mod: str) -> list:
             return []
 
     return [d['Name'] for d in mod_everest[0]['Dependencies'] if d['Name'] != 'Everest']
+
+
+@functools.cache
+def mods_dir() -> str:
+    pc_path = r'E:\Big downloads\celeste\Mods'
+    aws_path = r'C:\Users\Administrator\Desktop\mods'
+
+    if os.path.isdir(pc_path):
+        return pc_path
+    elif os.path.isdir(aws_path):
+        return aws_path
+    else:
+        raise FileNotFoundError("ok where'd my mods go")
 
 
 log: Optional[logging.Logger] = None

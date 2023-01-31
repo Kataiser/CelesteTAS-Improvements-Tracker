@@ -239,7 +239,7 @@ async def command_add_mods(message: discord.Message):
             all_project_mods = project_mods.union(game_sync.get_mod_dependencies(mod_given))
 
         log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")
-        installed_mods = [item.removesuffix('.zip') for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
+        installed_mods = [item.removesuffix('.zip') for item in os.listdir(game_sync.mods_dir()) if item.endswith('.zip')]
 
         for mod in all_project_mods:
             if mod not in installed_mods:
@@ -372,7 +372,7 @@ async def command_edit_admin(message: discord.Message):
 
     if len(message_split) != 4 or not re.match(r'(?i)edit_admin .+ \d+', message.content):
         log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help add_admin`")
+        await message.channel.send("Incorrect command format, see `help edit_admin`")
         return
 
     project_search_name = message_split[1].replace('"', '').lower()
