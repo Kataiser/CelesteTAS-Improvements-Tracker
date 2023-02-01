@@ -18,6 +18,9 @@ class ValidationResult:
         if valid_tas:
             log.info("TAS file and improvement post have been validated")
 
+            if not finaltime:
+                log.warning("Valid tas result has no finaltime")
+
 
 def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool, skip_validation: bool = False) -> ValidationResult:
     log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
@@ -33,9 +36,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     dash_saves = re_dash_saves.search(message.content)
     is_dash_save = dash_saves is not None
     got_timesave = False
+    wip_in_message = 'wip' in message_lowercase
 
-    if skip_validation:
-        log.info("Skipping validation actually")
+    if skip_validation or wip_in_message:
+        log.info(f"Skipping validation ({wip_in_message=})")
         # ok this is really ugly, but we do need final time and timesave
 
         if old_tas and not is_dash_save:
@@ -82,13 +86,6 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
                                         f"ChapterTime ({chapter_time_notif}) missing in message content")
 
-    # validate level
-    if main.projects[message.channel.id]['ensure_level']:
-        level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '')
-
-        if level not in re_remove_punctuation.subn('', message_lowercase)[0].replace('_', ''):
-            return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({level}) missing in message content")
-
     if old_tas and not is_dash_save:
         # validate timesave frames is in message content
         old_has_finaltime, old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[1:4]
@@ -129,7 +126,16 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     elif not old_tas:
         # validate draft text
         if "draft" not in message_lowercase:
-            return ValidationResult(False, "Since this is a draft, please mention that in your message and post again.", "no \"draft\" text in message")
+            return ValidationResult(False, "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again.",
+                                    "no \"draft\" text in message")
+
+    # validate level
+    if main.projects[message.channel.id]['ensure_level']:
+        filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
+        message_level = re_remove_punctuation.subn('', message_lowercase)[0].replace('_', '')
+
+        if filename_level not in message_level:
+            return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({filename_level}) missing in message content")
 
     if got_timesave:
         timesave = str(time_saved_messages[0])
