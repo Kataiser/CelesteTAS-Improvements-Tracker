@@ -2,11 +2,13 @@ import argparse
 import ctypes
 import time
 import traceback
+from typing import List
 
 import discord
 
 import commands
 import main
+import spreadsheet
 import utils
 from utils import plural
 
@@ -18,8 +20,11 @@ intents.reactions = True
 intents.message_content = True
 
 client = discord.Client(intents=intents)
+command_tree = discord.app_commands.CommandTree(client)
+slash_command_servers = [discord.Object(id=970379400887558204)]
+
 debug = False
-safe_mode = False
+safe_mode = True
 
 
 def start():
@@ -64,6 +69,7 @@ async def on_ready():
     global safe_mode
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
+    [await command_tree.sync(guild=server) for server in slash_command_servers]
     log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
     await main.handle_game_sync_results()
     main.handle_game_sync_results.start()
@@ -162,6 +168,45 @@ async def on_error(*args):
 
     if not debug:
         await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
+
+
+@command_tree.command(description=spreadsheet.draft.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def draft(interaction, map_name: str):
+    await spreadsheet.draft(interaction, map_name)
+
+
+@command_tree.command(description=spreadsheet.update_progress.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def update_progress(interaction, map_name: str, note: str):
+    await spreadsheet.update_progress(interaction, map_name, note)
+
+
+@command_tree.command(description=spreadsheet.progress.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def progress(interaction, map_name: str):
+    await spreadsheet.progress(interaction, map_name)
+
+
+@command_tree.command(description=spreadsheet.drop.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def drop(interaction, map_name: str, reason: str):
+    await spreadsheet.drop(interaction, map_name, reason)
+
+
+@command_tree.command(description=spreadsheet.complete.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def complete(interaction, map_name: str):
+    await spreadsheet.complete(interaction, map_name)
+
+
+@draft.autocomplete('map_name')
+@update_progress.autocomplete('map_name')
+@progress.autocomplete('map_name')
+@drop.autocomplete('map_name')
+@complete.autocomplete('map_name')
+async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
+    return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
 
 log, history_log = main.create_loggers('bot.log')

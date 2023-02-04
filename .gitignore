@@ -20,3 +20,6 @@ improvements-bot-data/
 game_sync.log
 bot_old.log
 sync/
+service.json
+sheet_id
+sj.json

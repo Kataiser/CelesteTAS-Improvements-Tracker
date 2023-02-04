@@ -16,6 +16,7 @@ from discord.ext import tasks
 
 import commands
 import gen_token
+import spreadsheet
 import utils
 import validation
 from utils import plural
@@ -381,6 +382,7 @@ def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
     validation.log = logger
     utils.log = logger
     commands.log = logger
+    spreadsheet.log = logger
     history_log = history
     commands.history_log = history
     utils.history_log = history
