@@ -16,14 +16,21 @@ class MapRow:
     def __init__(self, map_name: str):
         difficulty = sj_data[map_name][1]
         column = sj_data[map_name][3]
-        self.status_cell = Cell(difficulty, 'A', column)
-        self.taser_cell = Cell(difficulty, 'D', column)
-        self.progress_cell = Cell(difficulty, 'E', column)
+        self.status_cell = Cell(self, difficulty, "status", column)
+        self.taser_cell = Cell(self, difficulty, "marked taser", column)
+        self.progress_cell = Cell(self, difficulty, "progress note", column)
+        self.writes = []
+
+    def __del__(self):
+        sheet_writes.info(' '.join(self.writes))
 
 
 class Cell:
-    def __init__(self, difficulty: str, row: str, column: int):
-        self.position = f'{difficulty}!{row}{column}'
+    def __init__(self, map_row: MapRow, difficulty: str, cell_type: str, column: int):
+        cell_types = {"status": 'A', "marked taser": 'D', "progress note": 'E'}
+        self.position = f'{difficulty}!{cell_types[cell_type]}{column}'
+        self.map_row = map_row
+        self.cell_type = cell_type
 
     def read(self) -> Optional[str]:
         try:
@@ -42,8 +49,12 @@ class Cell:
     def write(self, data: str):
         try:
             sheet.values().update(spreadsheetId=sheet_id, range=self.position, valueInputOption='RAW', body={'values': [[data]]}).execute()
+            successful = True
         except HttpError as error:
             log.error(repr(error))
+            successful = False
+
+        self.map_row.writes.append(str((self.cell_type, data, successful)))
 
 
 async def draft(interaction: discord.Interaction, map_name: str):
@@ -60,8 +71,8 @@ async def draft(interaction: discord.Interaction, map_name: str):
     status = map_row.status_cell.read()
 
     if status == '❌' or (status == '⬇️' and marked_taser == interaction.user.name):
-        map_row.taser_cell.write(interaction.user.name)
         map_row.status_cell.write('🛠️')
+        map_row.taser_cell.write(interaction.user.name)
         log.info("Successfully marked for drafting")
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
                                                 f"\nTAS file: PLACEHOLDER"
@@ -209,6 +220,7 @@ def sj_fuzzy_match(search: str) -> List[str]:
 
 
 log: Optional[logging.Logger] = None
+sheet_writes: Optional[logging.Logger] = None
 creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")

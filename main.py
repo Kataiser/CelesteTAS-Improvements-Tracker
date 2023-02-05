@@ -376,6 +376,12 @@ def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
     file_handler.setFormatter(log_formatter)
     history.addHandler(file_handler)
 
+    sheet_writes = logging.getLogger('sheet_writes')
+    sheet_writes.setLevel(logging.DEBUG)
+    file_handler = logging.FileHandler(filename='sync\\sheet_writes.log', encoding='UTF8', mode='a')
+    file_handler.setFormatter(log_formatter)
+    sheet_writes.addHandler(file_handler)
+
     global log, history_log
     log = logger
     gen_token.log = logger
@@ -386,6 +392,7 @@ def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
     history_log = history
     commands.history_log = history
     utils.history_log = history
+    spreadsheet.sheet_writes = sheet_writes
 
     return logger, history
 
