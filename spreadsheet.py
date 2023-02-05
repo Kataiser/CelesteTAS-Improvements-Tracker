@@ -199,6 +199,8 @@ async def sj_command_allowed(interaction: discord.Interaction) -> bool:
 
 @functools.lru_cache(maxsize=256)
 def sj_fuzzy_match(search: str) -> List[str]:
+    return []
+
     if search:
         fuzzes = fuzzy_process.extract(search, sj_data.keys())
         return [sj_map[0] for sj_map in fuzzes[:25] if sj_map[1] >= 65]
