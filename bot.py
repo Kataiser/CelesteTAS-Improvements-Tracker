@@ -24,7 +24,7 @@ command_tree = discord.app_commands.CommandTree(client)
 slash_command_servers = [discord.Object(id=970379400887558204)]
 
 debug = False
-safe_mode = True
+safe_mode = False
 
 
 def start():
