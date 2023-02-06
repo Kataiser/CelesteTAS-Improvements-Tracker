@@ -75,7 +75,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
         map_row.taser_cell.write(interaction.user.name)
         log.info("Successfully marked for drafting")
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
-                                                f"\nTAS file: PLACEHOLDER"
+                                                f"\nTAS file: {sj_data[map_name][4]}"
                                                 f"\nMapper: {sj_data[map_name][0]}"
                                                 f"\nDifficulty: {sj_data[map_name][1]}"
                                                 f"\nDescription: {sj_data[map_name][2]}")
