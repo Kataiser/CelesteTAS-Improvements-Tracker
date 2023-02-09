@@ -70,7 +70,7 @@ async def on_ready():
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     [await command_tree.sync(guild=server) for server in slash_command_servers]
-    log.info(f"Servers: {[f'{g.name} ({g.member_count})' for g in client.guilds]}")
+    log.info(f"Servers: {[g.name for g in client.guilds]}")
     await main.handle_game_sync_results()
     main.handle_game_sync_results.start()
     downtime_message_count = 0
