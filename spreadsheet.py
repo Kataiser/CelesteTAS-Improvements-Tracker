@@ -15,46 +15,56 @@ import utils
 class MapRow:
     def __init__(self, map_name: str):
         difficulty = sj_data[map_name][1]
-        column = sj_data[map_name][3]
-        self.status_cell = Cell(self, difficulty, "status", column)
-        self.taser_cell = Cell(self, difficulty, "marked taser", column)
-        self.progress_cell = Cell(self, difficulty, "progress note", column)
+        row = sj_data[map_name][3]
+        self.data = {"status": '', "map": '', "file": '', "taser": '', "progress": ''}
+        self.range = f'{difficulty}!A{row}:E{row}'
+        self.status_cell = Cell(self, "status")
+        self.taser_cell = Cell(self, "taser")
+        self.progress_cell = Cell(self, "progress")
         self.writes = []
+        self.changed_data = False
 
-    def __del__(self):
-        sheet_writes.info(' '.join(self.writes))
-
-
-class Cell:
-    def __init__(self, map_row: MapRow, difficulty: str, cell_type: str, column: int):
-        cell_types = {"status": 'A', "marked taser": 'D', "progress note": 'E'}
-        self.position = f'{difficulty}!{cell_types[cell_type]}{column}'
-        self.map_row = map_row
-        self.cell_type = cell_type
-
-    def read(self) -> Optional[str]:
         try:
-            result = sheet.values().get(spreadsheetId=sheet_id, range=self.position).execute()
+            result = sheet.values().get(spreadsheetId=sheet_id, range=self.range).execute()
+            values = result.get('values', [])[0]
         except HttpError as error:
             log.error(repr(error))
             return
 
-        values = result.get('values', [])
+        # because values can be too short
+        for column_enum in enumerate(self.data):
+            i, column = column_enum
 
-        if values:
-            return values[0][0]
-        else:
-            return ''
+            if i < len(values):
+                self.data[column] = values[i]
 
-    def write(self, data: str):
-        try:
-            sheet.values().update(spreadsheetId=sheet_id, range=self.position, valueInputOption='RAW', body={'values': [[data]]}).execute()
-            successful = True
-        except HttpError as error:
-            log.error(repr(error))
-            successful = False
+    def write_cell(self, column: str, value: str):
+        if value != self.data[column]:
+            self.changed_data = True
+            self.writes.append(str((column, value)))
 
-        self.map_row.writes.append(str((self.cell_type, data, successful)))
+        self.data[column] = value
+
+    def update(self):
+        if self.changed_data:
+            try:
+                sheet.values().update(spreadsheetId=sheet_id, range=self.range, valueInputOption='RAW', body={'values': [list(self.data.values())]}).execute()
+                sheet_writes.info(' '.join(self.writes))
+            except HttpError as error:
+                log.error(repr(error))
+                sheet_writes.error(' '.join(self.writes))
+
+
+class Cell:
+    def __init__(self, map_row: MapRow, column: str):
+        self.map_row = map_row
+        self.column = column
+
+    def value(self) -> str:
+        return self.map_row.data[self.column]
+
+    def write(self, value: str):
+        self.map_row.write_cell(self.column, value)
 
 
 async def draft(interaction: discord.Interaction, map_name: str):
@@ -67,8 +77,8 @@ async def draft(interaction: discord.Interaction, map_name: str):
         return
 
     map_row = MapRow(map_name)
-    marked_taser = map_row.taser_cell.read()
-    status = map_row.status_cell.read()
+    marked_taser = map_row.taser_cell.value()
+    status = map_row.status_cell.value()
 
     if status == '❌' or (status == '⬇️' and marked_taser == interaction.user.name):
         map_row.status_cell.write('🛠️')
@@ -93,7 +103,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
         log.warning("Map already drafted")
         await interaction.response.send_message(f"**{map_name}** has already been drafted by {marked_taser}.")
 
-    del map_row
+    map_row.update()
 
 
 async def update_progress(interaction: discord.Interaction, map_name: str, note: str):
@@ -106,7 +116,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
         return
 
     map_row = MapRow(map_name)
-    marked_taser = map_row.taser_cell.read()
+    marked_taser = map_row.taser_cell.value()
 
     if marked_taser == interaction.user.name:
         map_row.progress_cell.write(note)
@@ -116,7 +126,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
         await interaction.response.send_message(f"Can't add note for **{map_name}** since the map is not being drafted by you.")
         log.warning("Progress note not set")
 
-    del map_row
+    map_row.update()
 
 
 async def progress(interaction: discord.Interaction, map_name: str):
@@ -129,14 +139,14 @@ async def progress(interaction: discord.Interaction, map_name: str):
         return
 
     map_row = MapRow(map_name)
-    status = map_row.status_cell.read()
+    status = map_row.status_cell.value()
 
     if status == '❌':
         log.info("Not yet drafted")
         await interaction.response.send_message(f"❌ The draft for **{map_name}** has not yet been started.")
     elif status == '🛠️':
-        marked_taser = map_row.taser_cell.read()
-        progress_note = map_row.progress_cell.read()
+        marked_taser = map_row.taser_cell.value()
+        progress_note = map_row.progress_cell.value()
 
         if progress_note:
             log.info("Draft is WIP with a note")
@@ -146,19 +156,19 @@ async def progress(interaction: discord.Interaction, map_name: str):
             await interaction.response.send_message(f"🛠️ The draft for **{map_name}** has been started by {marked_taser}.")
     elif status == '⬇️':
         log.info("Draft is dropped")
-        marked_taser = map_row.taser_cell.read()
-        progress_note = map_row.progress_cell.read()
+        marked_taser = map_row.taser_cell.value()
+        progress_note = map_row.progress_cell.value()
         drop_reason_formatted = f"Drop reason: \"{progress_note.removeprefix('Drop reason: ')}\""
         await interaction.response.send_message(f"⬇️ The draft for **{map_name}** has been dropped by {marked_taser}.\n{drop_reason_formatted}")
     elif status == '✅':
-        marked_taser = map_row.taser_cell.read()
+        marked_taser = map_row.taser_cell.value()
         log.info("Draft is finished")
         await interaction.response.send_message(f"✅ The draft for **{map_name}** has been finished by {marked_taser}.")
     else:
         log.warning("Unknown draft status")
         await interaction.response.send_message(f"❓ The draft for **{map_name}** is unknown.")
 
-    del map_row
+    map_row.update()
 
 
 async def drop(interaction: discord.Interaction, map_name: str, reason: str):
@@ -174,7 +184,7 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     map_row.status_cell.write('⬇️')
     map_row.progress_cell.write(f"Drop reason: {reason}")
     await interaction.response.send_message(f"Dropped **{map_name}**. Make sure to post the file.\nDrop reason: \"{reason}\"")
-    del map_row
+    map_row.update()
 
 
 async def complete(interaction: discord.Interaction, map_name: str):
@@ -191,7 +201,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
     map_row.progress_cell.write('')
     await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file.")
     log.info("Successfully dropped")
-    del map_row
+    map_row.update()
 
 
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:
