@@ -83,12 +83,13 @@ async def draft(interaction: discord.Interaction, map_name: str):
     if status == '❌' or (status == '⬇️' and marked_taser == interaction.user.name):
         map_row.status_cell.write('🛠️')
         map_row.taser_cell.write(interaction.user.name)
-        log.info("Successfully marked for drafting")
+        map_row.update()
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
                                                 f"\nTAS file: {sj_data[map_name][4]}"
                                                 f"\nMapper: {sj_data[map_name][0]}"
                                                 f"\nDifficulty: {sj_data[map_name][1]}"
                                                 f"\nDescription: {sj_data[map_name][2]}")
+        log.info("Successfully marked for drafting")
     elif status == '🛠️':
         if marked_taser == interaction.user.name:
             log.warning("Already marked as drafting by user")
@@ -102,8 +103,6 @@ async def draft(interaction: discord.Interaction, map_name: str):
     elif status == '✅':
         log.warning("Map already drafted")
         await interaction.response.send_message(f"**{map_name}** has already been drafted by {marked_taser}.")
-
-    map_row.update()
 
 
 async def update_progress(interaction: discord.Interaction, map_name: str, note: str):
@@ -120,13 +119,12 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
 
     if marked_taser == interaction.user.name:
         map_row.progress_cell.write(note)
+        map_row.update()
         await interaction.response.send_message(f"Progress note added to **{map_name}**: \"{note}\"")
         log.info("Progress note set")
     else:
         await interaction.response.send_message(f"Can't add note for **{map_name}** since the map is not being drafted by you.")
         log.warning("Progress note not set")
-
-    map_row.update()
 
 
 async def progress(interaction: discord.Interaction, map_name: str):
@@ -183,8 +181,8 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     map_row = MapRow(map_name)
     map_row.status_cell.write('⬇️')
     map_row.progress_cell.write(f"Drop reason: {reason}")
-    await interaction.response.send_message(f"Dropped **{map_name}**. Make sure to post the file.\nDrop reason: \"{reason}\"")
     map_row.update()
+    await interaction.response.send_message(f"Dropped **{map_name}**. Make sure to post the file.\nDrop reason: \"{reason}\"")
 
 
 async def complete(interaction: discord.Interaction, map_name: str):
@@ -199,9 +197,9 @@ async def complete(interaction: discord.Interaction, map_name: str):
     map_row = MapRow(map_name)
     map_row.status_cell.write('✅')
     map_row.progress_cell.write('')
+    map_row.update()
     await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file.")
     log.info("Successfully dropped")
-    map_row.update()
 
 
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:
