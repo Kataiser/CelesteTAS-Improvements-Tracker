@@ -16,6 +16,7 @@ class MapRow:
     def __init__(self, map_name: str):
         difficulty = sj_data[map_name][1]
         row = sj_data[map_name][3]
+        self.map_name = map_name
         self.data = {"status": '', "map": '', "file": '', "taser": '', "progress": ''}
         self.range = f'{difficulty}!A{row}:E{row}'
         self.status_cell = Cell(self, "status")
@@ -47,12 +48,14 @@ class MapRow:
 
     def update(self):
         if self.changed_data:
+            sheet_log = str((self.map_name, self.range, ' '.join(self.writes)))
+
             try:
                 sheet.values().update(spreadsheetId=sheet_id, range=self.range, valueInputOption='RAW', body={'values': [list(self.data.values())]}).execute()
-                sheet_writes.info(' '.join(self.writes))
+                sheet_writes.info(sheet_log)
             except HttpError as error:
                 log.error(repr(error))
-                sheet_writes.error(' '.join(self.writes))
+                sheet_writes.error(sheet_log)
 
 
 class Cell:
