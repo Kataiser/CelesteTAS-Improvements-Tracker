@@ -91,7 +91,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
                                                 f"\nTAS file: {sj_data[map_name][4]}"
                                                 f"\nMapper: {sj_data[map_name][0]}"
                                                 f"\nDifficulty: {sj_data[map_name][1]}"
-                                                f"\nDescription: {sj_data[map_name][2]}")
+                                                f"\nDescription (probably): {sj_data[map_name][2]}")
         log.info("Successfully marked for drafting")
     elif status == '🛠️':
         if marked_taser == interaction.user.name:

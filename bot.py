@@ -76,7 +76,7 @@ async def on_ready():
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else main.projects
 
-    for improvements_channel_id in projects_to_scan:
+    for improvements_channel_id in reversed(projects_to_scan):
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel:
@@ -138,14 +138,14 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
 @client.event
 async def on_guild_join(guild: discord.Guild):
-    join_message = f"Bot has been added to server: {guild.name} ({guild.member_count})"
+    join_message = f"Bot has been added to server: {guild.name}"
     log.info(join_message)
     await (await client.fetch_user(219955313334288385)).send(join_message)
 
 
 @client.event
 async def on_guild_remove(guild: discord.Guild):
-    remove_message = f"Bot has been removed from a server: {guild.name} ({guild.member_count})"
+    remove_message = f"Bot has been removed from a server: {guild.name}"
     log.info(remove_message)
     await (await client.fetch_user(219955313334288385)).send(remove_message)
 
