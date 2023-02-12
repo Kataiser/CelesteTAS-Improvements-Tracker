@@ -9,6 +9,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+import main
 import utils
 
 
@@ -82,10 +83,11 @@ async def draft(interaction: discord.Interaction, map_name: str):
     map_row = MapRow(map_name)
     marked_taser = map_row.taser_cell.value()
     status = map_row.status_cell.value()
+    caller_name = main.nickname(interaction.user)
 
-    if status == '❌' or (status == '⬇️' and marked_taser == interaction.user.name):
+    if status == '❌' or (status == '⬇️' and marked_taser == caller_name):
         map_row.status_cell.write('🛠️')
-        map_row.taser_cell.write(interaction.user.name)
+        map_row.taser_cell.write(caller_name)
         map_row.update()
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
                                                 f"\nTAS file: {sj_data[map_name][4]}"
@@ -94,7 +96,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
                                                 f"\nDescription (probably): {sj_data[map_name][2]}")
         log.info("Successfully marked for drafting")
     elif status == '🛠️':
-        if marked_taser == interaction.user.name:
+        if marked_taser == caller_name:
             log.warning("Already marked as drafting by user")
             await interaction.response.send_message(f"You are already marked for drafting **{map_name}**.")
         else:
@@ -120,7 +122,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
     map_row = MapRow(map_name)
     marked_taser = map_row.taser_cell.value()
 
-    if marked_taser == interaction.user.name:
+    if marked_taser == main.nickname(interaction.user):
         map_row.progress_cell.write(note)
         map_row.update()
         await interaction.response.send_message(f"Progress note added to **{map_name}**: \"{note}\"")
@@ -206,15 +208,16 @@ async def complete(interaction: discord.Interaction, map_name: str):
 
 
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:
-    return True
+    if interaction.channel_id == 1071151339905753138:  # test channel
+        return True
 
     role_check = [role for role in interaction.user.roles if role.id == 511380746779230240] != []
-    channel_check = interaction.channel_id == 0
+    channel_check = interaction.channel_id == 1074148152317321316
 
     if not role_check:
         await interaction.response.send_message("SJ TAS commands can only be run by users with the TASer role.")
     elif not channel_check:
-        await interaction.response.send_message("SJ TAS commands can only be run in #.")
+        await interaction.response.send_message("SJ TAS commands can only be run in <#1074148152317321316>.")
 
     return role_check and channel_check
 

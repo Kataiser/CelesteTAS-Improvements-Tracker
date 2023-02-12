@@ -132,7 +132,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     log.info("Potentially committing file")
     repo = projects[message.channel.id]['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
-    author = nicknames[message.author.id] if message.author.id in nicknames else message.author.name
+    author = nickname(message.author)
     file_path = get_file_repo_path(message.channel.id, filename)
     chapter_time = f" ({validation_result.finaltime})" if validation_result.finaltime else ""
     user_github_account = get_user_github_account(message.author.id)
@@ -350,6 +350,11 @@ def add_project_log(message: discord.Message):
     log.info(f"Added message ID {message.id} to {project_log_path}")
 
 
+def nickname(author: discord.User) -> str:
+    nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
+    return nicknames[author.id] if author.id in nicknames else author.name
+
+
 def generate_request_headers(installation_owner: str, min_time: int = 30):
     global headers
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
@@ -406,5 +411,4 @@ headers = None
 login_time = None
 client = None
 safe_mode = None
-nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
 safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564)
