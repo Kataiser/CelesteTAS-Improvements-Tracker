@@ -31,7 +31,8 @@ def run_syncs():
         for project_id in main.projects:
             if main.projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
                 results[project_id] = sync_test(project_id)
-    except Exception:
+    except Exception as error:
+        log.error(repr(error))
         close_game()
         post_cleanup()
         raise
@@ -184,10 +185,6 @@ def generate_blacklist(mods_to_load: set):
     for installed_mod in installed_mods:
         if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip'):
             blacklist.append(installed_mod)
-
-    # hardcode because missing dependency
-    if 'The Frogeline Project' in mods_to_load:
-        blacklist.remove('MoreDasheline.zip')
 
     with open(r'E:\Big downloads\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
