@@ -1,3 +1,4 @@
+import argparse
 import base64
 import functools
 import logging
@@ -22,13 +23,23 @@ from utils import plural
 def run_syncs():
     global log
     log = main.create_loggers('game_sync.log')[0]
-    log.info("Running all sync tests")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--project_id', type=int, help="Only sync test a specific project", required=False)
+    cli_project_id = parser.parse_args().project_id
+
+    if cli_project_id:
+        log.info(f"Running sync test for project ID {cli_project_id} only")
+        test_projects = (cli_project_id,)
+    else:
+        log.info("Running all sync tests")
+        test_projects = reversed(main.projects)
+
     utils.projects = utils.load_projects()
     main.path_caches = utils.load_path_caches()
     results = {}
 
     try:
-        for project_id in main.projects:
+        for project_id in test_projects:
             if main.projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
                 results[project_id] = sync_test(project_id)
     except Exception as error:
