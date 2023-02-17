@@ -1,0 +1,821 @@
+{
+    "Seeing is Believing": [
+        "NotYourBadeline",
+        "Beginner",
+        "Blindfolded player",
+        16,
+        "seeing_is_believing.tas"
+    ],
+    "The Squeeze": [
+        "Snas",
+        "Beginner",
+        "Zip movers, \"tight\" gameplay",
+        20,
+        "the_squeeze.tas"
+    ],
+    "Soap": [
+        "Circumplex",
+        "Beginner",
+        "No refill springs/boosters",
+        17,
+        "soap.tas"
+    ],
+    "Treehive": [
+        "Skeleton & Earthwise",
+        "Beginner",
+        "Synced zips, bouncy space jam",
+        21,
+        "treehive.tas"
+    ],
+    "Midnight Spire": [
+        "Joltik",
+        "Beginner",
+        "Vertical, boosters, clouds",
+        11,
+        "midnight_spire.tas"
+    ],
+    "Strawberry Orchard": [
+        "Jadeturtle",
+        "Beginner",
+        "Theo, lots of springs, clear pipes",
+        18,
+        "strawberry_orchard.tas"
+    ],
+    "Troposphere": [
+        "Eclipse",
+        "Beginner",
+        "Vertical, badeline orbs, space jam",
+        22,
+        "troposphere.tas"
+    ],
+    "A Gift From the Stars": [
+        "HankyMueller",
+        "Beginner",
+        "Time crystals, \"shattered\" refills",
+        2,
+        "a_gift_from_the_stars.tas"
+    ],
+    "Switchtube Vista": [
+        "Flagpole1up",
+        "Beginner",
+        "Clear pipes, color switches",
+        19,
+        "switchtube_vista.tas"
+    ],
+    "Dropzle": [
+        "Owen Shirrell",
+        "Beginner",
+        "Non-return kevins, counted dashes",
+        7,
+        "dropzle.tas"
+    ],
+    "Potential For Anything": [
+        "BeanJammin & frozenflygone",
+        "Beginner",
+        "Gravity Helper, cycles",
+        14,
+        "potential_for_anything.tas"
+    ],
+    "Azure Caverns": [
+        "cellularAutomaton",
+        "Beginner",
+        "2-dash inventory, dash zip movers",
+        3,
+        "azure_caverns.tas"
+    ],
+    "Forest Path": [
+        "Asterisk",
+        "Beginner",
+        "Dream refills and springs",
+        8,
+        "forest_path.tas"
+    ],
+    "If my 'driveway' almost did you in...": [
+        "Bing_Over_Google",
+        "Beginner",
+        "Intro Crushers",
+        9,
+        "if_my_driveway.tas"
+    ],
+    "Rose Garden": [
+        "Quinnigan",
+        "Beginner",
+        "Custom mechanic: \"rose\"",
+        15,
+        "rose_garden.tas"
+    ],
+    "paint": [
+        "mosscairn",
+        "Beginner",
+        "Cycles, cassette blocks",
+        13,
+        "paint.tas"
+    ],
+    "Over the City": [
+        "Coup Critik",
+        "Beginner",
+        "Jump refills, no dash, nonlinear",
+        12,
+        "over_the_city.tas"
+    ],
+    "Coresaken City": [
+        "voliver9 & Meario",
+        "Beginner",
+        "Zip movers, core blocks",
+        6,
+        "coresaken_city.tas"
+    ],
+    "Cassette Cliffs": [
+        "Ceph",
+        "Beginner",
+        "Cassette blocks, zip cassettes",
+        4,
+        "cassette_cliffs.tas"
+    ],
+    "Collapsing Skyline": [
+        "Hyperlife & Quinnigan",
+        "Beginner",
+        "Swap blocks",
+        5,
+        "collapsing_skyline.tas"
+    ],
+    "Loopy Lagoon": [
+        "Coffe",
+        "Beginner",
+        "Cereal blocks",
+        10,
+        "loopy_lagoon.tas"
+    ],
+    "Honeyzip Inc.": [
+        "Glow Woomii",
+        "Intermediate",
+        "Zipline, grouped zip movers, red booster",
+        7,
+        "honeyzip_inc.tas"
+    ],
+    "Pufferfish Transportation Co.": [
+        "Rocketguy2",
+        "Intermediate",
+        "Pufferfish + various assorted items",
+        12,
+        "pufferfish_transportation.tas"
+    ],
+    "Pointless Machines": [
+        "vitellary",
+        "Intermediate",
+        "Dash codes with core inventory",
+        11,
+        "pointless_machines.tas"
+    ],
+    "Fifth Dimension": [
+        "Liero",
+        "Intermediate",
+        "2 dash spinner maze with precise spinner gaps",
+        5,
+        "fifth_dimension.tas"
+    ],
+    "Low-G Botany": [
+        "Marlin",
+        "Intermediate",
+        "Regular physics indoors, low gravity/air friction outdoors",
+        9,
+        "low-g_botany.tas"
+    ],
+    "Vertigo": [
+        "Evilleafy",
+        "Intermediate",
+        "Teleport triggers and alternating vertical screen flip",
+        19,
+        "vertigo.tas"
+    ],
+    "Square the Circle": [
+        "bryse0n",
+        "Intermediate",
+        "Boosters and red boosters combined with kevins",
+        15,
+        "square_the_circle.tas"
+    ],
+    "Temple of a Thousand Skies": [
+        "Ice",
+        "Intermediate",
+        "Boosters, red boosters and clouds",
+        17,
+        "temple_of_a_thousand_skies.tas"
+    ],
+    "Sleeping Under Stars": [
+        "Arphi",
+        "Intermediate",
+        "Dreamjumps for jelly momentum alongside usual jelly tech in a setting with lowered gravity",
+        14,
+        "sleeping_under_stars.tas"
+    ],
+    "Construction Conundrum": [
+        "thebreadstick1",
+        "Intermediate",
+        "Refills that change player inventory, includes jump refill that disables ground refill",
+        2,
+        "construction_conundrum.tas"
+    ],
+    "Deep Blue": [
+        "Emik",
+        "Intermediate",
+        "Jellyfish alongside zip movers, switch gates, dreamblocks and feathers",
+        3,
+        "deep_blue.tas"
+    ],
+    "Midnight Monsoon": [
+        "Luma",
+        "Intermediate",
+        "Single-use refills including jump variety, jelly, crystal bomb and no ground refills",
+        10,
+        "midnight_monsoon.tas"
+    ],
+    "Sea of Soup": [
+        "SpoopySoup",
+        "Intermediate",
+        "Red boosters in wind, springs on falling blocks",
+        13,
+        "sea_of_soup.tas"
+    ],
+    "The Tower": [
+        "pixelator",
+        "Intermediate",
+        "Ice mode bounce blocks and springs",
+        18,
+        "the_tower.tas"
+    ],
+    "Supernautica": [
+        "LegS",
+        "Intermediate",
+        "Jellyfish, clear pipes and touch switches",
+        16,
+        "supernautica.tas"
+    ],
+    "EAT GIRL": [
+        "Ezel",
+        "Intermediate",
+        "Badeline chaser, touch switches and touch switch temple gate",
+        4,
+        "eat_girl.tas"
+    ],
+    "Frosted Fragments": [
+        "Dooshii",
+        "Intermediate",
+        "Push blocks, toggle swap blocks and boosters",
+        6,
+        "frosted_fragments.tas"
+    ],
+    "In Filtration": [
+        "Jems",
+        "Intermediate",
+        "Slow time with dash, linked zip movers, lasers",
+        8,
+        "in_filtration.tas"
+    ],
+    "The Lab": [
+        "RadleyMcTuneston & more",
+        "Advanced",
+        "Wormhole bubbles in a laboratory",
+        22,
+        "the_lab.tas"
+    ],
+    "Belated Valentine's Day": [
+        "YaGrillRoborb",
+        "Advanced",
+        "Valentines, bouncing off hearts",
+        4,
+        "belated_valentines_day.tas"
+    ],
+    "Golden Dawn": [
+        "Maladroit, bryse0n, & Worldwaker2",
+        "Advanced",
+        "Jellies, move blocks, pufferfish",
+        8,
+        "golden_dawn.tas"
+    ],
+    "Tectonic Trenches": [
+        "Julia",
+        "Advanced",
+        "Timed switches, puffers, jellies, core blocks",
+        21,
+        "tectonic_trenches.tas"
+    ],
+    "Forest Rush": [
+        "mmm",
+        "Advanced",
+        "0 friction, no grab/neutrals",
+        7,
+        "forest_rush.tas"
+    ],
+    "The Tower (XVI)": [
+        "Jan",
+        "Advanced",
+        "Dream block puzzles",
+        23,
+        "the_tower_xvi.tas"
+    ],
+    "Thinking with Portals": [
+        "sp1209",
+        "Advanced",
+        "Portal-based puzzles",
+        24,
+        "thinking_with_portals.tas"
+    ],
+    "Slime Time!": [
+        "Gala, Oppen_heimer, & TiltTheStars",
+        "Advanced",
+        "Boosters and falling blocks",
+        16,
+        "slime_time.tas"
+    ],
+    "Superstructure": [
+        "Goldian",
+        "Advanced",
+        "Throwables and station movers",
+        19,
+        "superstructure.tas"
+    ],
+    "Attack of the Clone": [
+        "PugRoy",
+        "Advanced",
+        "Crystals that hurt Badeline",
+        2,
+        "attack_of_the_clone.tas"
+    ],
+    "Bee Berserk": [
+        "TiltTheStars",
+        "Advanced",
+        "Infinite stamina walls",
+        3,
+        "bee_berserk.tas"
+    ],
+    "Jellyfish Sanctum": [
+        "BlueXans",
+        "Advanced",
+        "Platform jellyfish",
+        10,
+        "jellyfish_sanctum.tas"
+    ],
+    "Raindrops on Roses": [
+        "Worldwaker2",
+        "Advanced",
+        "Hold grab to glide",
+        13,
+        "raindrops_on_roses.tas"
+    ],
+    "Undergrowth": [
+        "Nic",
+        "Advanced",
+        "The Climb but undergrowth",
+        26,
+        "undergrowth.tas"
+    ],
+    "Java's Crypt": [
+        "Tortoise",
+        "Advanced",
+        "Claustrophobia-esque but the screens become parts of future screens",
+        9,
+        "javas_crypt.tas"
+    ],
+    "Synapse": [
+        "MousseMoose",
+        "Advanced",
+        "Only one color cassette blocks",
+        20,
+        "synapse.tas"
+    ],
+    "Lost Woods": [
+        "Oppen_heimer",
+        "Advanced",
+        "Teleport triggers in a single copied room to make people get lost",
+        12,
+        "lost_woods.tas"
+    ],
+    "Toggle Theory": [
+        "citrea",
+        "Advanced",
+        "Toggle blocks",
+        25,
+        "toggle_theory.tas"
+    ],
+    "Lethal Laser Laboratory": [
+        "hennyburgr",
+        "Advanced",
+        "Blockable lasers attached to moving things",
+        11,
+        "lethal_laser_laboratory.tas"
+    ],
+    "Dusk City": [
+        "Meario",
+        "Advanced",
+        "Dream zip movers",
+        6,
+        "dusk_city.tas"
+    ],
+    "Rightside-Down Cavern": [
+        "Vamp",
+        "Advanced",
+        "Gravity flips on triggers",
+        14,
+        "rightside-down_cavern.tas"
+    ],
+    "Call of the Void": [
+        "Viv",
+        "Advanced",
+        "Zero gravity space",
+        5,
+        "call_of_the_void.tas"
+    ],
+    "Starry Ruins": [
+        "Indecx",
+        "Advanced",
+        "Portals and zip movers",
+        18,
+        "starry_ruins.tas"
+    ],
+    "Starlight Station": [
+        "Jolly, bryse0n, & fonda1515",
+        "Advanced",
+        "Zip movers",
+        17,
+        "starlight_station.tas"
+    ],
+    "Sands of Time": [
+        "Astraxel",
+        "Advanced",
+        "Time crystals in combination with primarily zip movers",
+        15,
+        "sands_of_time.tas"
+    ],
+    "Summit Down-Side": [
+        "Linj",
+        "Expert",
+        "A cheery climb with springs and dreamblocks",
+        26,
+        "summit_down-side.tas"
+    ],
+    "Time Trouble": [
+        "Moladan",
+        "Expert",
+        "Stopwatch refills combined with fast gameplay",
+        29,
+        "time_trouble.tas"
+    ],
+    "Hypnagogia": [
+        "pansear",
+        "Expert",
+        "Dream hyper ultras with redirects",
+        13,
+        "hypnagogia.tas"
+    ],
+    "Flying Battery": [
+        "AliceQuasar",
+        "Expert",
+        "Batteries with bubble movement",
+        8,
+        "flying_battery.tas"
+    ],
+    "Subway Neon": [
+        "Nyan",
+        "Expert",
+        "Curved zippers and puffers",
+        25,
+        "subway_neon.tas"
+    ],
+    "A Change in Direction": [
+        "Agent",
+        "Expert",
+        "Redirecting moving blocks",
+        2,
+        "a_change_in_direction.tas"
+    ],
+    "Vinculum": [
+        "Ru",
+        "Expert",
+        "Jellyfish, bubbles, and dream blocks",
+        30,
+        "vinculum.tas"
+    ],
+    "Narrow Hollow": [
+        "!tsabrody",
+        "Expert",
+        "Kevin blocks, corner jumps, puzzle",
+        18,
+        "narrow_hollow.tas"
+    ],
+    "Golden Alleyway": [
+        "RedBoule",
+        "Expert",
+        "Gates which toggle after pressing the climb button",
+        11,
+        "golden_alleyway.tas"
+    ],
+    "Meaningless Contraptions": [
+        "PowerAV",
+        "Expert",
+        "Pufferbowls exploding",
+        16,
+        "meaningless_contraptions.tas"
+    ],
+    "The Core Problem": [
+        "Banana 23",
+        "Expert",
+        "Core boosters and cornerboosts",
+        28,
+        "the_core_problem.tas"
+    ],
+    "System.InvalidMapException": [
+        "Skunkynator",
+        "Expert",
+        "Dream blocks, dream spinners, and teleporting",
+        27,
+        "system_invalidmap.tas"
+    ],
+    "Overgrown Linn": [
+        "Flamecrafter133",
+        "Expert",
+        "Bounce helper tech, redirectable move blocks and wind dream blocks",
+        19,
+        "overgrown_linn.tas"
+    ],
+    "Psychokinetic": [
+        "Cabob",
+        "Expert",
+        "Dash speed multiplier refills with dream block gameplay",
+        22,
+        "psychokinetic.tas"
+    ],
+    "Caper Cavortion": [
+        "Stotch",
+        "Expert",
+        "No jump map, features zippers and dash springs",
+        3,
+        "caper_cavortion.tas"
+    ],
+    "Skyline Usurper": [
+        "Appels",
+        "Expert",
+        "Propeller blocks and clear pipes, item juggling",
+        23,
+        "skyline_usurper.tas"
+    ],
+    "FLOATING POINT": [
+        "KAERRA",
+        "Expert",
+        "Custom barriers that change the player's gravity",
+        7,
+        "floating_point.tas"
+    ],
+    "Clockwork": [
+        "fonda1515",
+        "Expert",
+        "Switch gates with different speeds",
+        5,
+        "clockwork.tas"
+    ],
+    "Lunar Pagoda": [
+        "Spirialis",
+        "Expert",
+        "Freezing time with grab and crystals that switch what freezes",
+        14,
+        "lunar_pagoda.tas"
+    ],
+    "Mosaic Garden": [
+        "Scroogle",
+        "Expert",
+        "Kevin puzzles and infinite use crystals",
+        17,
+        "mosaic_garden.tas"
+    ],
+    "Madeline: The Bubble": [
+        "Vina",
+        "Expert",
+        "Puffers, bubble emitters",
+        15,
+        "madeline_the_bubble.tas"
+    ],
+    "Storm Runner": [
+        "LethargicDoggo",
+        "Expert",
+        "Platforming revolving around cloud and jelly refills",
+        24,
+        "storm_runner.tas"
+    ],
+    "Polaris": [
+        "Yoshachobi7",
+        "Expert",
+        "Puffers and puffer bowls combined with speed gameplay",
+        21,
+        "polaris.tas"
+    ],
+    "Fortress Fall": [
+        "Aspar",
+        "Expert",
+        "Neutrals and stamina management with puzzles",
+        9,
+        "fortress_fall.tas"
+    ],
+    "Plasma Reactor": [
+        "HiveMindsRule",
+        "Expert",
+        "Zip movers and no dash factory entities",
+        20,
+        "plasma_reactor.tas"
+    ],
+    "Chromatic Complex": [
+        "Archra & Cabob",
+        "Expert",
+        "Dash speed boost zones with really fast gameplay",
+        4,
+        "chromatic_complex.tas"
+    ],
+    "Garden Of Khu'tara": [
+        "DanTKO",
+        "Expert",
+        "Map using portals, something like warped bay from WC",
+        10,
+        "garden_of_khutara.tas"
+    ],
+    "Hydroshock": [
+        "Jackal",
+        "Expert",
+        "Square bumpers and puzzle stuff",
+        12,
+        "hydroshock.tas"
+    ],
+    "Ethereal Ascension": [
+        "Quantum Spaceman",
+        "Expert",
+        "Floating lanterns that float up and can be thrown down",
+        6,
+        "ethereal_ascension.tas"
+    ],
+    "Belly of the Beast": [
+        "Aiden",
+        "Grandmaster",
+        "Throwables, springs, backboosts",
+        3,
+        "belly_of_the_beast.tas"
+    ],
+    "Superluminary": [
+        "Alisticious",
+        "Grandmaster",
+        "Superdashes and dream blocks, superdash ultras",
+        17,
+        "superluminary.tas"
+    ],
+    "Flipside Cliffside": [
+        "Cookie Monster & Appels",
+        "Grandmaster",
+        "Dream refill, BG switch",
+        7,
+        "flipside_cliffside.tas"
+    ],
+    "World Abyss": [
+        "TheDavSmasher",
+        "Grandmaster",
+        "Temporal Tower style gameplay with less looping, more fast-paced",
+        19,
+        "world_abyss.tas"
+    ],
+    "Cycle Madness B-Side": [
+        "DeathKontrol",
+        "Grandmaster",
+        "The name is pretty self-explanatory",
+        5,
+        "cycle_madness_b-side.tas"
+    ],
+    "Stellar Odyssey": [
+        "Ecl1psed",
+        "Grandmaster",
+        "Moving blocks + other tech",
+        15,
+        "stellar_odyssey.tas"
+    ],
+    "74": [
+        "fishtank",
+        "Grandmaster",
+        "Dashless precision map",
+        2,
+        "74.tas"
+    ],
+    "Shattersong": [
+        "Hydro & more",
+        "Grandmaster",
+        "Wacky cassette block rhythms",
+        14,
+        "shattersong.tas"
+    ],
+    "Ivory": [
+        "Linj",
+        "Grandmaster",
+        "Dream block redirects to get huge speed",
+        9,
+        "ivory.tas"
+    ],
+    "summit": [
+        "elio, Soloiini & more",
+        "Grandmaster",
+        "7D1D 2.0",
+        16,
+        "summit.tas"
+    ],
+    "Pinball Purgatory": [
+        "Maya",
+        "Grandmaster",
+        "Bumper tech",
+        13,
+        "pinball_purgatory.tas"
+    ],
+    "Cave of the Crimson Sky": [
+        "RedBatNick",
+        "Grandmaster",
+        "Precision map with jump refills and bubbles",
+        4,
+        "cave_of_the_crimson_sky.tas"
+    ],
+    "The Solar Express": [
+        "Soloiini",
+        "Grandmaster",
+        "Theo, dream and bounce blocks",
+        18,
+        "the_solar_express.tas"
+    ],
+    "Lava Layer": [
+        "tobyaaa",
+        "Grandmaster",
+        "\"Second layer\" of moving fgtiles",
+        11,
+        "lava_layer.tas"
+    ],
+    "kevintechspam.bin": [
+        "Todd & Cabob",
+        "Grandmaster",
+        "Double block boosts, kevins, feathers",
+        10,
+        "kevintechspam.tas"
+    ],
+    "Nelumbo": [
+        "tofu",
+        "Grandmaster",
+        "Ultras and jellies",
+        12,
+        "nelumbo.tas"
+    ],
+    "Drifting Deep": [
+        "xlibiza",
+        "Grandmaster",
+        "Looping with feathers and bubbles",
+        6,
+        "drifting_deep.tas"
+    ],
+    "Fractured Iridescence": [
+        "Xplosives",
+        "Grandmaster",
+        "Zip movers and ultras",
+        8,
+        "fractured_iridescence.tas"
+    ],
+    "Beginner Heartside": [
+        "Beginner mappers",
+        "Beginner",
+        "Self-explanatory",
+        23,
+        "beginner_heartside.tas"
+    ],
+    "Intermediate Heartside": [
+        "Intermediate mappers",
+        "Intermediate",
+        "Self-explanatory",
+        20,
+        "intermediate_heartside.tas"
+    ],
+    "Advanced Heartside": [
+        "Advanced mappers",
+        "Advanced",
+        "Self-explanatory",
+        27,
+        "advanced_heartside.tas"
+    ],
+    "Expert Heartside": [
+        "Expert mappers",
+        "Expert",
+        "Self-explanatory",
+        31,
+        "expert_heartside.tas"
+    ],
+    "Grandmaster Heartside": [
+        "Grandmaster mappers",
+        "Grandmaster",
+        "Self-explanatory",
+        20,
+        "grandmaster_heartside.tas"
+    ],
+    "Prologue": [
+        "SJ mappers",
+        "Beginner",
+        "Self-explanatory",
+        24,
+        "prologue.tas"
+    ]
+}
