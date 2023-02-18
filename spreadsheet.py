@@ -85,7 +85,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
     status = map_row.status_cell.value()
     caller_name = main.nickname(interaction.user)
 
-    if status == '❌' or (status == '⬇️' and marked_taser == caller_name):
+    if status in ('❌', '⬇️'):
         map_row.status_cell.write('🛠️')
         map_row.taser_cell.write(caller_name)
         map_row.update()
@@ -102,9 +102,6 @@ async def draft(interaction: discord.Interaction, map_name: str):
         else:
             log.warning(f"Already marked as drafting by {marked_taser}")
             await interaction.response.send_message(f"**{map_name}** is already marked for drafting by {marked_taser}.")
-    elif status == '⬇️':
-        log.warning(f"Marked as dropped by {marked_taser}")
-        await interaction.response.send_message(f"**{map_name}** is marked as dropped by {marked_taser}.")
     elif status == '✅':
         log.warning("Map already drafted")
         await interaction.response.send_message(f"**{map_name}** has already been drafted by {marked_taser}.")
@@ -200,11 +197,18 @@ async def complete(interaction: discord.Interaction, map_name: str):
         return
 
     map_row = MapRow(map_name)
-    map_row.status_cell.write('✅')
-    map_row.progress_cell.write('')
-    map_row.update()
-    await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file.")
-    log.info("Successfully dropped")
+    marked_taser = map_row.taser_cell.value()
+    caller_name = main.nickname(interaction.user)
+
+    if marked_taser == caller_name:
+        map_row.status_cell.write('✅')
+        map_row.progress_cell.write('')
+        map_row.update()
+        await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file.")
+        log.info("Successfully dropped")
+    else:
+        log.warning(f"Marked taser is {marked_taser}")
+        await interaction.response.send_message(f"**{map_name}** is marked for drafting by {marked_taser}.")
 
 
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:
