@@ -76,7 +76,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} wants to draft \"{map_name}\"")
 
     if map_name not in sj_data:
-        invalid_map(interaction, map_name)
+        await invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -114,7 +114,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is setting progress for \"{map_name}\": \"{note}\"")
 
     if map_name not in sj_data:
-        invalid_map(interaction, map_name)
+        await invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -136,7 +136,7 @@ async def progress(interaction: discord.Interaction, map_name: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking progress for \"{map_name}\"")
 
     if map_name not in sj_data:
-        invalid_map(interaction, map_name)
+        await invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -178,7 +178,7 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is dropping \"{map_name}\" for reason: \"{reason}\"")
 
     if map_name not in sj_data:
-        invalid_map(interaction, map_name)
+        await invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -194,7 +194,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} has completed \"{map_name}\"")
 
     if map_name not in sj_data:
-        invalid_map(interaction, map_name)
+        await invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -250,7 +250,7 @@ def correct_map_case(map_name: str) -> str:
     return map_name
 
 
-def invalid_map(interaction: discord.Interaction, map_name: str):
+async def invalid_map(interaction: discord.Interaction, map_name: str):
     log.warning("Not a valid SJ map")
     await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.", ephemeral=True)
 
