@@ -111,7 +111,13 @@ def sync_test(project_id: int) -> Optional[str]:
             continue
 
         log.info(f"Downloading {path_cache[tas_filename]}")
-        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers)
+
+        try:
+            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers)
+        except requests.Timeout as error:
+            log.error(f"Skipping {tas_filename}: {repr(error)}")
+            continue
+
         utils.handle_potential_request_error(r, 200)
         tas_read = base64.b64decode(ujson.loads(r.content)['content'])
 
