@@ -75,8 +75,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} wants to draft \"{map_name}\"")
 
     if map_name not in sj_data:
-        log.warning("Not a valid SJ map")
-        await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.")
+        invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -112,8 +111,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is setting progress for \"{map_name}\": \"{note}\"")
 
     if map_name not in sj_data:
-        log.warning("Not a valid SJ map")
-        await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.")
+        invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -134,8 +132,7 @@ async def progress(interaction: discord.Interaction, map_name: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking progress for \"{map_name}\"")
 
     if map_name not in sj_data:
-        log.warning("Not a valid SJ map")
-        await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.")
+        invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -176,8 +173,7 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is dropping \"{map_name}\" for reason: \"{reason}\"")
 
     if map_name not in sj_data:
-        log.warning("Not a valid SJ map")
-        await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.")
+        invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -192,8 +188,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} has completed \"{map_name}\"")
 
     if map_name not in sj_data:
-        log.warning("Not a valid SJ map")
-        await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.")
+        invalid_map(interaction, map_name)
         return
 
     map_row = MapRow(map_name)
@@ -219,9 +214,9 @@ async def sj_command_allowed(interaction: discord.Interaction) -> bool:
     channel_check = interaction.channel_id == 1074148152317321316
 
     if not role_check:
-        await interaction.response.send_message("SJ TAS commands can only be run by users with the TASer role.")
+        await interaction.response.send_message("SJ TAS commands can only be run by users with the TASer role.", ephemeral=True)
     elif not channel_check:
-        await interaction.response.send_message("SJ TAS commands can only be run in <#1074148152317321316>.")
+        await interaction.response.send_message("SJ TAS commands can only be run in <#1074148152317321316>.", ephemeral=True)
 
     return role_check and channel_check
 
@@ -233,6 +228,11 @@ def sj_fuzzy_match(search: str) -> List[str]:
         return [sj_map[0] for sj_map in fuzzes[:25] if sj_map[1] >= 65]
     else:
         return []
+
+
+def invalid_map(interaction: discord.Interaction, map_name: str):
+    log.warning("Not a valid SJ map")
+    await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.", ephemeral=True)
 
 
 log: Optional[logging.Logger] = None
