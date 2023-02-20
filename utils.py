@@ -31,6 +31,17 @@ def detailed_user(message: Optional[discord.Message] = None, user: Optional[disc
     return f'{user.name}#{user.discriminator} ({user.id})'
 
 
+def nickname(author: discord.User) -> str:
+    nicknames = {234520815658336258: "Vamp",
+                 587491655129759744: "Ella",
+                 513223843721117713: "The Senate",
+                 671098132959985684: "Mr. Wolf",
+                 226515080752267286: "Soloiini",
+                 794291191726211103: "Aurora."}
+
+    return nicknames[author.id] if author.id in nicknames else author.name
+
+
 def load_projects() -> dict:
     with open('sync\\projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = ujson.load(projects_json)

@@ -9,7 +9,6 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-import main
 import utils
 
 
@@ -83,7 +82,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
     map_row = MapRow(map_name)
     marked_taser = map_row.taser_cell.value()
     status = map_row.status_cell.value()
-    caller_name = main.nickname(interaction.user)
+    caller_name = utils.nickname(interaction.user)
 
     if status in ('❌', '⬇️'):
         map_row.status_cell.write('🛠️')
@@ -119,7 +118,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
     map_row = MapRow(map_name)
     marked_taser = map_row.taser_cell.value()
 
-    if marked_taser == main.nickname(interaction.user):
+    if marked_taser == utils.nickname(interaction.user):
         map_row.progress_cell.write(note)
         map_row.update()
         await interaction.response.send_message(f"Progress note added to **{map_name}**: \"{note}\"")
@@ -198,7 +197,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
 
     map_row = MapRow(map_name)
     marked_taser = map_row.taser_cell.value()
-    caller_name = main.nickname(interaction.user)
+    caller_name = utils.nickname(interaction.user)
 
     if marked_taser == caller_name:
         map_row.status_cell.write('✅')

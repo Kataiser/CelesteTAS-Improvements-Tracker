@@ -132,7 +132,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     log.info("Potentially committing file")
     repo = projects[message.channel.id]['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
-    author = nickname(message.author)
+    author = utils.nickname(message.author)
     file_path = get_file_repo_path(message.channel.id, filename)
     chapter_time = f" ({validation_result.finaltime})" if validation_result.finaltime else ""
     user_github_account = get_user_github_account(message.author.id)
@@ -348,11 +348,6 @@ def add_project_log(message: discord.Message):
         ujson.dump(project_logs[message.channel.id], project_log_db, indent=2)
 
     log.info(f"Added message ID {message.id} to {project_log_path}")
-
-
-def nickname(author: discord.User) -> str:
-    nicknames = {234520815658336258: "Vamp", 587491655129759744: "Ella"}
-    return nicknames[author.id] if author.id in nicknames else author.name
 
 
 def generate_request_headers(installation_owner: str, min_time: int = 30):
