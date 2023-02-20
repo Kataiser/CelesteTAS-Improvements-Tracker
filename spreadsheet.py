@@ -72,6 +72,7 @@ class Cell:
 
 async def draft(interaction: discord.Interaction, map_name: str):
     """Sign yourself up for drafting a map"""
+    map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} wants to draft \"{map_name}\"")
 
     if map_name not in sj_data:
@@ -108,6 +109,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
 
 async def update_progress(interaction: discord.Interaction, map_name: str, note: str):
     """Put a note for how progress is going"""
+    map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is setting progress for \"{map_name}\": \"{note}\"")
 
     if map_name not in sj_data:
@@ -129,6 +131,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
 
 async def progress(interaction: discord.Interaction, map_name: str):
     """Show progress note"""
+    map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking progress for \"{map_name}\"")
 
     if map_name not in sj_data:
@@ -170,6 +173,7 @@ async def progress(interaction: discord.Interaction, map_name: str):
 
 async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     """Drop a map (stop drafting it)"""
+    map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is dropping \"{map_name}\" for reason: \"{reason}\"")
 
     if map_name not in sj_data:
@@ -185,6 +189,7 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
 
 async def complete(interaction: discord.Interaction, map_name: str):
     """Mark a draft as completed"""
+    map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} has completed \"{map_name}\"")
 
     if map_name not in sj_data:
@@ -221,13 +226,27 @@ async def sj_command_allowed(interaction: discord.Interaction) -> bool:
     return role_check and channel_check
 
 
-@functools.lru_cache(maxsize=256)
+@functools.lru_cache(maxsize=512)
 def sj_fuzzy_match(search: str) -> List[str]:
     if search:
         fuzzes = fuzzy_process.extract(search, sj_data.keys())
         return [sj_map[0] for sj_map in fuzzes[:25] if sj_map[1] >= 65]
     else:
         return []
+
+
+@functools.lru_cache(maxsize=512)
+def correct_map_case(map_name: str) -> str:
+    if map_name in sj_data:
+        return map_name
+
+    map_name_lower = map_name.lower()
+
+    for sj_map in sj_data:
+        if sj_map.lower() == map_name_lower:
+            return sj_map
+
+    return map_name
 
 
 def invalid_map(interaction: discord.Interaction, map_name: str):
