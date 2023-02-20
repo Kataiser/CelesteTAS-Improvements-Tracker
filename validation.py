@@ -96,7 +96,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             time_saved_plus = f'+{abs(time_saved_num)}f'
             time_saved_messages = re_timesave_frames.search(message.content)
             got_timesave = True
-            aleph_moment = " (you suck at math lol)" if message.author.id == 238029047567876096 else ""
+            linn_moment = " (you suck at math lol)" if message.author.id == 238029047567876096 else ""
             # ok this logic is weird cause it can be '-f', '+f', or in the case of 0 frames saved, either one
 
             if not time_saved_messages:
@@ -119,7 +119,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
                 if time_saved_messages[0] != time_saved_actual:
                     return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
-                                                   f"please fix and post again{aleph_moment}.",
+                                                   f"please fix and post again{linn_moment}.",
                                             f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
         else:
             log.info("Old file has no final time, skipping validating timesave")
