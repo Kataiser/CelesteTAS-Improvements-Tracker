@@ -26,7 +26,7 @@ class MapRow:
         self.changed_data = False
 
         try:
-            result = sheet.values().get(spreadsheetId=sheet_id, range=self.range).execute()
+            result = sheet.values().get(spreadsheetId=SHEET_ID, range=self.range).execute()
             values = result.get('values', [])[0]
         except HttpError as error:
             log.error(repr(error))
@@ -51,7 +51,7 @@ class MapRow:
             sheet_log = str((self.map_name, self.range, ' '.join(self.writes)))
 
             try:
-                sheet.values().update(spreadsheetId=sheet_id, range=self.range, valueInputOption='RAW', body={'values': [list(self.data.values())]}).execute()
+                sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='RAW', body={'values': [list(self.data.values())]}).execute()
                 sheet_writes.info(sheet_log)
             except HttpError as error:
                 log.error(repr(error))
@@ -256,12 +256,10 @@ def invalid_map(interaction: discord.Interaction, map_name: str):
 
 log: Optional[logging.Logger] = None
 sheet_writes: Optional[logging.Logger] = None
+SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
 creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
 
 with open('sj.json', 'r', encoding='UTF8') as sj_file:
     sj_data: dict = ujson.load(sj_file)
-
-with open('sheet_id', 'r') as sheet_id_file:
-    sheet_id: str = sheet_id_file.read()
