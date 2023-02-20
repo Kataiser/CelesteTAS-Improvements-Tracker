@@ -87,6 +87,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
     if status in ('❌', '⬇️'):
         map_row.status_cell.write('🛠️')
         map_row.taser_cell.write(caller_name)
+        map_row.progress_cell.write("")
         map_row.update()
         mapper_line = f"Mappers: {sj_data[map_name][0]}" if '&' in sj_data[map_name][0] else f"Mapper: {sj_data[map_name][0]}"
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
