@@ -91,7 +91,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
         map_row.update()
         mapper_line = f"Mappers: {sj_data[map_name][0]}" if '&' in sj_data[map_name][0] else f"Mapper: {sj_data[map_name][0]}"
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
-                                                f"\nTAS file: `{sj_data[map_name][4]}`"
+                                                f"\nTAS file: `{sj_data[map_name][4]}` (get the initial file from the repo)"
                                                 f"\n{mapper_line}"
                                                 f"\nDifficulty: {sj_data[map_name][1]}"
                                                 f"\nDescription (probably): {sj_data[map_name][2]}")
