@@ -106,7 +106,10 @@ def sync_test(project_id: int) -> Optional[str]:
             break
 
     for tas_filename in path_cache:
-        if tas_filename == 'translocation.tas':
+        if 'lobby' in tas_filename.lower():
+            log.info(f"Skipping {tas_filename} (lobby)")
+            continue
+        elif tas_filename == 'translocation.tas':
             files_timed += 1
             continue
 
@@ -126,7 +129,7 @@ def sync_test(project_id: int) -> Optional[str]:
         _, found_chaptertime, chapter_time, chapter_time_trimmed, chapter_time_line = validation.parse_tas_file(tas_lines, False, False)
 
         if not found_chaptertime:
-            log.warning(f"{tas_filename} has no ChapterTime")
+            log.info(f"{tas_filename} has no ChapterTime")
             continue
 
         tas_lines[chapter_time_line] = 'ChapterTime: '
@@ -161,12 +164,13 @@ def sync_test(project_id: int) -> Optional[str]:
         if found_chaptertime:
             frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
             synced = frame_diff == 0
-            log.info(f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
+            log_command = log.info if synced else log.warning
+            log_command(f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
             if not synced:
                 desyncs.append(tas_filename)
         else:
-            log.info("Desynced (no ChapterTime)")
+            log.warning("Desynced (no ChapterTime)")
             desyncs.append(tas_filename)
 
         files_timed += 1
