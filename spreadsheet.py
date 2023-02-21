@@ -144,30 +144,30 @@ async def progress(interaction: discord.Interaction, map_name: str):
 
     if status == '❌':
         log.info("Not yet drafted")
-        await interaction.response.send_message(f"❌ The draft for **{map_name}** has not yet been started.")
+        await interaction.response.send_message(f"❌ The draft for **{map_name}** has not yet been started.", ephemeral=True)
     elif status == '🛠️':
         marked_taser = map_row.taser_cell.value()
         progress_note = map_row.progress_cell.value()
 
         if progress_note:
             log.info("Draft is WIP with a note")
-            await interaction.response.send_message(f"🛠️ The draft for **{map_name}** has been started by {marked_taser}.\nProgress note: \"{progress_note}\"")
+            await interaction.response.send_message(f"🛠️ The draft for **{map_name}** has been started by {marked_taser}.\nProgress note: \"{progress_note}\"", ephemeral=True)
         else:
             log.info("Draft is WIP without a note")
-            await interaction.response.send_message(f"🛠️ The draft for **{map_name}** has been started by {marked_taser}.")
+            await interaction.response.send_message(f"🛠️ The draft for **{map_name}** has been started by {marked_taser}.", ephemeral=True)
     elif status == '⬇️':
         log.info("Draft is dropped")
         marked_taser = map_row.taser_cell.value()
         progress_note = map_row.progress_cell.value()
         drop_reason_formatted = f"Drop reason: \"{progress_note.removeprefix('Drop reason: ')}\""
-        await interaction.response.send_message(f"⬇️ The draft for **{map_name}** has been dropped by {marked_taser}.\n{drop_reason_formatted}")
+        await interaction.response.send_message(f"⬇️ The draft for **{map_name}** has been dropped by {marked_taser}.\n{drop_reason_formatted}", ephemeral=True)
     elif status == '✅':
         marked_taser = map_row.taser_cell.value()
         log.info("Draft is finished")
-        await interaction.response.send_message(f"✅ The draft for **{map_name}** has been finished by {marked_taser}.")
+        await interaction.response.send_message(f"✅ The draft for **{map_name}** has been finished by {marked_taser}.", ephemeral=True)
     else:
         log.warning("Unknown draft status")
-        await interaction.response.send_message(f"❓ The draft for **{map_name}** is unknown.")
+        await interaction.response.send_message(f"❓ The draft for **{map_name}** is unknown.", ephemeral=True)
 
     map_row.update()
 
