@@ -185,7 +185,7 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     map_row.status_cell.write('⬇️')
     map_row.progress_cell.write(f"Drop reason: {reason}")
     map_row.update()
-    await interaction.response.send_message(f"Dropped **{map_name}**. Make sure to post the file.\nDrop reason: \"{reason}\"")
+    await interaction.response.send_message(f"Dropped **{map_name}**. Make sure to post the file in <#1074148268407275520> (include \"WIP\" in your message).\nDrop reason: \"{reason}\"")
 
 
 async def complete(interaction: discord.Interaction, map_name: str):
@@ -205,7 +205,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
         map_row.status_cell.write('✅')
         map_row.progress_cell.write('')
         map_row.update()
-        await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file.")
+        await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file in <#1074148268407275520>.")
         log.info("Successfully dropped")
     else:
         log.warning(f"Marked taser is {marked_taser}")
