@@ -201,7 +201,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
     marked_taser = map_row.taser_cell.value()
     caller_name = utils.nickname(interaction.user)
 
-    if marked_taser == caller_name:
+    if marked_taser == caller_name or not marked_taser:
         map_row.status_cell.write('✅')
         map_row.progress_cell.write('')
         map_row.update()
