@@ -206,13 +206,30 @@ async def complete(interaction: discord.Interaction, map_name: str):
 
     if caller_name in marked_taser or not marked_taser:
         map_row.status_cell.write('✅')
-        map_row.progress_cell.write('')
+        map_row.progress_cell.write("")
         map_row.update()
         await interaction.response.send_message(f"Completed **{map_name}**. Make sure to post the file in <#1074148268407275520>.")
         log.info("Successfully dropped")
     else:
         log.warning(f"Marked taser is {marked_taser}")
         await interaction.response.send_message(f"**{map_name}** is marked for drafting by {marked_taser}.")
+
+
+async def undraft(interaction: discord.Interaction, map_name: str):
+    """Stop drafting a map without dropping a WIP file"""
+    map_name = correct_map_case(map_name)
+    log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is undrafting \"{map_name}\"")
+
+    if map_name not in sj_data:
+        await invalid_map(interaction, map_name)
+        return
+
+    map_row = MapRow(map_name)
+    map_row.status_cell.write('❌')
+    map_row.taser_cell.write("")
+    map_row.progress_cell.write("")
+    map_row.update()
+    await interaction.response.send_message(f"Undrafted **{map_name}**.")
 
 
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:

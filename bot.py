@@ -207,11 +207,18 @@ async def complete(interaction, map_name: str):
     await spreadsheet.complete(interaction, map_name)
 
 
+@command_tree.command(description=spreadsheet.undraft.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def undraft(interaction, map_name: str):
+    await spreadsheet.undraft(interaction, map_name)
+
+
 @draft.autocomplete('map_name')
 @update_progress.autocomplete('map_name')
 @progress.autocomplete('map_name')
 @drop.autocomplete('map_name')
 @complete.autocomplete('map_name')
+@undraft.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
