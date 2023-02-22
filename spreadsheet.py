@@ -246,7 +246,7 @@ async def taser_status(interaction: discord.Interaction, taser: str):
     taser_lower = taser.lower()
 
     for row in combined:
-        if len(row) > 3 and (taser_lower in row[3].lower() if ',' in row[3] else taser_lower == row[3].lower()):
+        if len(row) > 3 and (taser_lower in row[3].lower().split(', ') if ',' in row[3] else taser_lower == row[3].lower()):
             row_formatted_lines = [f"{row[0]} **{row[1]}**"]
 
             if ',' in row[3]:
