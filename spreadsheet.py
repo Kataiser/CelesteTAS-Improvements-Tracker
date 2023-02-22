@@ -41,6 +41,9 @@ class MapRow:
 
     def write_cell(self, column: str, value: str):
         if value != self.data[column]:
+            if column == "taser" and self.data[column] and value:
+                value = f"{self.data[column]}, {value}"
+
             self.changed_data = True
             self.writes.append(str((column, value)))
 
@@ -97,7 +100,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
                                                 f"\nDescription (probably): {sj_data[map_name][2]}")
         log.info("Successfully marked for drafting")
     elif status == '🛠️':
-        if marked_taser == caller_name:
+        if caller_name in marked_taser:
             log.warning("Already marked as drafting by user")
             await interaction.response.send_message(f"You are already marked for drafting **{map_name}**.")
         else:
@@ -120,7 +123,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
     map_row = MapRow(map_name)
     marked_taser = map_row.taser_cell.value()
 
-    if marked_taser == utils.nickname(interaction.user):
+    if utils.nickname(interaction.user) in marked_taser:
         map_row.progress_cell.write(note)
         map_row.update()
         await interaction.response.send_message(f"Progress note added to **{map_name}**: \"{note}\"")
@@ -201,7 +204,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
     marked_taser = map_row.taser_cell.value()
     caller_name = utils.nickname(interaction.user)
 
-    if marked_taser == caller_name or not marked_taser:
+    if caller_name in marked_taser or not marked_taser:
         map_row.status_cell.write('✅')
         map_row.progress_cell.write('')
         map_row.update()
