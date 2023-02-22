@@ -134,9 +134,13 @@ def sync_test(project_id: int) -> Optional[str]:
 
         tas_lines[chapter_time_line] = 'ChapterTime: '
         tas_lines.append('***')
+        temp_path = r'E:\Big downloads\celeste\temp.tas'
 
-        with open(r'E:\Big downloads\celeste\temp.tas', 'w', encoding='UTF8') as temp_tas:
+        with open(temp_path, 'w', encoding='UTF8') as temp_tas:
             temp_tas.write('\n'.join(tas_lines))
+
+        time.sleep(0.2)
+        initial_mtime = os.path.getmtime(temp_path)
 
         # now run it
         log.info(f"Testing timing of {tas_filename} ({chapter_time_trimmed})")
@@ -145,7 +149,7 @@ def sync_test(project_id: int) -> Optional[str]:
 
         while not tas_finished:
             try:
-                time.sleep(1)
+                time.sleep(2)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
             except requests.Timeout:
                 pass
@@ -154,6 +158,12 @@ def sync_test(project_id: int) -> Optional[str]:
 
         log.info("TAS has finished")
         time.sleep(5)
+        extra_sleeps = 0
+
+        while os.path.getmtime(temp_path) == initial_mtime and extra_sleeps < 10:
+            time.sleep(2)
+            extra_sleeps += 1
+            log.info(f"Extra sleeps: {extra_sleeps}")
 
         # determine if it synced or not
         with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
