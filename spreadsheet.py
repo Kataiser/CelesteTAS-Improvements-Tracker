@@ -1,5 +1,6 @@
 import functools
 import logging
+import re
 from typing import List, Optional
 
 import discord
@@ -24,13 +25,7 @@ class MapRow:
         self.progress_cell = Cell(self, "progress")
         self.writes = []
         self.changed_data = False
-
-        try:
-            result = sheet.values().get(spreadsheetId=SHEET_ID, range=self.range).execute()
-            values = result.get('values', [])[0]
-        except HttpError as error:
-            log.error(repr(error))
-            return
+        values = read_sheet(self.range)
 
         # because values can be too short
         for column_enum in enumerate(self.data):
@@ -176,7 +171,7 @@ async def progress(interaction: discord.Interaction, map_name: str):
 
 
 async def drop(interaction: discord.Interaction, map_name: str, reason: str):
-    """Drop a map (stop drafting it)"""
+    """Drop a map (stop drafting it after having made progress)"""
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is dropping \"{map_name}\" for reason: \"{reason}\"")
 
@@ -232,6 +227,45 @@ async def undraft(interaction: discord.Interaction, map_name: str):
     await interaction.response.send_message(f"Undrafted **{map_name}**.")
 
 
+async def taser_status(interaction: discord.Interaction, taser: str):
+    """See what maps a TASer is marked for drafting"""
+    log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking status for TASer \"{taser}\"")
+
+    if re_ping.match(taser):
+        taser = (await client.fetch_user(int(taser[2:-1]))).name
+        log.info(f"Converted ping to name: {taser}")
+
+    sheet_beg = read_sheet('Beginner!A2:E24', multiple_rows=True)
+    sheet_int = read_sheet('Intermediate!A2:E20', multiple_rows=True)
+    sheet_adv = read_sheet('Advanced!A2:E27', multiple_rows=True)
+    sheet_exp = read_sheet('Expert!A2:E31', multiple_rows=True)
+    sheet_gm = read_sheet('Grandmaster!A2:E20', multiple_rows=True)
+    combined = sheet_beg + sheet_int + sheet_adv + sheet_exp + sheet_gm
+    found_log = []
+    found_formatted = []
+    taser_lower = taser.lower()
+
+    for row in combined:
+        if len(row) > 3 and (taser_lower in row[3].lower() if ',' in row[3] else taser_lower == row[3].lower()):
+            row_formatted_lines = [f"{row[0]} **{row[1]}**"]
+
+            if ',' in row[3]:
+                row_formatted_lines.append(f"Drafters: {row[3]}")
+
+            if len(row) > 4:
+                row_formatted_lines.append(f"Progress note: \"{row[4]}\"")
+
+            found_log.append(str(row))
+            found_formatted.append('\n'.join(row_formatted_lines))
+
+    if found_log:
+        log.info(f"Statuses: {','.join(found_log)}")
+        await interaction.response.send_message('\n\n'.join(found_formatted), ephemeral=True)
+    else:
+        log.info("No statuses found")
+        await interaction.response.send_message(f"{taser} is not marked for any drafts.", ephemeral=True)
+
+
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:
     if interaction.channel_id == 1071151339905753138:  # test channel
         return True
@@ -275,12 +309,26 @@ async def invalid_map(interaction: discord.Interaction, map_name: str):
     await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.", ephemeral=True)
 
 
+def read_sheet(cell_range: str, multiple_rows=False):
+    try:
+        result = sheet.values().get(spreadsheetId=SHEET_ID, range=cell_range).execute()
+
+        if multiple_rows:
+            return result.get('values', [])
+        else:
+            return result.get('values', [])[0]
+    except HttpError as error:
+        log.error(repr(error))
+
+
+client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 sheet_writes: Optional[logging.Logger] = None
 SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
 creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
+re_ping = re.compile(r'<@\d+>')
 
 with open('sj.json', 'r', encoding='UTF8') as sj_file:
     sj_data: dict = ujson.load(sj_file)

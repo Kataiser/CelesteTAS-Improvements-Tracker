@@ -213,6 +213,12 @@ async def undraft(interaction, map_name: str):
     await spreadsheet.undraft(interaction, map_name)
 
 
+@command_tree.command(description=spreadsheet.taser_status.__doc__, guilds=slash_command_servers)
+@discord.app_commands.check(spreadsheet.sj_command_allowed)
+async def taser_status(interaction, taser: str):
+    await spreadsheet.taser_status(interaction, taser)
+
+
 @draft.autocomplete('map_name')
 @update_progress.autocomplete('map_name')
 @progress.autocomplete('map_name')
@@ -225,6 +231,7 @@ async def map_autocomplete(interaction: discord.Interaction, current: str) -> Li
 
 log, history_log = main.create_loggers('bot.log')
 commands.client = client
+spreadsheet.client = client
 main.client = client
 main.safe_mode = safe_mode
 
