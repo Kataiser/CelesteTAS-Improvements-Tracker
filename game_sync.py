@@ -197,7 +197,9 @@ def sync_test(project_id: int) -> Optional[str]:
 
     if new_desyncs:
         new_desyncs_formatted = '\n'.join(new_desyncs)
-        report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):\n```\n{new_desyncs_formatted}```"
+        desyncs_formatted = '' if desyncs == new_desyncs else '\n'.join(desyncs)
+        report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):\n```\n{new_desyncs_formatted}```" \
+                      f"\nAll desyncs:\n```\n{desyncs_formatted}```"
 
     if time_since_last_commit > 2600000 and project['do_run_validation']:
         project['do_run_validation'] = False
