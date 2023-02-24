@@ -37,7 +37,7 @@ def nickname(author: discord.User) -> str:
                  513223843721117713: "The Senate",
                  671098132959985684: "Mr. Wolf",
                  226515080752267286: "Soloiini",
-                 794291191726211103: "Aurora."}
+                 794291191726211103: "Ash"}
 
     return nicknames[author.id] if author.id in nicknames else author.name
 
