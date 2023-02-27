@@ -311,7 +311,6 @@ async def handle_game_sync_results():
     os.remove('sync\\game_sync_results.json')
 
 
-@functools.cache
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
     with open('sync\\githubs.json', 'r') as githubs_json:
         github_accounts = ujson.load(githubs_json)
