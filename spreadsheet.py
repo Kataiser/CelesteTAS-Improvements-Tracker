@@ -11,6 +11,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 import utils
+from utils import plural
 
 
 class MapRow:
@@ -82,25 +83,31 @@ async def draft(interaction: discord.Interaction, map_name: str):
     status = map_row.status_cell.value()
     caller_name = utils.nickname(interaction.user)
 
-    if status in ('❌', '⬇️'):
+    if status in ('❌', '⬇️', '🛠️'):
+        if status == '🛠️' and caller_name in marked_taser:
+            log.warning("Already marked as drafting by user")
+            await interaction.response.send_message(f"You are already marked for drafting **{map_name}**.")
+            return
+
+        if status == '🛠️':
+            prev_taser_line = f"\nOther TASer{plural(marked_taser.split(', '))}: {marked_taser}"
+        elif status == '⬇️':
+            prev_taser_line = f"\nPrevious TASer{plural(marked_taser.split(', '))}: {marked_taser}"
+        else:
+            prev_taser_line = ""
+
         map_row.status_cell.write('🛠️')
         map_row.taser_cell.write(caller_name)
         map_row.progress_cell.write("")
         map_row.update()
         mapper_line = f"Mappers: {sj_data[map_name][0]}" if '&' in sj_data[map_name][0] else f"Mapper: {sj_data[map_name][0]}"
         await interaction.response.send_message(f"You have been marked for drafting **{map_name}**."
+                                                f"{prev_taser_line}"
                                                 f"\nTAS file: `{sj_data[map_name][4]}` (get the initial file from the repo)"
                                                 f"\n{mapper_line}"
                                                 f"\nDifficulty: {sj_data[map_name][1]}"
                                                 f"\nDescription (probably): {sj_data[map_name][2]}")
         log.info("Successfully marked for drafting")
-    elif status == '🛠️':
-        if caller_name in marked_taser:
-            log.warning("Already marked as drafting by user")
-            await interaction.response.send_message(f"You are already marked for drafting **{map_name}**.")
-        else:
-            log.warning(f"Already marked as drafting by {marked_taser}")
-            await interaction.response.send_message(f"**{map_name}** is already marked for drafting by {marked_taser}.")
     elif status == '✅':
         log.warning("Map already drafted")
         await interaction.response.send_message(f"**{map_name}** has already been drafted by {marked_taser}.")
