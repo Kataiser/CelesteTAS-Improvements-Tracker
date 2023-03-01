@@ -116,7 +116,7 @@ def sync_test(project_id: int) -> Optional[str]:
         log.info(f"Downloading {path_cache[tas_filename]}")
 
         try:
-            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers)
+            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers, timeout=60)
         except requests.Timeout as error:
             log.error(f"Skipping {tas_filename}: {repr(error)}")
             continue
@@ -197,9 +197,10 @@ def sync_test(project_id: int) -> Optional[str]:
 
     if new_desyncs:
         new_desyncs_formatted = '\n'.join(new_desyncs)
-        desyncs_formatted = '' if desyncs == new_desyncs else '\n'.join(desyncs)
-        report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):\n```\n{new_desyncs_formatted}```" \
-                      f"\nAll desyncs:\n```\n{desyncs_formatted}```"
+        desyncs_formatted = '\n'.join(desyncs)
+        desyncs_block = '' if desyncs == new_desyncs else f"\nAll desyncs:\n```\n{desyncs_formatted}```"
+        report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
+                      f"\n```\n{new_desyncs_formatted}```{desyncs_block}"
 
     if time_since_last_commit > 2600000 and project['do_run_validation']:
         project['do_run_validation'] = False
