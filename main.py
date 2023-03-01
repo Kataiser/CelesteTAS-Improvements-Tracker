@@ -1,12 +1,14 @@
 import base64
 import copy
+import dataclasses
 import datetime
-import functools
+import io
 import logging
 import os
 import sys
 import time
 import urllib.parse
+import zipfile
 from typing import Optional
 
 import discord
@@ -29,12 +31,25 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {projects[message.channel.id]['name']}) at {message.jump_url}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
+    zip_attachments = [a for a in message.attachments if a.filename.endswith('.zip')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
     has_video = video_attachments or [s for s in ('youtube.com/watch?v=', 'youtu.be/', 'streamable.com/', 'gfycat.com/') if s in message.content]
 
     if has_video:
         log.info("Video found 🍿")
         await message.add_reaction('🍿')
+
+    for zip_attachment in zip_attachments:
+        log.info(f"Downloading and parsing {zip_attachment.filename} from {zip_attachment.url}")
+        r = requests.get(zip_attachment.url)
+        utils.handle_potential_request_error(r, 200)
+
+        with zipfile.ZipFile(io.BytesIO(r.content), 'r') as zip_file:
+            for file in zip_file.filelist:
+                if file.filename.endswith('.tas'):
+                    with zip_file.open(file) as file_opened:
+                        basename = os.path.basename(file.filename)
+                        tas_attachments.append(AttachmentFromZip(basename, f'{zip_attachment.filename}/{file.filename}', file_opened.read()))
 
     if len(tas_attachments) == 0:
         log.info("No TAS file found 👍")
@@ -62,9 +77,14 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
         repo = projects[message.channel.id]['repo']
         is_lobby = projects[message.channel.id]['is_lobby']
-        r = requests.get(attachment.url)
-        utils.handle_potential_request_error(r, 200)
-        file_content = r.content
+
+        if isinstance(attachment, discord.Attachment):
+            r = requests.get(attachment.url)
+            utils.handle_potential_request_error(r, 200)
+            file_content = r.content
+        else:  # zip attachment
+            file_content = attachment.content
+
         filename, filename_no_underscores = attachment.filename, attachment.filename.replace('_', ' ')
 
         if filename not in path_caches[message.channel.id] and filename_no_underscores in path_caches[message.channel.id]:
@@ -285,6 +305,13 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         await pin_message.edit(content=text_out)
         log.info("Edited pin")
         return pin_message
+
+
+@dataclasses.dataclass
+class AttachmentFromZip:
+    filename: str
+    url: str
+    content: bytes
 
 
 @tasks.loop(minutes=1)
