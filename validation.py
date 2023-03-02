@@ -29,10 +29,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     if not skip_validation and len(tas) > 204800:  # 200 kb
         return ValidationResult(False, f"This TAS file is very large ({len(tas) / 2048} KB). For safety, it won't be processed.", f"{filename} being too long ({len(tas)} bytes)")
 
-    # validate breakpoint doesn't exist and chaptertime does
+    # validate breakpoint and simulated stuns don't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
-    breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
+    breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line, found_simulated_stun = parse_tas_file(tas_lines, True)
     dash_saves = re_dash_saves.search(message.content)
     is_dash_save = dash_saves is not None
     got_timesave = False
@@ -73,6 +73,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
         else:
             return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
+    elif found_simulated_stun:
+        return ValidationResult(False, f"StunPause Simulate mode is not allowed outside of testing routes, please replace it with Input mode and post again.", f"simulated stun in {filename}")
 
     # validate chaptertime is in message content
     if not is_dash_save:
@@ -149,17 +151,20 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
 
 # get breakpoints and final time in one pass
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
+def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool = True) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int], bool]:
     breakpoints = []
     finaltime_line = None
     finaltime = None
     finaltime_trimmed = None
     found_chaptertime = False
+    found_simulated_stun = False
 
     for line in enumerate(tas_lines):
-        if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
+        if find_extras and '***' in line[1] and not line[1].startswith('#'):
             log.info(f"Found breakpoint at line {line[0] + 1}")
             breakpoints.append(str(line[0] + 1))
+        elif find_extras and re_simulated_stun.match(line[1].lower()):
+            found_simulated_stun = True
         else:
             if re_chapter_time.match(line[1]):
                 found_chaptertime = True
@@ -180,7 +185,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
 
-    return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
+    return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line, found_simulated_stun
 
 
 def calculate_time_difference(time_old: str, time_new: str) -> int:
@@ -224,6 +229,7 @@ def as_lines(tas: bytes) -> List[str]:
 
 re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
+re_simulated_stun = re.compile(r'#{0}\s*stunpause,?\s*simulate')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')

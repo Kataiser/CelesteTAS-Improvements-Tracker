@@ -126,7 +126,7 @@ def sync_test(project_id: int) -> Optional[str]:
 
         # set up temp tas file
         tas_lines = validation.as_lines(tas_read)
-        _, found_chaptertime, chapter_time, chapter_time_trimmed, chapter_time_line = validation.parse_tas_file(tas_lines, False, False)
+        _, found_chaptertime, chapter_time, chapter_time_trimmed, chapter_time_line, _ = validation.parse_tas_file(tas_lines, False, False)
 
         if not found_chaptertime:
             log.info(f"{tas_filename} has no ChapterTime")
@@ -169,7 +169,7 @@ def sync_test(project_id: int) -> Optional[str]:
         with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
             tas_read = tas_file.read()
 
-        _, found_chaptertime, chapter_time_new, chapter_time_new_trimmed, _ = validation.parse_tas_file(validation.as_lines(tas_read), False, False)
+        _, found_chaptertime, chapter_time_new, chapter_time_new_trimmed, _, _ = validation.parse_tas_file(validation.as_lines(tas_read), False, False)
 
         if found_chaptertime:
             frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
