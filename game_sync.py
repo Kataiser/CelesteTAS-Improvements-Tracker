@@ -24,8 +24,8 @@ def run_syncs():
     global log
     log = main.create_loggers('game_sync.log')[0]
     parser = argparse.ArgumentParser()
-    parser.add_argument('--project_id', type=int, help="Only sync test a specific project", required=False)
-    cli_project_id = parser.parse_args().project_id
+    parser.add_argument('--p', type=int, help="Only sync test a specific project (ID)", required=False)
+    cli_project_id = parser.parse_args().p
 
     if cli_project_id:
         log.info(f"Running sync test for project ID {cli_project_id} only")
@@ -89,7 +89,7 @@ def sync_test(project_id: int) -> Optional[str]:
         try:
             time.sleep(2)
             requests.get('http://localhost:32270/', timeout=2)
-        except requests.ConnectTimeout:
+        except requests.Timeout:
             current_time = time.perf_counter()
 
             if current_time - last_game_loading_notify > 60:
@@ -144,8 +144,15 @@ def sync_test(project_id: int) -> Optional[str]:
 
         # now run it
         log.info(f"Testing timing of {tas_filename} ({chapter_time_trimmed})")
-        requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas')
-        tas_finished = False
+        tas_started = False
+
+        while not tas_started:
+            try:
+                requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas', timeout=10)
+                tas_started = True
+                tas_finished = False
+            except requests.Timeout:
+                pass
 
         while not tas_finished:
             try:
