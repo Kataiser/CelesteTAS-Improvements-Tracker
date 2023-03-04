@@ -114,6 +114,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             # I love it when
             # when timesave :)
             # (or drafts)
+            file_content = convert_line_endings(file_content, old_file_content)
             commit_status = commit(message, filename, file_content, validation_result)
             projects[message.channel.id]['last_commit_time'] = int(time.time())
             utils.save_projects()
@@ -312,6 +313,29 @@ class AttachmentFromZip:
     filename: str
     url: str
     content: bytes
+
+
+def convert_line_endings(tas: bytes, old_tas: Optional[bytes]) -> bytes:
+    uses_crlf = tas.count(b'\r\n') >= tas.count(b'\r')
+
+    if old_tas:
+        old_uses_crlf = old_tas.count(b'\r\n') > old_tas.count(b'\n')
+
+        if uses_crlf == old_uses_crlf:
+            return tas
+
+        if old_uses_crlf:
+            log.info("Converted from LF to CRLF due to old file")
+            return tas.replace(b'\n', b'\r\n')
+
+        log.info("Converted from CRLF to LF due to old file")
+        return tas.replace(b'\r\n', b'\n')
+
+    if uses_crlf:
+        return tas
+    else:
+        log.info("Converted from LF to CRLF")
+        return tas.replace(b'\n', b'\r\n')
 
 
 @tasks.loop(minutes=1)
