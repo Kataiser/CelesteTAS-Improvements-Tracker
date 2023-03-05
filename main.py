@@ -316,10 +316,10 @@ class AttachmentFromZip:
 
 
 def convert_line_endings(tas: bytes, old_tas: Optional[bytes]) -> bytes:
-    uses_crlf = tas.count(b'\r\n') >= tas.count(b'\r')
+    uses_crlf = tas.count(b'\r\n') >= tas.count(b'\n')
 
     if old_tas:
-        old_uses_crlf = old_tas.count(b'\r\n') > old_tas.count(b'\n')
+        old_uses_crlf = old_tas.count(b'\r\n') >= old_tas.count(b'\n')
 
         if uses_crlf == old_uses_crlf:
             return tas
