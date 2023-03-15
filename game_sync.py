@@ -117,7 +117,7 @@ def sync_test(project_id: int) -> Optional[str]:
 
         try:
             r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers, timeout=60)
-        except requests.Timeout as error:
+        except (requests.Timeout, requests.ConnectionError) as error:
             log.error(f"Skipping {tas_filename}: {repr(error)}")
             continue
 
@@ -151,14 +151,14 @@ def sync_test(project_id: int) -> Optional[str]:
                 requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas', timeout=10)
                 tas_started = True
                 tas_finished = False
-            except requests.Timeout:
+            except (requests.Timeout, requests.ConnectionError):
                 pass
 
         while not tas_finished:
             try:
                 time.sleep(2)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
-            except requests.Timeout:
+            except (requests.Timeout, requests.ConnectionError):
                 pass
             else:
                 tas_finished = 'Running: False' in session_data.text
