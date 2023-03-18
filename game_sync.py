@@ -106,7 +106,7 @@ def sync_test(project_id: int) -> Optional[str]:
             break
 
     for tas_filename in path_cache:
-        if 'lobby' in tas_filename.lower():
+        if 'lobby' in path_cache[tas_filename].lower():
             log.info(f"Skipping {tas_filename} (lobby)")
             continue
         elif tas_filename == 'translocation.tas':
