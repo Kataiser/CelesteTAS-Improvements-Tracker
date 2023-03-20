@@ -282,9 +282,9 @@ async def sj_command_allowed(interaction: discord.Interaction) -> bool:
     channel_check = interaction.channel_id == 1074148152317321316
 
     if not role_check:
-        await interaction.response.send_message("SJ TAS commands can only be run by users with the TASer role.", ephemeral=True)
+        await interaction.response.send_message("SJ TAS spreadsheet commands can only be run by users with the TASer role.", ephemeral=True)
     elif not channel_check:
-        await interaction.response.send_message("SJ TAS commands can only be run in <#1074148152317321316>.", ephemeral=True)
+        await interaction.response.send_message("SJ TAS spreadsheet commands can only be run in <#1074148152317321316>.", ephemeral=True)
 
     return role_check and channel_check
 

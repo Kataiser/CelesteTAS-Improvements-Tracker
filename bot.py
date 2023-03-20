@@ -190,7 +190,6 @@ async def update_progress(interaction, map_name: str, note: str):
 
 
 @command_tree.command(description=spreadsheet.progress.__doc__, guilds=slash_command_servers)
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def progress(interaction, map_name: str):
     await spreadsheet.progress(interaction, map_name)
 
@@ -214,7 +213,6 @@ async def undraft(interaction, map_name: str):
 
 
 @command_tree.command(description=spreadsheet.taser_status.__doc__, guilds=slash_command_servers)
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
