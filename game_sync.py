@@ -157,11 +157,11 @@ def sync_test(project_id: int) -> Optional[str]:
         while not tas_finished:
             try:
                 time.sleep(2)
-                session_data = requests.get('http://localhost:32270/tas/info', timeout=2)
+                session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
             except (requests.Timeout, requests.ConnectionError):
                 pass
             else:
-                tas_finished = 'Running: False' in session_data.text
+                tas_finished = 'Running: False' in session_data
 
         log.info("TAS has finished")
         time.sleep(5)
@@ -188,6 +188,7 @@ def sync_test(project_id: int) -> Optional[str]:
                 desyncs.append(tas_filename)
         else:
             log.warning("Desynced (no ChapterTime)")
+            log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append(tas_filename)
 
         files_timed += 1
