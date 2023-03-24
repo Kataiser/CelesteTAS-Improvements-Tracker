@@ -65,6 +65,12 @@
         },
         "last_commit_time": {
             "type": "integer"
+        },
+        "filetimes": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
         }
     }
 }
