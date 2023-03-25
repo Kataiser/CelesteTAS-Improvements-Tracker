@@ -1,6 +1,7 @@
 import argparse
 import base64
 import functools
+import io
 import logging
 import os
 import shutil
@@ -84,6 +85,22 @@ def sync_test(project_id: int) -> Optional[str]:
     main.generate_path_cache(project_id)
     path_cache = main.path_caches[project_id]
 
+    # download repo
+    if not os.path.isdir(r'E:\Big downloads\celeste\repos'):
+        os.mkdir(r'E:\Big downloads\celeste\repos')
+
+    log.info("Downloading repo zip")
+    r = requests.get(f'https://github.com/{repo}/archive/refs/heads/main.zip', timeout=60)
+    utils.handle_potential_request_error(r, 200)
+
+    with zipfile.ZipFile(io.BytesIO(r.content), 'r') as repo_zip:
+        root = repo_zip.namelist()[0][:-1]
+        repo_path = f'E:\\Big downloads\\celeste\\repos\\{root}'
+        repo_dir = f'repos/{root}'.replace('\\', '/')
+        repo_zip.extractall(path=r'E:\Big downloads\celeste\repos')
+
+    log.info("Extracted repo zip")
+
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
         try:
@@ -106,44 +123,47 @@ def sync_test(project_id: int) -> Optional[str]:
             break
 
     for tas_filename in path_cache:
-        if 'lobby' in path_cache[tas_filename].lower():
+        file_path = path_cache[tas_filename]
+
+        if 'lobby' in file_path.lower() and 'lobby' not in tas_filename.lower():
             log.info(f"Skipping {tas_filename} (lobby)")
             continue
         elif tas_filename == 'translocation.tas':
             files_timed += 1
             continue
 
-        log.info(f"Downloading {path_cache[tas_filename]}")
-
-        try:
-            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{path_cache[tas_filename]}', headers=main.headers, timeout=60)
-        except (requests.Timeout, requests.ConnectionError) as error:
-            log.error(f"Skipping {tas_filename}: {repr(error)}")
-            continue
-
-        utils.handle_potential_request_error(r, 200)
-        tas_read = base64.b64decode(ujson.loads(r.content)['content'])
+        with open(f'{repo_path}\\{file_path}', 'r') as tas_file:
+            tas_lines = tas_file.readlines()
 
         # set up temp tas file
-        tas_lines = validation.as_lines(tas_read)
-        _, found_chaptertime, chapter_time, chapter_time_trimmed, chapter_time_line, _ = validation.parse_tas_file(tas_lines, False, False)
+        _, found_final_time, final_time, final_time_trimmed, chapter_time_line, _ = validation.parse_tas_file(tas_lines, False, False, True)
 
-        if not found_chaptertime:
-            log.info(f"{tas_filename} has no ChapterTime")
+        if found_final_time:
+            has_filetime = tas_lines[chapter_time_line].startswith('FileTime')
+
+            if has_filetime:
+                tas_lines[chapter_time_line] = 'FileTime: \n'
+
+                for line in enumerate(tas_lines):
+                    if line[1].startswith('Read'):
+                        tas_lines[line[0]] = line[1].replace('Read,', f'Read,{repo_dir}/')
+            else:
+                tas_lines[chapter_time_line] = 'ChapterTime: \n'
+        else:
+            log.info(f"{tas_filename} has no final time")
             continue
 
-        tas_lines[chapter_time_line] = 'ChapterTime: '
         tas_lines.append('***')
         temp_path = r'E:\Big downloads\celeste\temp.tas'
 
         with open(temp_path, 'w', encoding='UTF8') as temp_tas:
-            temp_tas.write('\n'.join(tas_lines))
+            temp_tas.write(''.join(tas_lines))
 
         time.sleep(0.2)
         initial_mtime = os.path.getmtime(temp_path)
 
         # now run it
-        log.info(f"Testing timing of {tas_filename} ({chapter_time_trimmed})")
+        log.info(f"Testing timing of {tas_filename} ({final_time_trimmed})")
         tas_started = False
 
         while not tas_started:
@@ -156,7 +176,7 @@ def sync_test(project_id: int) -> Optional[str]:
 
         while not tas_finished:
             try:
-                time.sleep(2)
+                time.sleep(10 if has_filetime else 3)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
             except (requests.Timeout, requests.ConnectionError):
                 pass
@@ -168,27 +188,48 @@ def sync_test(project_id: int) -> Optional[str]:
         extra_sleeps = 0
 
         while os.path.getmtime(temp_path) == initial_mtime and extra_sleeps < 10:
-            time.sleep(2)
+            time.sleep(3 + (extra_sleeps ** 2))
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
 
         # determine if it synced or not
-        with open(r'E:\Big downloads\celeste\temp.tas', 'rb') as tas_file:
-            tas_read = tas_file.read()
+        with open(temp_path, 'rb') as temp_file:
+            tas_updated = validation.as_lines(temp_file.read())
 
-        _, found_chaptertime, chapter_time_new, chapter_time_new_trimmed, _, _ = validation.parse_tas_file(validation.as_lines(tas_read), False, False)
+        _, found_final_time, final_time_new, final_time_new_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_updated, False, False, True)
 
-        if found_chaptertime:
-            frame_diff = validation.calculate_time_difference(chapter_time, chapter_time_new)
+        if found_final_time:
+            frame_diff = validation.calculate_time_difference(final_time_new, final_time)
             synced = frame_diff == 0
-            log_command = log.info if synced else log.warning
-            log_command(f"{'Synced' if synced else 'Desynced'}: {chapter_time_trimmed} -> {chapter_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
-            if not synced:
-                desyncs.append(tas_filename)
+            if not has_filetime:
+                log_command = log.info if synced else log.warning
+                log_command(f"{'Synced' if synced else 'Desynced'}: {final_time_trimmed} -> {final_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
+
+                if not synced:
+                    desyncs.append(tas_filename)
+            else:
+                project['filetimes'][tas_filename] = final_time_new_trimmed
+
+                if not synced:
+                    # commit updated fullgame file
+                    new_time_line = tas_updated[final_time_line_num]
+
+                    with open(f'{repo_path}\\{file_path}', 'r') as tas_file:
+                        tas_lines = tas_file.readlines()
+
+                    tas_lines[final_time_line_num] = new_time_line
+                    data = {'content': base64.b64encode(''.join(tas_lines).encode('UTF8')).decode('UTF8'),
+                            'sha': main.get_sha(repo, file_path),
+                            'message': f"{'+' if frame_diff > 0 else '-'}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"}
+                    log.info(f"Committing updated fullgame file: \"{data['message']}\"")
+                    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=ujson.dumps(data))
+                    utils.handle_potential_request_error(r, 200)
+                    commit_url = ujson.loads(r.content)['commit']['html_url']
+                    log.info(f"Successfully committed: {commit_url}")
         else:
-            log.warning("Desynced (no ChapterTime)")
-            log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
+            log.warning(f"Desynced (no {'FileTime' if has_filetime else 'ChapterTime'})")
+            log.info(session_data.partition('<pre>')[2].partition('</pre>')[0].replace('\n\n', '\n'))
             desyncs.append(tas_filename)
 
         files_timed += 1
@@ -247,7 +288,7 @@ def post_cleanup():
     generate_blacklist(set())
     remove_debug_save_files()
     files_to_remove = ['log.txt', 'temp.tas']
-    dirs_to_remove = ['LogHistory', 'TAS Files\\Backups']
+    dirs_to_remove = ['LogHistory', 'TAS Files\\Backups', 'repos']
     files_removed = 0
     dirs_removed = 0
 

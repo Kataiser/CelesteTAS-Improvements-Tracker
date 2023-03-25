@@ -151,7 +151,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
 
 # get breakpoints and final time in one pass
-def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool = True) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int], bool]:
+def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int], bool]:
     breakpoints = []
     finaltime_line = None
     finaltime = None
@@ -167,6 +167,9 @@ def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool 
             found_simulated_stun = True
         else:
             if re_chapter_time.match(line[1]):
+                found_chaptertime = True
+                finaltime_line = line[0]
+            elif find_file_time and not found_chaptertime and re_file_time.match(line[1]):
                 found_chaptertime = True
                 finaltime_line = line[0]
             elif allow_comment_time and not found_chaptertime and re_comment_time.match(line[1]):
@@ -228,6 +231,7 @@ def as_lines(tas: bytes) -> List[str]:
 
 
 re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
+re_file_time = re.compile(r'#{0}FileTime: \d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
 re_simulated_stun = re.compile(r'#{0}\s*stunpause,?\s*simulate')
 re_timesave_frames = re.compile(r'[-+]\d+f')

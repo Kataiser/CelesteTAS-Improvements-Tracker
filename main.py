@@ -253,6 +253,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     ensure_level = project['ensure_level']
     desyncs = project['desyncs']
     desyncs_text = "\n"
+    filetimes_text = "\n"
     lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if project['is_lobby'] else ""
     level_text_ensure = ", the name of the level/map," if ensure_level else ''
     level_text_not_ensure = "" if ensure_level else " the name of the level/map,"
@@ -263,7 +264,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            "\n\nRepo: <{1}> (<https://desktop.github.com> is recommended)" \
            "\nPackage DL: <{2}>" \
            "\nAdmin{6}: {3}" \
-           "\nLast sync check: {4}{5}" \
+           "\nLast sync check: {4}{5}{7}" \
            "\nBot reactions key:" \
            "\n```" \
            "\n📝 = Successfully verified and committed" \
@@ -276,6 +277,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
     if project['do_run_validation']:
         last_run = project['last_run_validation']
+        filetimes = project['filetimes']
 
         if last_run:
             sync_timestamp = f"<t:{last_run}>"
@@ -285,6 +287,10 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         if desyncs:
             desyncs_formatted = '\n'.join(desyncs)
             desyncs_text = f"\n\nCurrently desyncing file{plural(desyncs)}:\n```\n{desyncs_formatted}```"
+
+        if filetimes:
+            filetimes_formatted = '\n'.join([f"{file[:-4]}: {filetimes[file]}" for file in filetimes])
+            filetimes_text = f"\n\nFullgame file time{plural(filetimes)}:\n```\n{filetimes_formatted}```"
     else:
         sync_timestamp = "`Disabled`"
 
@@ -296,7 +302,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']))
+    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text)
 
     if create:
         log.info("Creating pin")
