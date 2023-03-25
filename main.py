@@ -253,7 +253,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     ensure_level = project['ensure_level']
     desyncs = project['desyncs']
     desyncs_text = "\n"
-    filetimes_text = "\n"
+    filetimes_text = ""
     lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if project['is_lobby'] else ""
     level_text_ensure = ", the name of the level/map," if ensure_level else ''
     level_text_not_ensure = "" if ensure_level else " the name of the level/map,"
@@ -290,7 +290,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
         if filetimes:
             filetimes_formatted = '\n'.join([f"{file[:-4]}: {filetimes[file]}" for file in filetimes])
-            filetimes_text = f"\n\nFullgame file time{plural(filetimes)}:\n```\n{filetimes_formatted}```"
+            filetimes_text = f"\nFullgame file time{plural(filetimes)}:\n```\n{filetimes_formatted}```"
     else:
         sync_timestamp = "`Disabled`"
 
@@ -303,6 +303,9 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
     text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text)
+
+    if len(text_out) > 1800:
+        log.warning(f"Pin text is dangerously long ({len(text_out)} chars)")
 
     if create:
         log.info("Creating pin")
