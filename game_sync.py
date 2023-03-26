@@ -142,7 +142,6 @@ def sync_test(project_id: int) -> Optional[str]:
             has_filetime = tas_lines[chapter_time_line].startswith('FileTime')
 
             if has_filetime:
-                set_end_screen(False)
                 tas_lines[chapter_time_line] = 'FileTime: \n'
 
                 for line in enumerate(tas_lines):
@@ -150,11 +149,11 @@ def sync_test(project_id: int) -> Optional[str]:
                         tas_lines[line[0]] = line[1].replace('Read,', f'Read,{repo_dir}/')
             else:
                 tas_lines[chapter_time_line] = 'ChapterTime: \n'
-                set_end_screen(True)
         else:
             log.info(f"{tas_filename} has no final time")
             continue
 
+        tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
         tas_lines.append('***')
         temp_path = r'E:\Big downloads\celeste\temp.tas'
 
@@ -220,7 +219,7 @@ def sync_test(project_id: int) -> Optional[str]:
                     with open(f'{repo_path}\\{file_path}', 'r') as tas_file:
                         tas_lines = tas_file.readlines()
 
-                    tas_lines[final_time_line_num] = new_time_line
+                    tas_lines[final_time_line_num - 1] = new_time_line
                     commit_data = {'content': base64.b64encode(''.join(tas_lines).encode('UTF8')).decode('UTF8'),
                                    'sha': main.get_sha(repo, file_path),
                                    'message': f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"}
@@ -375,16 +374,6 @@ def mods_dir() -> str:
         return aws_path
     else:
         raise FileNotFoundError("ok where'd my mods go")
-
-
-def set_end_screen(enabled: bool):
-    if os.path.isfile(cu2_settings_path := r'E:\Big downloads\celeste\Saves\modsettings-CollabUtils2.celeste'):
-        with open(cu2_settings_path, 'r+') as cu2_settings_file:
-            cu2_settings = cu2_settings_file.readlines()
-            cu2_settings[2] = f"DisplayEndScreenForAllMaps: {'true' if enabled else 'false'}\n"
-            cu2_settings_file.seek(0)
-            cu2_settings_file.truncate()
-            cu2_settings_file.writelines(cu2_settings)
 
 
 log: Optional[logging.Logger] = None
