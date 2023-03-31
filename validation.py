@@ -8,12 +8,13 @@ import main
 
 
 class ValidationResult:
-    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, finaltime: str = None, timesave: str = None):
+    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, finaltime: str = None, timesave: str = None, wip: bool = False):
         self.valid_tas = valid_tas
         self.warning_text = warning_text
         self.log_text = log_text
         self.timesave = timesave
         self.finaltime = finaltime
+        self.wip = wip
 
         if valid_tas:
             log.info("TAS file and improvement post have been validated")
@@ -58,7 +59,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         else:
             timesave = None
 
-        return ValidationResult(True, finaltime=finaltime, timesave=timesave)
+        return ValidationResult(True, finaltime=finaltime, timesave=timesave, wip=wip_in_message)
 
     if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
         return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")

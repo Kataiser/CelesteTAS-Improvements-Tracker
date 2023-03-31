@@ -123,7 +123,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
                 history_log.info(history_data)
                 log.info("Added to history log")
-                await message.add_reaction('📝')
+                await message.add_reaction('🚧' if validation_result.wip else '📝')
                 await edit_pin(message.channel)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
@@ -273,6 +273,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            "\n⏭ = React to commit invalid post anyway" \
            "\n👍 = Non-TAS containing message" \
            "\n🤘 = Successfully verified draft but didn't commit" \
+           "\n🚧 = Committed WIP file" \
            "\n🍿 = Video in message```"
 
     if project['do_run_validation']:
