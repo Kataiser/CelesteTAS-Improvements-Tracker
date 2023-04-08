@@ -43,7 +43,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         log.info(f"Skipping validation ({wip_in_message=})")
         # ok this is really ugly, but we do need final time and timesave
 
-        if old_tas and not is_dash_save:
+        if old_tas and found_finaltime and not is_dash_save:
             old_has_finaltime, old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[1:4]
 
             if old_has_finaltime:
