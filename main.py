@@ -305,9 +305,9 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
     text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text)
 
-    if len(text_out) > 1990:
+    if len(text_out) > 1900:
         log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
-        text_out = text_out[-1990:]
+        text_out = text_out[:1900]
 
     if create:
         log.info("Creating pin")
@@ -366,6 +366,10 @@ async def handle_game_sync_results():
         report_text = results[project_id]
         improvements_channel = client.get_channel(int(project_id))
         await edit_pin(improvements_channel)
+
+        if len(report_text) > 1900:
+            log.warning(f"Report text is too long ({len(report_text)} chars), trimming")
+            report_text = report_text[:1900]
 
         if report_text:
             await improvements_channel.send(report_text)
