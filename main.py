@@ -305,8 +305,9 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
     text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text)
 
-    if len(text_out) > 1800:
-        log.warning(f"Pin text is dangerously long ({len(text_out)} chars)")
+    if len(text_out) > 1990:
+        log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
+        text_out = text_out[-1990:]
 
     if create:
         log.info("Creating pin")
