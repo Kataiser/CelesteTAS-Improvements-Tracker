@@ -41,7 +41,7 @@ def run_syncs():
 
     try:
         for project_id in test_projects:
-            if main.projects[project_id]['do_run_validation'] and main.path_caches[project_id]:
+            if (main.projects[project_id]['do_run_validation'] or cli_project_id) and main.path_caches[project_id]:
                 results[project_id] = sync_test(project_id)
     except Exception as error:
         log.error(repr(error))
@@ -188,7 +188,7 @@ def sync_test(project_id: int) -> Optional[str]:
         time.sleep(5)
         extra_sleeps = 0
 
-        while os.path.getmtime(temp_path) == initial_mtime and extra_sleeps < 10:
+        while os.path.getmtime(temp_path) == initial_mtime and extra_sleeps < 5:
             time.sleep(3 + (extra_sleeps ** 2))
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
