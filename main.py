@@ -367,11 +367,11 @@ async def handle_game_sync_results():
         improvements_channel = client.get_channel(int(project_id))
         await edit_pin(improvements_channel)
 
-        if len(report_text) > 1900:
-            log.warning(f"Report text is too long ({len(report_text)} chars), trimming")
-            report_text = report_text[:1900]
-
         if report_text:
+            if len(report_text) > 1900:
+                log.warning(f"Report text is too long ({len(report_text)} chars), trimming")
+                report_text = report_text[:1900]
+
             await improvements_channel.send(report_text)
 
     os.remove('sync\\game_sync_results.json')
