@@ -377,6 +377,17 @@ async def handle_game_sync_results():
     os.remove('sync\\game_sync_results.json')
 
 
+def missing_channel_permissions(channel: discord.TextChannel) -> list:
+    improvements_channel_permissions = channel.permissions_for(channel.guild.me)
+    permissions_needed = {'View Channel': improvements_channel_permissions.read_messages,
+                          'Send Messages': improvements_channel_permissions.send_messages,
+                          'Read Messages': improvements_channel_permissions.read_messages,
+                          'Read Message History': improvements_channel_permissions.read_message_history,
+                          'Add Reactions': improvements_channel_permissions.add_reactions}
+
+    return [perm for perm in permissions_needed if not permissions_needed[perm]]
+
+
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
     with open('sync\\githubs.json', 'r') as githubs_json:
         github_accounts = ujson.load(githubs_json)
@@ -469,6 +480,6 @@ project_logs = {}
 path_caches = {}
 headers = None
 login_time = None
-client = None
+client: Optional[discord.Client] = None
 safe_mode = None
 safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564)

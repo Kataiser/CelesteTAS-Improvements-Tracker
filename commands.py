@@ -105,19 +105,12 @@ async def command_register_project(message: discord.Message):
         return
 
     # verify needed permissions in improvements channel
-    improvements_channel_permissions = improvements_channel.permissions_for(improvements_channel.guild.me)
-    permissions_needed = {'View Channel': improvements_channel_permissions.read_messages,
-                          'Send Messages': improvements_channel_permissions.send_messages,
-                          'Read Messages': improvements_channel_permissions.read_messages,
-                          'Read Message History': improvements_channel_permissions.read_message_history,
-                          'Add Reactions': improvements_channel_permissions.add_reactions}
-
-    for permission in permissions_needed:
-        if not permissions_needed[permission]:
-            error = f"Don't have {permission} permission for #{improvements_channel.name} ({improvements_channel_id})"
-            log.error(error)
-            await message.channel.send(error)
-            return
+    missing_permissions = main.missing_channel_permissions(improvements_channel)
+    if missing_permissions:
+        error = f"Don't have {missing_permissions[0]} permission for #{improvements_channel.name} ({improvements_channel_id})"
+        log.error(error)
+        await message.channel.send(error)
+        return
 
     # verify github account exists
     r = requests.get(f'https://api.github.com/users/{github_account}', headers={'Accept': 'application/vnd.github.v3+json'})

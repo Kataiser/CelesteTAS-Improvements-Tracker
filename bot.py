@@ -79,7 +79,7 @@ async def on_ready():
     for improvements_channel_id in reversed(projects_to_scan):
         improvements_channel = client.get_channel(improvements_channel_id)
 
-        if not improvements_channel:
+        if not improvements_channel or main.missing_channel_permissions(improvements_channel):
             log.error(f"Can't access improvements channel for project {main.projects[improvements_channel_id]['name']}")
             continue
 
