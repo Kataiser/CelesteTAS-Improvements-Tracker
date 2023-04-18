@@ -18,6 +18,7 @@ from discord.ext import tasks
 
 import commands
 import gen_token
+import main
 import spreadsheet
 import utils
 import validation
@@ -62,6 +63,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
         add_project_log(message)
         log.info("Done processing message")
+        await main.set_status(message)
         return
     elif len(tas_attachments) > 1:
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
@@ -146,6 +148,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
     await message.clear_reaction('👀')
     log.info("Done processing message")
+    await main.set_status(message)
 
 
 # assumes already verified TAS
@@ -386,6 +389,16 @@ def missing_channel_permissions(channel: discord.TextChannel) -> list:
                           'Add Reactions': improvements_channel_permissions.add_reactions}
 
     return [perm for perm in permissions_needed if not permissions_needed[perm]]
+
+
+async def set_status(message: Optional[discord.Message] = None):
+    if message:
+        status = f"{len(projects)} TAS projects, last processed post from {message.author.name} in \"{projects[message.channel.id]['name']}\""
+    else:
+        status = f"{len(projects)} TAS projects"
+
+    log.info(f"Setting status to \"Watching {status}\"")
+    await client.change_presence(status=discord.Status.online, activity=discord.Activity(name=status, type=discord.ActivityType.watching))
 
 
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
