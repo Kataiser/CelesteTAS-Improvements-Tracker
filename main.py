@@ -393,7 +393,7 @@ def missing_channel_permissions(channel: discord.TextChannel) -> list:
 
 async def set_status(message: Optional[discord.Message] = None):
     if message:
-        status = f"{len(projects)} TAS projects, last processed post from {message.author.name} in \"{projects[message.channel.id]['name']}\""
+        status = f"{len(projects)} TAS projects, last processed post from {utils.nickname(message.author)} in \"{projects[message.channel.id]['name']}\""
     else:
         status = f"{len(projects)} TAS projects"
 
