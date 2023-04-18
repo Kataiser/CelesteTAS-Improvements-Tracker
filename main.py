@@ -284,7 +284,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         filetimes = project['filetimes']
 
         if last_run:
-            sync_timestamp = f"<t:{last_run}>"
+            sync_timestamp = f"<t:{last_run}> (<t:{last_run}:R>)"
         else:
             sync_timestamp = "`Not yet run`"
 
