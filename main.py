@@ -264,8 +264,8 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
            f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
            f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
-           "\n\nRepo: <{1}> (using <https://desktop.github.com> is recommended)" \
-           "\nPackage DL: <{2}>" \
+           "\n\nRepo: <{1}> (using [GitHub Desktop](<https://desktop.github.com>) is recommended)" \
+           "\n[Package download](<{2}>)" \
            "\nAdmin{6}: {3}" \
            "\nLast sync check: {4}{5}{7}" \
            "\nBot reactions key:" \
