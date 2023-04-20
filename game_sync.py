@@ -37,12 +37,11 @@ def run_syncs():
 
     utils.projects = utils.load_projects()
     main.path_caches = utils.load_path_caches()
-    results = {}
 
     try:
         for project_id in test_projects:
             if (main.projects[project_id]['do_run_validation'] or cli_project_id) and main.path_caches[project_id]:
-                results[project_id] = sync_test(project_id)
+                sync_test(project_id)
     except Exception as error:
         log.error(repr(error))
         close_game()
@@ -51,16 +50,8 @@ def run_syncs():
 
     post_cleanup()
 
-    if results:
-        with open('sync\\game_sync_results.json', 'w', encoding='UTF8') as game_sync_results:
-            ujson.dump(results, game_sync_results, indent=4)
 
-        log.info("Created results file")
-    else:
-        log.info("Didn't create results file")
-
-
-def sync_test(project_id: int) -> Optional[str]:
+def sync_test(project_id: int):
     project = main.projects[project_id]
     log.info(f"Running sync test for project: {project['name']}")
     mods = project['mods']
@@ -254,7 +245,12 @@ def sync_test(project_id: int) -> Optional[str]:
 
     main.projects[project_id] = project  # yes this is dumb
     utils.save_projects()
-    return report_text
+
+    with open(f'sync\\sync_result_{project_id}.txt', 'w', encoding='UTF8') as sync_result:
+        if report_text:
+            sync_result.write(report_text)
+
+    log.info("Created result file")
 
 
 def generate_blacklist(mods_to_load: set):

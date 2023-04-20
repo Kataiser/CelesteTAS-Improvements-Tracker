@@ -354,19 +354,26 @@ def convert_line_endings(tas: bytes, old_tas: Optional[bytes]) -> bytes:
 
 @tasks.loop(minutes=1)
 async def handle_game_sync_results():
-    if not os.path.isfile('sync\\game_sync_results.json'):
+    sync_result_found = []
+
+    for file in os.listdir('sync'):
+        if file.startswith('sync_result_') and file.endswith('.txt'):
+            sync_result_found.append(f'sync\\{file}')
+
+    if not sync_result_found:
         return
 
     global projects, path_caches, client
     projects = utils.load_projects()
     path_caches = utils.load_path_caches()
 
-    with open('sync\\game_sync_results.json', 'r', encoding='UTF8') as game_sync_results:
-        results = ujson.load(game_sync_results)
+    for sync_result_filename in sync_result_found:
+        project_id = sync_result_filename.rpartition('_')[2][:-4]
+        log.info(f"Handling game sync result for project {projects[int(project_id)]['name']}")
 
-    for project_id in results:
-        log.info(f"Handling game sync results for project {projects[int(project_id)]['name']}")
-        report_text = results[project_id]
+        with open(sync_result_filename, 'r', encoding='UTF8') as sync_result_file:
+            report_text = sync_result_file.read()
+
         improvements_channel = client.get_channel(int(project_id))
         await edit_pin(improvements_channel)
 
@@ -377,7 +384,7 @@ async def handle_game_sync_results():
 
             await improvements_channel.send(report_text)
 
-    os.remove('sync\\game_sync_results.json')
+        os.remove('sync\\game_sync_results.json')
 
 
 def missing_channel_permissions(channel: discord.TextChannel) -> list:
