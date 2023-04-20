@@ -384,7 +384,7 @@ async def handle_game_sync_results():
 
             await improvements_channel.send(report_text)
 
-        os.remove('sync\\game_sync_results.json')
+        os.remove(sync_result_filename)
 
 
 def missing_channel_permissions(channel: discord.TextChannel) -> list:
