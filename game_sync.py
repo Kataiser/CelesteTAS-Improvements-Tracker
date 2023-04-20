@@ -1,10 +1,10 @@
 import argparse
 import base64
 import functools
-import io
 import logging
 import os
 import shutil
+import stat
 import subprocess
 import time
 import zipfile
@@ -85,21 +85,21 @@ def sync_test(project_id: int) -> Optional[str]:
     main.generate_path_cache(project_id)
     path_cache = main.path_caches[project_id]
 
-    # download repo
+    # clone repo
+    repo_cloned = repo.partition('/')[2]
+    repo_path = f'E:\\Big downloads\\celeste\\repos\\{repo_cloned}'
+
     if not os.path.isdir(r'E:\Big downloads\celeste\repos'):
         os.mkdir(r'E:\Big downloads\celeste\repos')
+    elif os.path.isdir(repo_path):
+        shutil.rmtree(repo_path)
 
-    log.info("Downloading repo zip")
-    r = requests.get(f'https://github.com/{repo}/archive/refs/heads/main.zip', timeout=60)
-    utils.handle_potential_request_error(r, 200)
-
-    with zipfile.ZipFile(io.BytesIO(r.content), 'r') as repo_zip:
-        root = repo_zip.namelist()[0][:-1]
-        repo_path = f'E:\\Big downloads\\celeste\\repos\\{root}'
-        repo_dir = f'repos/{root}'.replace('\\', '/')
-        repo_zip.extractall(path=r'E:\Big downloads\celeste\repos')
-
-    log.info("Extracted repo zip")
+    time.sleep(0.1)
+    cwd = os.getcwd()
+    os.chdir(r'E:\Big downloads\celeste\repos')
+    subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
+    os.chdir(cwd)
+    log.info(f"Cloned repo to {repo_path}")
 
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
@@ -123,30 +123,29 @@ def sync_test(project_id: int) -> Optional[str]:
             break
 
     for tas_filename in path_cache:
-        file_path = path_cache[tas_filename]
+        file_path_repo = path_cache[tas_filename]
+        file_path_repo_backslashes = file_path_repo.replace('/', '\\')
+        file_path = f'{repo_path}\\{file_path_repo_backslashes}'
 
-        if 'lobby' in file_path.lower() and 'lobby' not in tas_filename.lower():
+        if 'lobby' in file_path_repo.lower() and 'lobby' not in tas_filename.lower():
             log.info(f"Skipping {tas_filename} (lobby)")
             continue
         elif tas_filename == 'translocation.tas':
             files_timed += 1
             continue
 
-        with open(f'{repo_path}\\{file_path}', 'r') as tas_file:
+        with open(file_path, 'r', encoding='UTF8') as tas_file:
             tas_lines = tas_file.readlines()
 
-        # set up temp tas file
+        # set up tas file
         _, found_final_time, final_time, final_time_trimmed, chapter_time_line, _ = validation.parse_tas_file(tas_lines, False, False, True)
 
         if found_final_time:
             has_filetime = tas_lines[chapter_time_line].startswith('FileTime')
 
             if has_filetime:
+                tas_lines_og = tas_lines.copy()
                 tas_lines[chapter_time_line] = 'FileTime: \n'
-
-                for line in enumerate(tas_lines):
-                    if line[1].startswith('Read'):
-                        tas_lines[line[0]] = line[1].replace('Read,', f'Read,{repo_dir}/')
             else:
                 tas_lines[chapter_time_line] = 'ChapterTime: \n'
         else:
@@ -155,13 +154,13 @@ def sync_test(project_id: int) -> Optional[str]:
 
         tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
         tas_lines.append('***')
-        temp_path = r'E:\Big downloads\celeste\temp.tas'
 
-        with open(temp_path, 'w', encoding='UTF8') as temp_tas:
-            temp_tas.write(''.join(tas_lines))
+        with open(file_path, 'w', encoding='UTF8') as tas_file:
+            tas_file.truncate()
+            tas_file.write(''.join(tas_lines))
 
         time.sleep(0.2)
-        initial_mtime = os.path.getmtime(temp_path)
+        initial_mtime = os.path.getmtime(file_path)
 
         # now run it
         log.info(f"Testing timing of {tas_filename} ({final_time_trimmed})")
@@ -169,7 +168,7 @@ def sync_test(project_id: int) -> Optional[str]:
 
         while not tas_started:
             try:
-                requests.post(r'http://localhost:32270/tas/playtas?filePath=E:\Big downloads\celeste\temp.tas', timeout=10)
+                requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
                 tas_started = True
                 tas_finished = False
             except (requests.Timeout, requests.ConnectionError):
@@ -188,14 +187,14 @@ def sync_test(project_id: int) -> Optional[str]:
         time.sleep(5)
         extra_sleeps = 0
 
-        while os.path.getmtime(temp_path) == initial_mtime and extra_sleeps < 5:
+        while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
             time.sleep(3 + (extra_sleeps ** 2))
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
 
         # determine if it synced or not
-        with open(temp_path, 'rb') as temp_file:
-            tas_updated = validation.as_lines(temp_file.read())
+        with open(file_path, 'rb') as tas_file:
+            tas_updated = validation.as_lines(tas_file.read())
 
         _, found_final_time, final_time_new, final_time_new_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_updated, False, False, True)
 
@@ -215,16 +214,12 @@ def sync_test(project_id: int) -> Optional[str]:
                 if not synced:
                     # commit updated fullgame file
                     new_time_line = tas_updated[final_time_line_num]
-
-                    with open(f'{repo_path}\\{file_path}', 'r') as tas_file:
-                        tas_lines = tas_file.readlines()
-
-                    tas_lines[final_time_line_num - 1] = new_time_line
-                    commit_data = {'content': base64.b64encode(''.join(tas_lines).encode('UTF8')).decode('UTF8'),
-                                   'sha': main.get_sha(repo, file_path),
+                    tas_lines_og[final_time_line_num - 1] = new_time_line
+                    commit_data = {'content': base64.b64encode(''.join(tas_lines_og).encode('UTF8')).decode('UTF8'),
+                                   'sha': main.get_sha(repo, file_path_repo),
                                    'message': f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"}
                     log.info(f"Committing updated fullgame file: \"{commit_data['message']}\"")
-                    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=ujson.dumps(commit_data))
+                    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_repo}', headers=main.headers, data=ujson.dumps(commit_data))
                     utils.handle_potential_request_error(r, 200)
                     commit_url = ujson.loads(r.content)['commit']['html_url']
                     log.info(f"Successfully committed: {commit_url}")
@@ -282,13 +277,16 @@ def remove_debug_save_files():
     for debug_save_file in debug_save_files:
         os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
 
-    log.info(f"Removed {len(debug_save_files)} debug save files")
+    try:
+        log.info(f"Removed {len(debug_save_files)} debug save files")
+    except AttributeError:
+        pass
 
 
 def post_cleanup():
     generate_blacklist(set())
     remove_debug_save_files()
-    files_to_remove = ['log.txt', 'temp.tas']
+    files_to_remove = ['log.txt']
     dirs_to_remove = ['LogHistory', 'TAS Files\\Backups', 'repos']
     files_removed = 0
     dirs_removed = 0
@@ -305,9 +303,14 @@ def post_cleanup():
 
         if os.path.isdir(dir_to_remove):
             dirs_removed += 1
-            shutil.rmtree(dir_to_remove)
+            shutil.rmtree(dir_to_remove, onerror=del_rw)
 
     log.info(f"Deleted {files_removed} file{plural(files_removed)} and {dirs_removed} dir{plural(dirs_to_remove)} from game install")
+
+
+def del_rw(action, name, exc):
+    os.chmod(name, stat.S_IWRITE)
+    os.remove(name)
 
 
 def close_game():
