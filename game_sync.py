@@ -25,7 +25,7 @@ def run_syncs():
     global log
     log = main.create_loggers('game_sync.log')[0]
     parser = argparse.ArgumentParser()
-    parser.add_argument('--p', type=int, help="Only sync test a specific project (ID)", required=False)
+    parser.add_argument('-p', type=int, help="Only sync test a specific project (ID)", required=False)
     cli_project_id = parser.parse_args().p
 
     if cli_project_id:
@@ -61,6 +61,7 @@ def sync_test(project_id: int):
     mods_to_load = set(mods)
     files_timed = 0
     remove_debug_save_files()
+    queued_filetime_commits = []
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
@@ -83,7 +84,7 @@ def sync_test(project_id: int):
     if not os.path.isdir(r'E:\Big downloads\celeste\repos'):
         os.mkdir(r'E:\Big downloads\celeste\repos')
     elif os.path.isdir(repo_path):
-        shutil.rmtree(repo_path)
+        shutil.rmtree(repo_path, onerror=del_rw)
 
     time.sleep(0.1)
     cwd = os.getcwd()
@@ -114,6 +115,7 @@ def sync_test(project_id: int):
             break
 
     for tas_filename in path_cache:
+        files_timed += 1
         file_path_repo = path_cache[tas_filename]
         file_path_repo_backslashes = file_path_repo.replace('/', '\\')
         file_path = f'{repo_path}\\{file_path_repo_backslashes}'
@@ -122,7 +124,6 @@ def sync_test(project_id: int):
             log.info(f"Skipping {tas_filename} (lobby)")
             continue
         elif tas_filename == 'translocation.tas':
-            files_timed += 1
             continue
 
         with open(file_path, 'r', encoding='UTF8') as tas_file:
@@ -203,23 +204,15 @@ def sync_test(project_id: int):
                 project['filetimes'][tas_filename] = final_time_new_trimmed
 
                 if not synced:
-                    # commit updated fullgame file
                     new_time_line = tas_updated[final_time_line_num]
                     tas_lines_og[final_time_line_num - 1] = new_time_line
-                    commit_data = {'content': base64.b64encode(''.join(tas_lines_og).encode('UTF8')).decode('UTF8'),
-                                   'sha': main.get_sha(repo, file_path_repo),
-                                   'message': f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"}
-                    log.info(f"Committing updated fullgame file: \"{commit_data['message']}\"")
-                    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_repo}', headers=main.headers, data=ujson.dumps(commit_data))
-                    utils.handle_potential_request_error(r, 200)
-                    commit_url = ujson.loads(r.content)['commit']['html_url']
-                    log.info(f"Successfully committed: {commit_url}")
+                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"
+                    queued_filetime_commits.append((file_path_repo, ''.join(tas_lines_og), commit_message))
+                    # don't commit now, since there may be desyncs
         else:
             log.warning(f"Desynced (no {'FileTime' if has_filetime else 'ChapterTime'})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append(tas_filename)
-
-        files_timed += 1
 
     close_game()
     current_time = int(time.time())
@@ -238,10 +231,10 @@ def sync_test(project_id: int):
         report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
                       f"\n```\n{new_desyncs_formatted}```{desyncs_block}"
 
-    if time_since_last_commit > 2600000 and project['do_run_validation']:
+    if time_since_last_commit > 1209600 and project['do_run_validation']:
         project['do_run_validation'] = False
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
-        report_text = "Disabled nightly sync checking after a month of no improvements."
+        report_text = "Disabled nightly sync checking after two weeks of no improvements."
 
     main.projects[project_id] = project  # yes this is dumb
     utils.save_projects()
@@ -251,6 +244,26 @@ def sync_test(project_id: int):
             sync_result.write(report_text)
 
     log.info("Created result file")
+
+    # commit updated fullgame files
+    for queued_commit in queued_filetime_commits:
+        file_path_repo, lines_joined, commit_message = queued_commit
+        desyncs_found = [d for d in desyncs if d[:-4] in lines_joined]
+
+        # but only if all the files in them sync
+        if desyncs_found:
+            log.info(f"Not committing updated fullgame file {file_path_repo} due to desyncs: {desyncs_found}")
+            continue
+
+        main.generate_request_headers(project['installation_owner'], 300)
+        commit_data = {'content': base64.b64encode(lines_joined.encode('UTF8')).decode('UTF8'),
+                       'sha': main.get_sha(repo, file_path_repo),
+                       'message': commit_message}
+        log.info(f"Committing updated fullgame file: \"{commit_data['message']}\"")
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_repo}', headers=main.headers, data=ujson.dumps(commit_data))
+        utils.handle_potential_request_error(r, 200)
+        commit_url = ujson.loads(r.content)['commit']['html_url']
+        log.info(f"Successfully committed: {commit_url}")
 
 
 def generate_blacklist(mods_to_load: set):
