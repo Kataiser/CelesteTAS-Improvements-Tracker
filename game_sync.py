@@ -138,6 +138,7 @@ def sync_test(project_id: int):
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
                 tas_lines[chapter_time_line] = 'FileTime: \n'
+                tas_lines.extend(('unsafe\n', 'console overworld\n', '   3\n', 'console clrsav\n'))
             else:
                 tas_lines[chapter_time_line] = 'ChapterTime: \n'
         else:
@@ -176,7 +177,7 @@ def sync_test(project_id: int):
                 tas_finished = 'Running: False' in session_data
 
         log.info("TAS has finished")
-        time.sleep(5)
+        time.sleep(3)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
