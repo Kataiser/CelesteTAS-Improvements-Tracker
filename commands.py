@@ -90,11 +90,8 @@ async def command_register_project(message: discord.Message):
             return
 
         log.info("This project already exists, preserving some keys")
-        previous = {'install_time': main.projects[improvements_channel_id]['install_time'],
-                    'pin': main.projects[improvements_channel_id]['pin'],
-                    'mods': main.projects[improvements_channel_id]['mods'],
-                    'last_run_validation': main.projects[improvements_channel_id]['last_run_validation'],
-                    'admins': main.projects[improvements_channel_id]['admins']}
+        preserved_keys = ('install_time', 'pin', 'mods', 'last_run_validation', 'admins', 'desyncs', 'filetimes')
+        previous = {key: main.projects[improvements_channel_id][key] for key in preserved_keys}
 
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
@@ -171,10 +168,10 @@ async def command_register_project(message: discord.Message):
         main.projects[improvements_channel_id]['pin'] = pinned_message.id
         main.project_logs[improvements_channel_id] = []
     else:
-        await main.edit_pin(improvements_channel)
-
         for previous_key in previous:
             main.projects[improvements_channel_id][previous_key] = previous[previous_key]
+
+        await main.edit_pin(improvements_channel)
 
     utils.save_projects()
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {main.projects[improvements_channel_id]}"
