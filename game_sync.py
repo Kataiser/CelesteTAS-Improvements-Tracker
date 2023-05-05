@@ -115,7 +115,6 @@ def sync_test(project_id: int):
             break
 
     for tas_filename in path_cache:
-        files_timed += 1
         file_path_repo = path_cache[tas_filename]
         file_path_repo_backslashes = file_path_repo.replace('/', '\\')
         file_path = f'{repo_path}\\{file_path_repo_backslashes}'
@@ -130,15 +129,15 @@ def sync_test(project_id: int):
             tas_lines = tas_file.readlines()
 
         # set up tas file
-        _, found_final_time, final_time, final_time_trimmed, chapter_time_line, _ = validation.parse_tas_file(tas_lines, False, False, True)
+        _, found_final_time, final_time, final_time_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_lines, False, False, True)
 
         if found_final_time:
-            has_filetime = tas_lines[chapter_time_line].startswith('FileTime')
+            has_filetime = tas_lines[final_time_line_num].startswith('FileTime')
 
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
-                tas_lines[chapter_time_line] = 'FileTime: \n'
-                tas_lines.extend(('unsafe\n', 'console overworld\n', '3\n', 'console clrsav\n'))  # clear debug save to remove silvers
+                final_time_line_num_og = final_time_line_num
+                tas_lines[final_time_line_num] = 'FileTime: \n'
                 has_console_load = [line for line in tas_lines if line.startswith('console load')] != []
 
                 if not has_console_load:
@@ -146,7 +145,7 @@ def sync_test(project_id: int):
                     tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 5\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n',
                                      '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
             else:
-                tas_lines[chapter_time_line] = 'ChapterTime: \n'
+                tas_lines[final_time_line_num] = 'ChapterTime: \n'
         else:
             log.info(f"{tas_filename} has no final time")
             continue
@@ -197,6 +196,15 @@ def sync_test(project_id: int):
 
         _, found_final_time, final_time_new, final_time_new_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_updated, False, False, True)
 
+        # clear debug save, for silvers
+        if has_filetime:
+            try:
+                requests.post('http://localhost:32270/console?command=overworld', timeout=2)
+                time.sleep(0.5)
+                requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
+            except (requests.Timeout, requests.ConnectionError):
+                pass
+
         if found_final_time:
             frame_diff = validation.calculate_time_difference(final_time_new, final_time)
             synced = frame_diff == 0
@@ -212,7 +220,7 @@ def sync_test(project_id: int):
 
                 if not synced:
                     new_time_line = tas_updated[final_time_line_num]
-                    tas_lines_og[final_time_line_num - 1] = new_time_line
+                    tas_lines_og[final_time_line_num_og] = new_time_line
                     commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"
                     queued_filetime_commits.append((file_path_repo, ''.join(tas_lines_og), commit_message))
                     # don't commit now, since there may be desyncs
@@ -220,6 +228,8 @@ def sync_test(project_id: int):
             log.warning(f"Desynced (no {'FileTime' if has_filetime else 'ChapterTime'})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append(tas_filename)
+
+        files_timed += 1
 
     close_game()
     current_time = int(time.time())
