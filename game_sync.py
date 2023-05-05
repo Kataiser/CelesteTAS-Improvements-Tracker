@@ -63,7 +63,6 @@ def sync_test(project_id: int):
     files_timed = 0
     remove_debug_save_files()
     queued_filetime_commits = []
-    load_sid_caches()
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
