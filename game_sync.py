@@ -62,6 +62,7 @@ def sync_test(project_id: int):
     files_timed = 0
     remove_debug_save_files()
     queued_filetime_commits = []
+    load_sid_caches()
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
@@ -125,6 +126,8 @@ def sync_test(project_id: int):
         elif tas_filename == 'translocation.tas':
             continue
 
+        log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
+
         with open(file_path, 'r', encoding='UTF8') as tas_file:
             tas_lines = tas_file.readlines()
 
@@ -146,6 +149,15 @@ def sync_test(project_id: int):
                                      '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
             else:
                 tas_lines[final_time_line_num] = 'ChapterTime: \n'
+
+                # add assert for cached SID
+                if file_path_repo in sid_caches[project_id]:
+                    for tas_line in enumerate(tas_lines):
+                        if tas_line[1].lower() == '#start\n':
+                            sid = sid_caches[project_id][file_path_repo]
+                            tas_lines.insert(tas_line[0] + 2, f'Assert,Equal,{sid},Session.Area.SID\n')
+                            log.info(f"Added SID {sid} assertion")
+                            break
         else:
             log.info(f"{tas_filename} has no final time")
             continue
@@ -161,9 +173,7 @@ def sync_test(project_id: int):
         initial_mtime = os.path.getmtime(file_path)
 
         # now run it
-        log.info(f"Testing timing of {tas_filename} ({final_time_trimmed})")
         tas_started = False
-
         while not tas_started:
             try:
                 requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
@@ -200,7 +210,7 @@ def sync_test(project_id: int):
         if has_filetime:
             try:
                 requests.post('http://localhost:32270/console?command=overworld', timeout=2)
-                time.sleep(0.5)
+                time.sleep(1)
                 requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
             except (requests.Timeout, requests.ConnectionError):
                 pass
@@ -213,7 +223,16 @@ def sync_test(project_id: int):
                 log_command = log.info if synced else log.warning
                 log_command(f"{'Synced' if synced else 'Desynced'}: {final_time_trimmed} -> {final_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
-                if not synced:
+                if synced:
+                    sid = session_data.partition('SID: ')[2].partition(' ')[0]
+
+                    if file_path_repo not in sid_caches[project_id] and sid:
+                        sid_caches[project_id][file_path_repo] = sid
+                        save_sid_caches()
+                        log.info(f"Cached SID for {file_path_repo}")
+                    elif not sid:
+                        log.warning(f"Running {file_path_repo} yielded no SID")
+                else:
                     desyncs.append(tas_filename)
             else:
                 project['filetimes'][tas_filename] = final_time_new_trimmed
@@ -405,7 +424,31 @@ def mods_dir() -> str:
         raise FileNotFoundError("ok where'd my mods go")
 
 
+def load_sid_caches():
+    global sid_caches
+    added_key = False
+
+    with open('sync\\sid_caches.json', 'r', encoding='UTF8') as sid_caches_file:
+        sid_caches = ujson.load(sid_caches_file)
+        sid_caches = {int(k): sid_caches[k] for k in sid_caches}
+
+    for project_id in main.projects:
+        if main.projects[project_id]['do_run_validation'] and project_id not in sid_caches:
+            sid_caches[project_id] = {}
+            added_key = True
+            log.info(f"Added SID cache entry for project {main.projects[project_id]['name']}")
+
+    if added_key:
+        save_sid_caches()
+
+
+def save_sid_caches():
+    with open('sync\\sid_caches.json', 'w', encoding='UTF8') as sid_caches_file:
+        ujson.dump(sid_caches, sid_caches_file, ensure_ascii=False, indent=4, escape_forward_slashes=False)
+
+
 log: Optional[logging.Logger] = None
+sid_caches: Optional[dict] = None
 
 if __name__ == '__main__':
     run_syncs()
