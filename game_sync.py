@@ -94,6 +94,28 @@ def sync_test(project_id: int):
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
 
+    # add asserts for cached SIDs
+    asserts_added = []
+
+    for tas_filename in path_cache:
+        file_path_repo = path_cache[tas_filename]
+
+        if file_path_repo in sid_caches[project_id]:
+            with open(f'{repo_path}\\{file_path_repo}'.replace('/', '\\'), 'r+') as tas_file:
+                tas_lines = tas_file.readlines()
+                sid = sid_caches[project_id][file_path_repo]
+
+                for tas_line in enumerate(tas_lines):
+                    if tas_line[1].lower() == '#start\n':
+                        tas_lines.insert(tas_line[0] + 2, f'Assert,Equal,{sid},Session.Area.SID\n')
+                        tas_file.seek(0)
+                        tas_file.writelines(tas_lines)
+                        asserts_added.append((file_path_repo, sid))
+                        break
+
+    if asserts_added:
+        log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
+
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
         try:
@@ -131,7 +153,6 @@ def sync_test(project_id: int):
 
         # set up tas file
         _, found_final_time, final_time, final_time_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_lines, False, False, True)
-        log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
 
         if found_final_time:
             has_filetime = tas_lines[final_time_line_num].startswith('FileTime')
@@ -148,15 +169,6 @@ def sync_test(project_id: int):
                                      '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
             else:
                 tas_lines[final_time_line_num] = 'ChapterTime: \n'
-
-                # add assert for cached SID
-                if file_path_repo in sid_caches[project_id]:
-                    for tas_line in enumerate(tas_lines):
-                        if tas_line[1].lower() == '#start\n':
-                            sid = sid_caches[project_id][file_path_repo]
-                            tas_lines.insert(tas_line[0] + 2, f'Assert,Equal,{sid},Session.Area.SID\n')
-                            log.info(f"Added SID {sid} assertion")
-                            break
         else:
             log.info(f"{tas_filename} has no final time")
             continue
@@ -168,11 +180,12 @@ def sync_test(project_id: int):
             tas_file.truncate()
             tas_file.write(''.join(tas_lines))
 
+        # now run it
         time.sleep(0.2)
         initial_mtime = os.path.getmtime(file_path)
-
-        # now run it
+        log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
         tas_started = False
+
         while not tas_started:
             try:
                 requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
