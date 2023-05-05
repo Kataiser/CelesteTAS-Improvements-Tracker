@@ -138,7 +138,13 @@ def sync_test(project_id: int):
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
                 tas_lines[chapter_time_line] = 'FileTime: \n'
-                tas_lines.extend(('unsafe\n', 'console overworld\n', '   3\n', 'console clrsav\n'))
+                tas_lines.extend(('unsafe\n', 'console overworld\n', '3\n', 'console clrsav\n'))  # clear debug save to remove silvers
+                has_console_load = [line for line in tas_lines if line.startswith('console load')] != []
+
+                if not has_console_load:
+                    # if it starts from begin, then menu there
+                    tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 5\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n',
+                                     '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
             else:
                 tas_lines[chapter_time_line] = 'ChapterTime: \n'
         else:

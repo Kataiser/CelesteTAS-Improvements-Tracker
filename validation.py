@@ -152,7 +152,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
 
 # get breakpoints and final time in one pass
-def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int], bool]:
+def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> \
+        Tuple[list, bool, Optional[str], Optional[str], Optional[int], bool]:
     breakpoints = []
     finaltime_line = None
     finaltime = None
@@ -203,12 +204,12 @@ def calculate_time_difference(time_old: str, time_new: str) -> int:
         return round((float(time_old) - float(time_new)) / 0.017)
 
     if old_has_colon:
-        colon_partition_old = time_old.partition(':')
+        colon_partition_old = time_old.rpartition(':')
     else:
         colon_partition_old = (0, None, time_old)
 
     if new_has_colon:
-        colon_partition_new = time_new.partition(':')
+        colon_partition_new = time_new.rpartition(':')
     else:
         colon_partition_new = (0, None, time_new)
 
@@ -216,12 +217,14 @@ def calculate_time_difference(time_old: str, time_new: str) -> int:
     dot_partition_new = colon_partition_new[2].partition('.')
     minutes_old = colon_partition_old[0]
     minutes_new = colon_partition_new[0]
+    hours_old = minutes_old.partition(':')[0] if ':' in minutes_old else '0'
+    hours_new = minutes_new.partition(':')[0] if ':' in minutes_new else '0'
     seconds_old = dot_partition_old[0]
     seconds_new = dot_partition_new[0]
     ms_old = dot_partition_old[2]
     ms_new = dot_partition_new[2]
-    time_old_seconds = (int(minutes_old) * 60) + int(seconds_old) + (int(ms_old) / 1000)
-    time_new_seconds = (int(minutes_new) * 60) + int(seconds_new) + (int(ms_new) / 1000)
+    time_old_seconds = (int(hours_old) * 3600) + (int(minutes_old[-2:]) * 60) + int(seconds_old) + (int(ms_old) / 1000)
+    time_new_seconds = (int(hours_new) * 3600) + (int(minutes_new[-2:]) * 60) + int(seconds_new) + (int(ms_new) / 1000)
     return round((time_old_seconds - time_new_seconds) / 0.017)
 
 
@@ -231,8 +234,8 @@ def as_lines(tas: bytes) -> List[str]:
     return lines
 
 
-re_chapter_time = re.compile(r'#{0}ChapterTime: \d+:\d+\.\d+(\d+)')
-re_file_time = re.compile(r'#{0}FileTime: \d+:\d+\.\d+(\d+)')
+re_chapter_time = re.compile(r'#{0}ChapterTime: [\d+:]*\d+:\d+\.\d+(\d+)')
+re_file_time = re.compile(r'#{0}FileTime: [\d+:]*\d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
 re_simulated_stun = re.compile(r'#{0}\s*stunpause(mode)?,?\s*simulate')
 re_timesave_frames = re.compile(r'[-+]\d+f')
