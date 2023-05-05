@@ -126,13 +126,12 @@ def sync_test(project_id: int):
         elif tas_filename == 'translocation.tas':
             continue
 
-        log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
-
         with open(file_path, 'r', encoding='UTF8') as tas_file:
             tas_lines = tas_file.readlines()
 
         # set up tas file
         _, found_final_time, final_time, final_time_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_lines, False, False, True)
+        log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
 
         if found_final_time:
             has_filetime = tas_lines[final_time_line_num].startswith('FileTime')
