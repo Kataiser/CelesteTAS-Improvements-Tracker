@@ -152,7 +152,7 @@ def sync_test(project_id: int):
             tas_lines = tas_file.readlines()
 
         # set up tas file
-        _, found_final_time, final_time, final_time_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_lines, False, False, True)
+        _, found_final_time, final_time, final_time_trimmed, final_time_line_num = validation.parse_tas_file(tas_lines, False, False, True)
 
         if found_final_time:
             has_filetime = tas_lines[final_time_line_num].startswith('FileTime')
@@ -216,7 +216,7 @@ def sync_test(project_id: int):
         with open(file_path, 'rb') as tas_file:
             tas_updated = validation.as_lines(tas_file.read())
 
-        _, found_final_time, final_time_new, final_time_new_trimmed, final_time_line_num, _ = validation.parse_tas_file(tas_updated, False, False, True)
+        _, found_final_time, final_time_new, final_time_new_trimmed, final_time_line_num = validation.parse_tas_file(tas_updated, False, False, True)
 
         # clear debug save, for silvers
         if has_filetime:

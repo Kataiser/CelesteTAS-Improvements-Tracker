@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable
 
 import discord
 
@@ -30,10 +30,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     if not skip_validation and len(tas) > 204800:  # 200 kb
         return ValidationResult(False, f"This TAS file is very large ({len(tas) / 2048} KB). For safety, it won't be processed.", f"{filename} being too long ({len(tas)} bytes)")
 
-    # validate breakpoint and simulated stuns don't exist and chaptertime does
+    # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
-    breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line, found_simulated_stun = parse_tas_file(tas_lines, True)
+    breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
     dash_saves = re_dash_saves.search(message.content)
     is_dash_save = dash_saves is not None
     got_timesave = False
@@ -74,8 +74,39 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
         else:
             return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
-    elif found_simulated_stun:
-        return ValidationResult(False, f"StunPause Simulate mode is not allowed outside of testing routes, please replace it with Input mode and post again.", f"simulated stun in {filename}")
+
+    # validate command usage
+    for line in enumerate(tas_lines):
+        line_num = line[0]
+        line_split = re_split_command.split(line[1])
+
+        if line_split[0].lower() in command_rules:
+            rules_functions = command_rules[line_split[0].lower()]
+
+            if not isinstance(rules_functions, Tuple):
+                return ValidationResult(False, f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {rules_functions}.",
+                                        f"incorrect command argument in {filename}: {line_split[0]}, {rules_functions}")
+
+            args = [i for i in line_split[1:] if i]
+            required_args_count = len([f for f in rules_functions if not isinstance(f, OptionalArg)])
+            args_count_options = required_args_count if required_args_count == len(rules_functions) else f"{required_args_count}-{len(rules_functions)}"
+
+            if len(args) < required_args_count or len(args) > len(rules_functions):
+                return ValidationResult(False, f"Incorrect number of arguments to `{line_split[0]}` command on line {line_num + 1}: is {len(args)}, should be {args_count_options}.",
+                                        f"incorrect command arguments count in {filename}: {line_split[0]}, {len(args)} vs {args_count_options}")
+
+            for arg in enumerate(args):
+                rules_function = rules_functions[arg[0]]
+
+                if isinstance(rules_function, OptionalArg):
+                    rules_function = rules_function.validate_func
+
+                if isinstance(rules_function, Callable):
+                    arg_validity = rules_function(arg[1])
+
+                    if arg_validity is not True:
+                        return ValidationResult(False, f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {arg_validity}.",
+                                                f"incorrect command argument in {filename}: {line_split[0]}, {arg_validity}")
 
     # validate chaptertime is in message content
     if not is_dash_save:
@@ -152,21 +183,17 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
 
 # get breakpoints and final time in one pass
-def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> \
-        Tuple[list, bool, Optional[str], Optional[str], Optional[int], bool]:
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
     breakpoints = []
     finaltime_line = None
     finaltime = None
     finaltime_trimmed = None
     found_chaptertime = False
-    found_simulated_stun = False
 
     for line in enumerate(tas_lines):
-        if find_extras and '***' in line[1] and not line[1].startswith('#'):
+        if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
             log.info(f"Found breakpoint at line {line[0] + 1}")
             breakpoints.append(str(line[0] + 1))
-        elif find_extras and re_simulated_stun.match(line[1].lower()):
-            found_simulated_stun = True
         else:
             if re_chapter_time.match(line[1]):
                 found_chaptertime = True
@@ -190,7 +217,7 @@ def parse_tas_file(tas_lines: list, find_extras: bool, allow_comment_time: bool 
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
 
-    return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line, found_simulated_stun
+    return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
 
 
 def calculate_time_difference(time_old: str, time_new: str) -> int:
@@ -234,12 +261,63 @@ def as_lines(tas: bytes) -> List[str]:
     return lines
 
 
+class OptionalArg:
+    def __init__(self, validate_func: Optional[Callable] = None):
+        self.validate_func = validate_func
+
+
 re_chapter_time = re.compile(r'#{0}ChapterTime: [\d+:]*\d+:\d+\.\d+(\d+)')
 re_file_time = re.compile(r'#{0}FileTime: [\d+:]*\d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
-re_simulated_stun = re.compile(r'#{0}\s*stunpause(mode)?,?\s*simulate')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')
 re_remove_non_digits = re.compile(r'[^\d.:]')
+re_split_command = re.compile('[, ]')
 log: Optional[logging.Logger] = None
+
+analog_modes = (('ignore', 'circle', 'square', 'precise'), "Ignore, Circle, Square, or Precise")
+assert_conditions = (('equal', 'notequal', 'contain', 'notcontain', 'startwith', 'notstartwith', 'endwith', 'notendwith'),
+                     "Equal, NotEqual, Contain, NotContain, StartWith, NotStartWith, EndWith, or NotEndWith")
+stunpause_modes = {'input': True, 'simulate': "Simulate mode is not allowed outside of testing routes"}
+mouse_buttons = (('l', 'r', 'm', 'x1', 'x2'), "L, R, M, X1, or X2")
+set_exceptions = ('celestetas.simplifiedgraphics', 'celestetas.simplifiedbackdrop')
+command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_modes[0] else f"mode must be {analog_modes[1]}, you used \"{mode}\"",),
+                 'read': (True, OptionalArg(), OptionalArg()),
+                 'play': (True, OptionalArg(lambda wait_frames: True if wait_frames.isdigit() else f"wait frames must be a number, you used \"{wait_frames}\"")),
+                 'repeat': (lambda count: True if count.isdigit() else f"count must be a number, you used \"{count}\"",),
+                 'endrepeat': (),
+                 'console': (lambda command: True if command.lower() == 'load' else "Console command is not allowed",
+                             OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg()),
+                 'set': (lambda field: True if field.lower() in set_exceptions else "Set command is not allowed", OptionalArg(), OptionalArg(), OptionalArg()),
+                 'invoke': "Invoke command is not allowed",
+                 'unsafe': (),
+                 'safe': (),
+                 'enforcelegal': (),
+                 'assert': (lambda condition: True if condition.lower() in assert_conditions[0] else f"condition must be {assert_conditions[1]}, you used \"{condition}\"",
+                            OptionalArg(), OptionalArg()),
+                 'stunpause': (OptionalArg(lambda mode: stunpause_modes[mode.lower()] if mode.lower() in stunpause_modes else True),),
+                 'endstunpause': (),
+                 'autoinput': (lambda cycle: True if cycle.isdigit() else f"cycle length must be a number, you used \"{cycle}\"",),
+                 'startautoinput': (),
+                 'endautoinput': (),
+                 'skipinput': (lambda skip: True if skip.isdigit() else f"skip frames must be a number, you used \"{skip}\"",
+                               OptionalArg(lambda wait: True if wait.isdigit() else f"waiting frames must be a number, you used \"{wait}\"")),
+                 'press': (True, OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg()),
+                 'mouse': (lambda x: True if x.isdigit() else f"X coordinate must be a number, you used \"{x}\"",
+                           lambda y: True if y.isdigit() else f"Y coordinate must be a number, you used \"{y}\"",
+                           OptionalArg(lambda button: True if button.lower() in mouse_buttons[0] else f"button must be {mouse_buttons[1]}, you used \"{button}\""),
+                           OptionalArg(lambda button: True if button.lower() in mouse_buttons[0] else f"button must be {mouse_buttons[1]}, you used \"{button}\"")),
+                 'exportgameinfo': (OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg()),
+                 'endexportgameinfo': (),
+                 'exportroominfo': (OptionalArg(),),
+                 'endexportroominfo': (),
+                 'completeinfo': (lambda side: True if side.lower() in ('a', 'b', 'c') else f"side must be A, B, or C, you used \"{side}\"", True),
+                 'recordcount:': (OptionalArg(lambda count: True if count.isdigit() else f"records must be a number, you have \"{count}\""),),
+                 'exportlibtas': "ExportLibTAS command is not allowed",
+                 'endexportlibtas': "EndExportLibTAS command is not allowed",
+                 'add': (True,),
+                 'skip': lambda frames: True if frames.isdigit() else f"frame count must be a number, you used \"{frames}\"",
+                 'exitgame': "ExitGame command is not allowed"}
+command_rules['analoguemode'] = command_rules['analogmode']
+command_rules['stunpausemode'] = command_rules['stunpause']
