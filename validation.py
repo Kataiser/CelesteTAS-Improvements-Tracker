@@ -38,6 +38,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     is_dash_save = dash_saves is not None
     got_timesave = False
     wip_in_message = 'wip' in message_lowercase
+    last_analogmode = 'ignore'
 
     if skip_validation or wip_in_message:
         log.info(f"Skipping validation ({wip_in_message=})")
@@ -81,7 +82,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         line_split = re_split_command.split(line[1])
 
         if line_split[0].lower() in command_rules:
-            rules_functions = command_rules[line_split[0].lower()]
+            command_lower = line_split[0].lower()
+            rules_functions = command_rules[command_lower]
 
             if not isinstance(rules_functions, Tuple):
                 return ValidationResult(False, f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {rules_functions}.",
@@ -97,6 +99,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             for arg in enumerate(args):
                 rules_function = rules_functions[arg[0]]
+                last_analogmode = arg[1].lower() if command_lower in ('analogmode', 'analoguemode') else last_analogmode
 
                 if isinstance(rules_function, OptionalArg):
                     rules_function = rules_function.validate_func
@@ -107,6 +110,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                     if arg_validity is not True:
                         return ValidationResult(False, f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {arg_validity}.",
                                                 f"incorrect command argument in {filename}: {line_split[0]}, {arg_validity}")
+
+    # validate last analogmode is ignore
+    if last_analogmode != 'ignore':
+        return ValidationResult(False, f"Incorrect last AnalogMode, is {last_analogmode.capitalize()} but should be Ignore so as to not possibly desync later TASes.",
+                                f"last analogmode in {filename} is {last_analogmode}")
 
     # validate chaptertime is in message content
     if not is_dash_save:
@@ -282,7 +290,7 @@ assert_conditions = (('equal', 'notequal', 'contain', 'notcontain', 'startwith',
 stunpause_modes = {'input': True, 'simulate': "Simulate mode is not allowed outside of testing routes"}
 mouse_buttons = (('l', 'r', 'm', 'x1', 'x2'), "L, R, M, X1, or X2")
 set_exceptions = ('celestetas.simplifiedgraphics', 'celestetas.simplifiedbackdrop')
-command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_modes[0] else f"mode must be {analog_modes[1]}, you used \"{mode}\"",),
+command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_modes[0] else f"mode must be {analog_modes[1]}, you used \"{mode.capitalize()}\"",),
                  'read': (True, OptionalArg(), OptionalArg()),
                  'play': (True, OptionalArg(lambda wait_frames: True if wait_frames.isdigit() else f"wait frames must be a number, you used \"{wait_frames}\"")),
                  'repeat': (lambda count: True if count.isdigit() else f"count must be a number, you used \"{count}\"",),
