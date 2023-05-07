@@ -79,7 +79,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate command usage
     for line in enumerate(tas_lines):
         line_num = line[0]
-        line_split = re_split_command.split(line[1])
+        line_stripped = line[1].strip()
+        line_split = line_stripped.split() if re_check_space_command.match(line_stripped) else line_stripped.split(',')
 
         if line_split[0].lower() in command_rules:
             command_lower = line_split[0].lower()
@@ -89,7 +90,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 return ValidationResult(False, f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {rules_functions}.",
                                         f"incorrect command argument in {filename}: {line_split[0]}, {rules_functions}")
 
-            args = [i for i in line_split[1:] if i]
+            args = [i.strip() for i in line_split[1:] if i]
             required_args_count = len([f for f in rules_functions if not isinstance(f, OptionalArg)])
             args_count_options = required_args_count if required_args_count == len(rules_functions) else f"{required_args_count}-{len(rules_functions)}"
 
@@ -281,7 +282,7 @@ re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')
 re_remove_non_digits = re.compile(r'[^\d.:]')
-re_split_command = re.compile('[, ]')
+re_check_space_command = re.compile(r'^[^,]+?\s+[^,]')
 log: Optional[logging.Logger] = None
 
 analog_modes = (('ignore', 'circle', 'square', 'precise'), "Ignore, Circle, Square, or Precise")
@@ -309,7 +310,7 @@ command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_mode
                  'autoinput': (lambda cycle: True if cycle.isdigit() else f"cycle length must be a number, you used \"{cycle}\"",),
                  'startautoinput': (),
                  'endautoinput': (),
-                 'skipinput': (lambda skip: True if skip.isdigit() else f"skip frames must be a number, you used \"{skip}\"",
+                 'skipinput': (OptionalArg(lambda skip: True if skip.isdigit() else f"skip frames must be a number, you used \"{skip}\""),
                                OptionalArg(lambda wait: True if wait.isdigit() else f"waiting frames must be a number, you used \"{wait}\"")),
                  'press': (True, OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg()),
                  'mouse': (lambda x: True if x.isdigit() else f"X coordinate must be a number, you used \"{x}\"",
