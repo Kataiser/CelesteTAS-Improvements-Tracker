@@ -61,7 +61,7 @@ def sync_test(project_id: int):
     desyncs = []
     mods_to_load = set(mods)
     files_timed = 0
-    remove_debug_save_files()
+    remove_save_files()
     queued_filetime_commits = []
 
     for mod in mods:
@@ -328,21 +328,21 @@ def generate_blacklist(mods_to_load: set):
 
 
 # remove all files related to the debug save
-def remove_debug_save_files():
-    debug_save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug')]
+def remove_save_files():
+    save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
 
-    for debug_save_file in debug_save_files:
-        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{debug_save_file}')
+    for save_file in save_files:
+        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{save_file}')
 
     try:
-        log.info(f"Removed {len(debug_save_files)} debug save files")
+        log.info(f"Removed {len(save_files)} save files")
     except AttributeError:
         pass
 
 
 def post_cleanup():
     generate_blacklist(set())
-    remove_debug_save_files()
+    remove_save_files()
     files_to_remove = ['log.txt']
     dirs_to_remove = ['LogHistory', 'TAS Files\\Backups', 'repos']
     files_removed = 0

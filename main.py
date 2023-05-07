@@ -18,7 +18,6 @@ from discord.ext import tasks
 
 import commands
 import gen_token
-import main
 import spreadsheet
 import utils
 import validation
@@ -63,7 +62,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
         add_project_log(message)
         log.info("Done processing message")
-        await main.set_status(message)
+        await set_status(message)
         return
     elif len(tas_attachments) > 1:
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
@@ -148,7 +147,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
     await message.clear_reaction('👀')
     log.info("Done processing message")
-    await main.set_status(message)
+    await set_status(message)
 
 
 # assumes already verified TAS
