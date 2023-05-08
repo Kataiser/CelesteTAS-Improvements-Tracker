@@ -39,6 +39,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     got_timesave = False
     wip_in_message = 'wip' in message_lowercase
     last_analogmode = 'ignore'
+    rooms_found = {}
 
     if skip_validation or wip_in_message:
         log.info(f"Skipping validation ({wip_in_message=})")
@@ -76,8 +77,28 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         else:
             return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
 
-    # validate command usage
     for line in enumerate(tas_lines):
+        # validate room label indexing
+        if line[1].startswith('#lvl_'):
+            line_partitioned = line[1].partition('(')
+            room_name = line_partitioned[0].strip()
+            room_index_str = line_partitioned[2].strip(')')
+            room_index = int(room_index_str) if room_index_str.isdigit() else None
+
+            if room_name in rooms_found:
+                if rooms_found[room_name] is None:
+                    return ValidationResult(False, f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index rooms starting from zero and post again.",
+                                            f"Duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
+                elif room_index <= rooms_found[room_name]:
+                    return ValidationResult(False, f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, please index rooms starting from zero and post again.",
+                                            f"Out of order room label {line[1]} on line {line[0] + 1} in {filename}")
+            elif room_index:
+                return ValidationResult(False, f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index rooms starting from zero and post again.",
+                                        f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
+
+            rooms_found[room_name] = room_index
+
+        # validate command usage
         line_num = line[0]
         line_stripped = line[1].strip()
         line_split = line_stripped.split() if re_check_space_command.match(line_stripped) else line_stripped.split(',')
