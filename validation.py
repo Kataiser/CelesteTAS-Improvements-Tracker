@@ -40,7 +40,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     wip_in_message = 'wip' in message_lowercase
     last_analogmode = 'ignore'
     rooms_found = {}
-    uses_zero_indexing = None
+    uses_one_indexing = None
 
     if skip_validation or wip_in_message:
         log.info(f"Skipping validation ({wip_in_message=})")
@@ -97,15 +97,15 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                     return ValidationResult(False, f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
                                             f"Out of order room label {line[1]} on line {line[0] + 1} in {filename}")
             else:
-                if uses_zero_indexing is None:
+                if uses_one_indexing is None:
                     match room_index:
-                        case 0 | None:
-                            uses_zero_indexing = True
+                        case 0:
+                            uses_one_indexing = False
                         case 1:
-                            uses_zero_indexing = False
+                            uses_one_indexing = True
 
-                if room_index is not None and ((uses_zero_indexing and room_index != 0) or (not uses_zero_indexing and room_index != 1)):
-                    init_str = "zero" if uses_zero_indexing else "one"
+                if room_index is not None and ((not uses_one_indexing and room_index != 0) or (uses_one_indexing and room_index != 1)):
+                    init_str = "one" if uses_one_indexing else "zero"
                     return ValidationResult(False, f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms "
                                                    f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
 
