@@ -118,7 +118,7 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     await client.wait_until_ready()
 
     if payload.channel_id in main.projects:
-        async for message in client.get_channel(payload.channel_id).history(limit=20):
+        async for message in client.get_channel(payload.channel_id).history(limit=50):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
                 log.info(f"Deleted bot reply message in project: {main.projects[payload.channel_id]['name']}")
