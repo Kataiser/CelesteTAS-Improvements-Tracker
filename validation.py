@@ -40,6 +40,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     wip_in_message = 'wip' in message_lowercase
     last_analogmode = 'ignore'
     rooms_found = {}
+    uses_zero_indexing = None
 
     if skip_validation or wip_in_message:
         log.info(f"Skipping validation ({wip_in_message=})")
@@ -87,14 +88,26 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             if room_name in rooms_found:
                 if rooms_found[room_name] is None:
-                    return ValidationResult(False, f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index rooms starting from zero and post again.",
+                    return ValidationResult(False, f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index revisited starting from zero and post again.",
                                             f"Duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
+                elif room_index is None:
+                    return ValidationResult(False, f"Missing room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
+                                            f"Missing room label {line[1]} on line {line[0] + 1} in {filename}")
                 elif room_index <= rooms_found[room_name]:
-                    return ValidationResult(False, f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, please index rooms starting from zero and post again.",
+                    return ValidationResult(False, f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
                                             f"Out of order room label {line[1]} on line {line[0] + 1} in {filename}")
-            elif room_index:
-                return ValidationResult(False, f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index rooms starting from zero and post again.",
-                                        f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
+            else:
+                if uses_zero_indexing is None:
+                    match room_index:
+                        case 0 | None:
+                            uses_zero_indexing = True
+                        case 1:
+                            uses_zero_indexing = False
+
+                if room_index is not None and ((uses_zero_indexing and room_index != 0) or (not uses_zero_indexing and room_index != 1)):
+                    init_str = "zero" if uses_zero_indexing else "one"
+                    return ValidationResult(False, f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms "
+                                                   f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
 
             rooms_found[room_name] = room_index
 
