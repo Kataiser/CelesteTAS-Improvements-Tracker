@@ -222,8 +222,9 @@ def sync_test(project_id: int):
         if has_filetime:
             try:
                 requests.post('http://localhost:32270/console?command=overworld', timeout=2)
-                time.sleep(1)
+                time.sleep(2)
                 requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
+                time.sleep(2)
             except (requests.Timeout, requests.ConnectionError):
                 pass
 
@@ -329,13 +330,17 @@ def generate_blacklist(mods_to_load: set):
 
 # remove all files related to the debug save
 def remove_save_files():
-    save_files = [file for file in os.listdir(r'E:\Big downloads\celeste\Saves') if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
+    saves_dir = r'E:\Big downloads\celeste\Saves'
+    backups_dir = r'E:\Big downloads\celeste\Backups'
+    save_files = [f'{saves_dir}\\{file}' for file in saves_dir if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
+    backup_files = [f'{backups_dir}\\{file}' for file in backups_dir if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
+    files_to_remove = save_files + backup_files
 
-    for save_file in save_files:
-        os.remove(f'E:\\Big downloads\\celeste\\Saves\\{save_file}')
+    for save_file in files_to_remove:
+        os.remove(save_file)
 
     try:
-        log.info(f"Removed {len(save_files)} save files")
+        log.info(f"Removed {len(files_to_remove)} save files")
     except AttributeError:
         pass
 
