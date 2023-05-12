@@ -37,7 +37,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     dash_saves = re_dash_saves.search(message.content)
     is_dash_save = dash_saves is not None
     got_timesave = False
-    wip_in_message = 'wip' in message_lowercase
+    wip_in_message = 'wip' in re_remove_punctuation.subn(' ', message_lowercase)[0].split()
     last_analogmode = 'ignore'
     rooms_found = {}
     uses_one_indexing = None
