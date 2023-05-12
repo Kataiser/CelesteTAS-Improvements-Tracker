@@ -41,6 +41,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     last_analogmode = 'ignore'
     rooms_found = {}
     uses_one_indexing = None
+    found_start = False
 
     if skip_validation or wip_in_message:
         log.info(f"Skipping validation ({wip_in_message=})")
@@ -115,10 +116,17 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         line_num = line[0]
         line_stripped = line[1].strip()
         line_split = line_stripped.split() if re_check_space_command.match(line_stripped) else line_stripped.split(',')
+        command = line_split[0].lower()
 
-        if line_split[0].lower() in command_rules:
-            command_lower = line_split[0].lower()
-            rules_functions = command_rules[command_lower]
+        if not found_start and command == '#start':
+            found_start = True
+            continue
+
+        if command in command_rules:
+            if command in disallowed_commands and not found_start:
+                continue
+
+            rules_functions = command_rules[command]
 
             if not isinstance(rules_functions, Tuple):
                 return ValidationResult(False, f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {rules_functions}.",
@@ -134,7 +142,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             for arg in enumerate(args):
                 rules_function = rules_functions[arg[0]]
-                last_analogmode = arg[1].lower() if command_lower in ('analogmode', 'analoguemode') else last_analogmode
+                last_analogmode = arg[1].lower() if command in ('analogmode', 'analoguemode') else last_analogmode
 
                 if isinstance(rules_function, OptionalArg):
                     rules_function = rules_function.validate_func
@@ -325,6 +333,7 @@ assert_conditions = (('equal', 'notequal', 'contain', 'notcontain', 'startwith',
 stunpause_modes = {'input': True, 'simulate': "Simulate mode is not allowed outside of testing routes"}
 mouse_buttons = (('l', 'r', 'm', 'x1', 'x2'), "L, R, M, X1, or X2")
 set_exceptions = ('celestetas.simplifiedgraphics', 'celestetas.simplifiedbackdrop')
+disallowed_commands = ('console', 'invoke', 'set', 'exportlibtas', 'endexportlibtas', 'exitgame')
 command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_modes[0] else f"mode must be {analog_modes[1]}, you used \"{mode.capitalize()}\"",),
                  'read': (True, OptionalArg(), OptionalArg()),
                  'play': (True, OptionalArg(lambda wait_frames: True if wait_frames.isdigit() else f"wait frames must be a number, you used \"{wait_frames}\"")),
