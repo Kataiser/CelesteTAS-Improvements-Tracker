@@ -100,24 +100,21 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message):
-    await client.wait_until_ready()
-
     if message.author == client.user:
         return
     elif not message.guild:
+        await client.wait_until_ready()
         await commands.handle(message)
-        return
-    elif message.channel.id not in main.projects:
-        return
-
-    await main.process_improvement_message(message)
+    elif message.channel.id in main.projects:
+        await client.wait_until_ready()
+        await main.process_improvement_message(message)
 
 
 @client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
-    await client.wait_until_ready()
-
     if payload.channel_id in main.projects:
+        await client.wait_until_ready()
+
         async for message in client.get_channel(payload.channel_id).history(limit=50):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
@@ -127,9 +124,9 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-    await client.wait_until_ready()
-
     if '⏭' in payload.emoji.name and payload.channel_id in main.projects:
+        await client.wait_until_ready()
+
         for project_id in main.projects:
             if payload.message_id in main.project_logs[project_id]:
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
