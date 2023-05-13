@@ -89,7 +89,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             if room_name in rooms_found:
                 if rooms_found[room_name] is None:
-                    return ValidationResult(False, f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index revisited starting from zero and post again.",
+                    return ValidationResult(False, f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
                                             f"Duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
                 elif room_index is None:
                     return ValidationResult(False, f"Missing room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
