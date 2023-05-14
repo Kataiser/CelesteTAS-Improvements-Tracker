@@ -284,12 +284,12 @@ def calculate_time_difference(time_old: str, time_new: str) -> int:
     if old_has_colon:
         colon_partition_old = time_old.rpartition(':')
     else:
-        colon_partition_old = (0, None, time_old)
+        colon_partition_old = ('0', None, time_old)
 
     if new_has_colon:
         colon_partition_new = time_new.rpartition(':')
     else:
-        colon_partition_new = (0, None, time_new)
+        colon_partition_new = ('0', None, time_new)
 
     dot_partition_old = colon_partition_old[2].partition('.')
     dot_partition_new = colon_partition_new[2].partition('.')
