@@ -450,7 +450,7 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
+def create_loggers(main_filename: str, all_logs: bool) -> (logging.Logger, Optional[logging.Logger]):
     if os.path.isfile('bot.log'):
         os.replace('bot.log', 'bot_old.log')
 
@@ -463,33 +463,38 @@ def create_loggers(main_filename: str) -> (logging.Logger, logging.Logger):
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
     logger.addHandler(stdout_handler)
-    logger.info("Log created")
+    logger.info("Main log created")
 
-    history = logging.getLogger('history')
-    history.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename='sync\\history.log', encoding='UTF8', mode='a')
-    file_handler.setFormatter(log_formatter)
-    history.addHandler(file_handler)
-
-    sheet_writes = logging.getLogger('sheet_writes')
-    sheet_writes.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename='sync\\sheet_writes.log', encoding='UTF8', mode='a')
-    file_handler.setFormatter(log_formatter)
-    sheet_writes.addHandler(file_handler)
-
-    global log, history_log
+    global log
     log = logger
     gen_token.log = logger
     validation.log = logger
     utils.log = logger
     commands.log = logger
     spreadsheet.log = logger
-    history_log = history
-    commands.history_log = history
-    utils.history_log = history
-    spreadsheet.sheet_writes = sheet_writes
 
-    return logger, history
+    if all_logs:
+        history = logging.getLogger('history')
+        history.setLevel(logging.DEBUG)
+        file_handler = logging.FileHandler(filename='sync\\history.log', encoding='UTF8', mode='a')
+        file_handler.setFormatter(log_formatter)
+        history.addHandler(file_handler)
+
+        sheet_writes = logging.getLogger('sheet_writes')
+        sheet_writes.setLevel(logging.DEBUG)
+        file_handler = logging.FileHandler(filename='sync\\sheet_writes.log', encoding='UTF8', mode='a')
+        file_handler.setFormatter(log_formatter)
+        sheet_writes.addHandler(file_handler)
+        logger.info("Other logs created")
+
+        global history_log
+        history_log = history
+        commands.history_log = history
+        utils.history_log = history
+        spreadsheet.sheet_writes = sheet_writes
+        return logger, history
+
+    return logger
 
 
 log: Optional[logging.Logger] = None

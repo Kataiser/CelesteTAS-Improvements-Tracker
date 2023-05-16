@@ -23,7 +23,7 @@ from utils import plural
 
 def run_syncs():
     global log
-    log = main.create_loggers('game_sync.log')[0]
+    log = main.create_loggers('game_sync.log', False)
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', type=int, help="Only sync test a specific project (ID)", required=False)
     cli_project_id = parser.parse_args().p

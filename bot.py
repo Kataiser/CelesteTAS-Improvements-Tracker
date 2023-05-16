@@ -225,7 +225,7 @@ async def map_autocomplete(interaction: discord.Interaction, current: str) -> Li
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
 
-log, history_log = main.create_loggers('bot.log')
+log, history_log = main.create_loggers('bot.log', True)
 commands.client = client
 spreadsheet.client = client
 main.client = client
