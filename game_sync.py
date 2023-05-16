@@ -185,23 +185,27 @@ def sync_test(project_id: int):
         initial_mtime = os.path.getmtime(file_path)
         log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
         tas_started = False
+        tas_finished = False
+        sid = None
 
         while not tas_started:
             try:
                 requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
                 tas_started = True
-                tas_finished = False
             except (requests.Timeout, requests.ConnectionError):
                 pass
 
         while not tas_finished:
             try:
-                time.sleep(10 if has_filetime else 3)
+                time.sleep(10 if has_filetime else 1)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
             except (requests.Timeout, requests.ConnectionError):
                 pass
             else:
                 tas_finished = 'Running: False' in session_data
+
+                if not sid and not has_filetime:
+                    sid = session_data.partition('SID: ')[2].partition(' ')[0]
 
         log.info("TAS has finished")
         time.sleep(3)
@@ -237,8 +241,6 @@ def sync_test(project_id: int):
                 log_command(f"{'Synced' if synced else 'Desynced'}: {final_time_trimmed} -> {final_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
                 if synced:
-                    sid = session_data.partition('SID: ')[2].partition(' ')[0]
-
                     if file_path_repo not in sid_caches[project_id] and sid:
                         sid_caches[project_id][file_path_repo] = sid
                         save_sid_caches()
