@@ -328,12 +328,12 @@ def generate_blacklist(mods_to_load: set):
         blacklist_txt.write('\n'.join(blacklist))
 
 
-# remove all files related to the debug save
+# remove all files related to any save
 def remove_save_files():
     saves_dir = r'E:\Big downloads\celeste\Saves'
     backups_dir = r'E:\Big downloads\celeste\Backups'
-    save_files = [f'{saves_dir}\\{file}' for file in saves_dir if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
-    backup_files = [f'{backups_dir}\\{file}' for file in backups_dir if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
+    save_files = [f'{saves_dir}\\{file}' for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
+    backup_files = [f'{backups_dir}\\{file}' for file in os.listdir(backups_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
     files_to_remove = save_files + backup_files
 
     for save_file in files_to_remove:
