@@ -175,13 +175,11 @@ async def on_error(*args):
         await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
 
 
-@command_tree.command(description=spreadsheet.draft.__doc__, guilds=slash_command_servers)
 @discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def draft(interaction, map_name: str):
     await spreadsheet.draft(interaction, map_name)
 
 
-@command_tree.command(description=spreadsheet.update_progress.__doc__, guilds=slash_command_servers)
 @discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def update_progress(interaction, map_name: str, note: str):
     await spreadsheet.update_progress(interaction, map_name, note)
@@ -192,19 +190,16 @@ async def progress(interaction, map_name: str):
     await spreadsheet.progress(interaction, map_name)
 
 
-@command_tree.command(description=spreadsheet.drop.__doc__, guilds=slash_command_servers)
 @discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def drop(interaction, map_name: str, reason: str):
     await spreadsheet.drop(interaction, map_name, reason)
 
 
-@command_tree.command(description=spreadsheet.complete.__doc__, guilds=slash_command_servers)
 @discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def complete(interaction, map_name: str):
     await spreadsheet.complete(interaction, map_name)
 
 
-@command_tree.command(description=spreadsheet.undraft.__doc__, guilds=slash_command_servers)
 @discord.app_commands.check(spreadsheet.sj_command_allowed)
 async def undraft(interaction, map_name: str):
     await spreadsheet.undraft(interaction, map_name)
@@ -215,12 +210,7 @@ async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
 
-@draft.autocomplete('map_name')
-@update_progress.autocomplete('map_name')
 @progress.autocomplete('map_name')
-@drop.autocomplete('map_name')
-@complete.autocomplete('map_name')
-@undraft.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
