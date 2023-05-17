@@ -185,6 +185,7 @@ async def update_progress(interaction, map_name: str, note: str):
     await spreadsheet.update_progress(interaction, map_name, note)
 
 
+@command_tree.command(description=spreadsheet.progress.__doc__, guilds=slash_command_servers)
 async def progress(interaction, map_name: str):
     await spreadsheet.progress(interaction, map_name)
 
@@ -209,6 +210,7 @@ async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
 
+@progress.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 

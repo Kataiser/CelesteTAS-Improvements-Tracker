@@ -63,7 +63,10 @@ class Cell:
         self.column = column
 
     def value(self) -> str:
-        return self.map_row.data[self.column]
+        if self.column == 'status':
+            return '✅'  # dummy, since the status column was removed
+        else:
+            return self.map_row.data[self.column]
 
     def write(self, value: str):
         self.map_row.write_cell(self.column, value)
