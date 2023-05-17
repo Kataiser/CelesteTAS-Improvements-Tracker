@@ -1,7 +1,8 @@
+import datetime
 import functools
 import logging
 import re
-from typing import List, Optional
+from typing import List, Optional, Any
 
 import discord
 import ujson
@@ -11,6 +12,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 import utils
+import validation
 from utils import plural
 
 
@@ -19,11 +21,16 @@ class MapRow:
         difficulty = sj_data[map_name][1]
         row = sj_data[map_name][3]
         self.map_name = map_name
-        self.data = {"status": '', "map": '', "file": '', "taser": '', "progress": ''}
-        self.range = f'{difficulty}!A{row}:E{row}'
-        self.status_cell = Cell(self, "status")
-        self.taser_cell = Cell(self, "taser")
-        self.progress_cell = Cell(self, "progress")
+        self.data = {'map': '', 'file': '', 'taser': '', 'current_time': '', 'draft_time': '', 'time_saved': '', 'records': '', 'rpf': '', 'improvement_date': ''}
+        self.range = f'{difficulty}!A{row}:J{row}'
+        self.status_cell = Cell(self, 'status')
+        self.taser_cell = Cell(self, 'taser')
+        self.current_time_cell = Cell(self, 'current_time')
+        self.draft_time_cell = Cell(self, 'draft_time')
+        self.time_saved_cell = Cell(self, 'time_saved')
+        self.records_cell = Cell(self, 'records')
+        self.rpf_cell = Cell(self, 'rpf')
+        self.improvement_date_cell = Cell(self, 'improvement_date')
         self.writes = []
         self.changed_data = False
         values = read_sheet(self.range)
@@ -37,7 +44,7 @@ class MapRow:
 
     def write_cell(self, column: str, value: str):
         if value != self.data[column]:
-            if column == "taser" and self.data[column] and value:
+            if column == 'taser' and self.data[column] and value:
                 value = f"{self.data[column]}, {value}"
 
             self.changed_data = True
@@ -68,8 +75,8 @@ class Cell:
         else:
             return self.map_row.data[self.column]
 
-    def write(self, value: str):
-        self.map_row.write_cell(self.column, value)
+    def write(self, value: Any):
+        self.map_row.write_cell(self.column, str(value))
 
 
 async def draft(interaction: discord.Interaction, map_name: str):
@@ -277,6 +284,41 @@ async def taser_status(interaction: discord.Interaction, taser: str):
         await interaction.response.send_message(f"{taser} is not marked for any drafts.", ephemeral=True)
 
 
+def update_stats(filename: str, validation_result: validation.ValidationResult):
+    sj_map = sj_data_filenames[filename]
+    log.info(f"Updating spreadsheet stats for {sj_map} ({filename})")
+    tas_lines, chaptertime_line = validation_result.sj_sheet_data
+    recordcount = 0
+
+    map_row = MapRow(sj_map)
+    map_row.current_time_cell.write(validation_result.finaltime)
+    map_row.improvement_date_cell.write(datetime.datetime.now().strftime('%Y-%m-%d'))
+
+    if map_row.draft_time_cell.value():
+        timesave_frames = validation.calculate_time_difference(map_row.draft_time_cell.value(), validation_result.finaltime)
+        map_row.time_saved_cell.write(f"{timesave_frames}f")
+    else:
+        log.warning("No draft time")
+
+    for line in tas_lines:
+        if line.startswith('RecordCount: '):
+            recordcount = int(line.partition(':')[2].strip())
+            break
+
+    if recordcount:
+        map_row.records_cell.write(recordcount)
+        frames = int(tas_lines[chaptertime_line].partition('(')[2].strip(')\n '))
+
+        if frames:
+            map_row.rpf_cell.write(f"{recordcount / frames:.3f}")
+        else:
+            log.warning("Couldn't calculate RPF (no frame count)")
+    else:
+        log.warning("Couldn't calculate RPF (no record count)")
+
+    map_row.update()
+
+
 async def sj_command_allowed(interaction: discord.Interaction) -> bool:
     if interaction.channel_id == 1071151339905753138:  # test channel
         return True
@@ -340,6 +382,4 @@ creds = service_account.Credentials.from_service_account_file('service.json', sc
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
 re_ping = re.compile(r'<@\d+>')
-
-with open('sj.json', 'r', encoding='UTF8') as sj_file:
-    sj_data: dict = ujson.load(sj_file)
+sj_data, sj_data_filenames = utils.load_sj_data()

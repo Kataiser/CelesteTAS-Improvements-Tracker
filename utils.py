@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Optional, Sized, Union
+from typing import Any, Callable, Optional, Sized, Union, Tuple
 
 import discord
 import fastjsonschema
@@ -87,6 +87,13 @@ def validate_project_formats(projects: dict):
 def load_project_schema() -> Callable:
     with open('project_schema.json', 'r') as projects_schema_file:
         return fastjsonschema.compile(ujson.load(projects_schema_file))
+
+
+def load_sj_data() -> Tuple[dict, dict]:
+    with open('sj.json', 'r', encoding='UTF8') as sj_file:
+        sj_data: dict = ujson.load(sj_file)
+        sj_data_filenames = {sj_data[sj_map][4]: sj_map for sj_map in sj_data}
+        return sj_data, sj_data_filenames
 
 
 log: Optional[logging.Logger] = None

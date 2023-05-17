@@ -129,6 +129,9 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
+
+            if validation_result.sj_sheet_data:
+                spreadsheet.update_stats(attachment.filename, validation_result)
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
             await message.add_reaction('❌')

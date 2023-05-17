@@ -8,13 +8,15 @@ import main
 
 
 class ValidationResult:
-    def __init__(self, valid_tas: bool, warning_text: str = None, log_text: str = None, finaltime: str = None, timesave: str = None, wip: bool = False):
+    def __init__(self, valid_tas: bool, warning_text: Optional[str] = None, log_text: Optional[str] = None, finaltime: Optional[str] = None, timesave: Optional[str] = None,
+                 wip: bool = False, sj_sheet_data: Optional[tuple] = None):
         self.valid_tas = valid_tas
         self.warning_text = warning_text
         self.log_text = log_text
         self.timesave = timesave
         self.finaltime = finaltime
         self.wip = wip
+        self.sj_sheet_data = sj_sheet_data
 
         if valid_tas:
             log.info("TAS file and improvement post have been validated")
@@ -230,7 +232,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     else:
         timesave = None
 
-    return ValidationResult(True, finaltime=finaltime, timesave=timesave)
+    sj_sheet_data = (tas_lines, finaltime_line) if message.channel.id == 1074148268407275520 else None
+    return ValidationResult(True, finaltime=finaltime, timesave=timesave, sj_sheet_data=sj_sheet_data)
 
 
 # get breakpoints and final time in one pass
