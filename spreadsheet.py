@@ -57,7 +57,7 @@ class MapRow:
             sheet_log = str((self.map_name, self.range, ' '.join(self.writes)))
 
             try:
-                sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='RAW', body={'values': [list(self.data.values())]}).execute()
+                sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
                 sheet_writes.info(sheet_log)
             except HttpError as error:
                 log.error(repr(error))
