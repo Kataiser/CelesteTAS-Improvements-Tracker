@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Optional, Tuple, Callable
+from typing import List, Optional, Tuple, Callable, Union
 
 import discord
 
@@ -274,7 +274,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
 
 
-def calculate_time_difference(time_old: str, time_new: str) -> int:
+def calculate_time_difference(time_old: str, time_new: str, get_old_frames: bool = False) -> Union[int, tuple]:
     if time_old == time_new:
         return 0
 
@@ -306,7 +306,12 @@ def calculate_time_difference(time_old: str, time_new: str) -> int:
     ms_new = dot_partition_new[2]
     time_old_seconds = (int(hours_old) * 3600) + (int(minutes_old[-2:]) * 60) + int(seconds_old) + (int(ms_old) / 1000)
     time_new_seconds = (int(hours_new) * 3600) + (int(minutes_new[-2:]) * 60) + int(seconds_new) + (int(ms_new) / 1000)
-    return round((time_old_seconds - time_new_seconds) / 0.017)
+    time_diff = round((time_old_seconds - time_new_seconds) / 0.017)
+
+    if get_old_frames:
+        return time_diff, round(time_old_seconds / 0.017)
+    else:
+        return time_diff
 
 
 def as_lines(tas: bytes) -> List[str]:

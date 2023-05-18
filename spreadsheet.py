@@ -284,7 +284,7 @@ async def taser_status(interaction: discord.Interaction, taser: str):
         await interaction.response.send_message(f"{taser} is not marked for any drafts.", ephemeral=True)
 
 
-def update_stats(filename: str, validation_result: validation.ValidationResult):
+def update_stats(filename: str, validation_result: validation.ValidationResult, date: Optional[str] = None):
     sj_map = sj_data_filenames[filename]
     log.info(f"Updating spreadsheet stats for {sj_map} ({filename})")
     tas_lines, chaptertime_line = validation_result.sj_sheet_data
@@ -292,11 +292,14 @@ def update_stats(filename: str, validation_result: validation.ValidationResult):
 
     map_row = MapRow(sj_map)
     map_row.current_time_cell.write(validation_result.finaltime)
-    map_row.improvement_date_cell.write(datetime.datetime.now().strftime('%Y-%m-%d'))
+    map_row.improvement_date_cell.write(date if date else datetime.datetime.now().strftime('%Y-%m-%d'))
+    draft_time = map_row.draft_time_cell.value()
+    frames = int(tas_lines[chaptertime_line].partition('(')[2].strip(')\n '))
 
-    if map_row.draft_time_cell.value():
-        timesave_frames = validation.calculate_time_difference(map_row.draft_time_cell.value(), validation_result.finaltime)
-        map_row.time_saved_cell.write(f"{timesave_frames}f")
+    if draft_time:
+        timesave_frames, draft_frames = validation.calculate_time_difference(draft_time, validation_result.finaltime, True)
+        percent_saved = (timesave_frames / draft_frames) * 100
+        map_row.time_saved_cell.write(f"{timesave_frames}f ({percent_saved:.1f}%)")
     else:
         log.warning("No draft time")
 
@@ -307,12 +310,7 @@ def update_stats(filename: str, validation_result: validation.ValidationResult):
 
     if recordcount:
         map_row.records_cell.write(recordcount)
-        frames = int(tas_lines[chaptertime_line].partition('(')[2].strip(')\n '))
-
-        if frames:
-            map_row.rpf_cell.write(f"{recordcount / frames:.3f}")
-        else:
-            log.warning("Couldn't calculate RPF (no frame count)")
+        map_row.rpf_cell.write(f"{recordcount / frames:.3f}")
     else:
         log.warning("Couldn't calculate RPF (no record count)")
 
