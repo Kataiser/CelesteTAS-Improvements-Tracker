@@ -208,7 +208,7 @@ def sync_test(project_id: int):
                     sid = session_data.partition('SID: ')[2].partition(' ')[0]
 
         log.info("TAS has finished")
-        time.sleep(3)
+        time.sleep(8 if 'SID:  ()' in session_data else 3)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
@@ -244,7 +244,7 @@ def sync_test(project_id: int):
                     if file_path_repo not in sid_caches[project_id] and sid:
                         sid_caches[project_id][file_path_repo] = sid
                         save_sid_caches()
-                        log.info(f"Cached SID for {file_path_repo}")
+                        log.info(f"Cached SID for {file_path_repo}: {sid}")
                     elif not sid:
                         log.warning(f"Running {file_path_repo} yielded no SID")
                 else:
@@ -447,7 +447,7 @@ def load_sid_caches():
     global sid_caches
     added_key = False
 
-    with open('sync\\sid_caches.json', 'r', encoding='UTF8') as sid_caches_file:
+    with open('sid_caches.json', 'r', encoding='UTF8') as sid_caches_file:
         sid_caches = ujson.load(sid_caches_file)
         sid_caches = {int(k): sid_caches[k] for k in sid_caches}
 
@@ -462,7 +462,7 @@ def load_sid_caches():
 
 
 def save_sid_caches():
-    with open('sync\\sid_caches.json', 'w', encoding='UTF8') as sid_caches_file:
+    with open('sid_caches.json', 'w', encoding='UTF8') as sid_caches_file:
         ujson.dump(sid_caches, sid_caches_file, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
 
