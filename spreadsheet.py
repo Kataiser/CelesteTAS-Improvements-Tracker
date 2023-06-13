@@ -284,7 +284,7 @@ async def taser_status(interaction: discord.Interaction, taser: str):
         await interaction.response.send_message(f"{taser} is not marked for any drafts.", ephemeral=True)
 
 
-def update_stats(filename: str, validation_result: validation.ValidationResult, date: Optional[str] = None):
+def update_stats(filename: str, validation_result, date: Optional[str] = None):
     sj_map = sj_data_filenames[filename]
     log.info(f"Updating spreadsheet stats for {sj_map} ({filename})")
     tas_lines, chaptertime_line = validation_result.sj_sheet_data
