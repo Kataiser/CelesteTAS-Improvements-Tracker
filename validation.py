@@ -220,9 +220,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate level
     if main.projects[message.channel.id]['ensure_level']:
         if message.channel.id == 1074148268407275520:  # sj
-            level_name = spreadsheet.sj_data_filenames[filename]
+            level_name = spreadsheet.sj_data_filenames[filename].rstrip('.!')
+            level_name_alt = level_name.replace('Down-Side', 'Downside').replace("Khu'tara", 'Khutara')
 
-            if level_name not in message:
+            if level_name not in message and level_name_alt not in message:
                 return ValidationResult(False, f"The level name ({level_name}) is missing in your message, please add it and post again.",
                                         f"SJ level name ({level_name}) missing in message content")
         else:
