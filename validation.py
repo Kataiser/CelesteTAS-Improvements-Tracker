@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple, Callable, Union
 import discord
 
 import main
-import spreadsheet
 
 
 class ValidationResult:
@@ -219,19 +218,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate level
     if main.projects[message.channel.id]['ensure_level']:
-        if message.channel.id == 1074148268407275520:  # sj
-            level_name = spreadsheet.sj_data_filenames[filename].rstrip('.!')
-            level_name_alt = level_name.replace('Down-Side', 'Downside').replace("Khu'tara", 'Khutara').replace('EAT GIRL', 'Eat Girl').replace('FLOATING POINT', 'Floating Point')
+        filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
+        message_level = re_remove_punctuation.subn('', message_lowercase)[0].replace('_', '')
 
-            if level_name not in message.content and level_name_alt not in message.content:
-                return ValidationResult(False, f"The level name ({level_name}) is missing in your message, please add it and post again.",
-                                        f"SJ level name ({level_name}) missing in message content")
-        else:
-            filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
-            message_level = re_remove_punctuation.subn('', message_lowercase)[0].replace('_', '')
-
-            if filename_level not in message_level:
-                return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({filename_level}) missing in message content")
+        if filename_level not in message_level:
+            return ValidationResult(False, "The level name is missing in your message, please add it and post again.", f"level name ({filename_level}) missing in message content")
 
     if got_timesave:
         timesave = str(time_saved_messages[0])
