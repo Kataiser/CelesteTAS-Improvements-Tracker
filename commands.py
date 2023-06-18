@@ -397,7 +397,7 @@ async def command_edit_admin(message: discord.Message):
                 added_admin = f"Added {utils.detailed_user(user=new_admin)} as an admin to project \"{project['name']}\"."
                 log.info(added_admin)
                 await message.channel.send(added_admin)
-                await new_admin.send(f"{message.author.name} has added you as an admin to the \"{project['name']}\" TAS project.")
+                await new_admin.send(f"{message.author.global_name} has added you as an admin to the \"{project['name']}\" TAS project.")
                 await main.edit_pin(client.get_channel(project_id))
         else:
             if admin_id in project['admins']:
@@ -406,7 +406,7 @@ async def command_edit_admin(message: discord.Message):
                 removed_admin = f"Removed {utils.detailed_user(user=new_admin)} as an admin from project \"{project['name']}\"."
                 log.info(removed_admin)
                 await message.channel.send(removed_admin)
-                await new_admin.send(f"{message.author.name} has removed you as an admin from the \"{project['name']}\" TAS project.")
+                await new_admin.send(f"{message.author.global_name} has removed you as an admin from the \"{project['name']}\" TAS project.")
                 await main.edit_pin(client.get_channel(project_id))
             else:
                 not_admin = f"{utils.detailed_user(user=new_admin)} is not an admin for project \"{project['name']}\"."
