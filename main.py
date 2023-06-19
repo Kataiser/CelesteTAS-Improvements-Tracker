@@ -401,10 +401,12 @@ def missing_channel_permissions(channel: discord.TextChannel) -> list:
 
 
 async def set_status(message: Optional[discord.Message] = None):
+    projects_count = len(projects) - len(safe_projects) - inaccessible_projects
+
     if message:
-        status = f"{len(projects)} TAS projects, last processed post from {utils.nickname(message.author)} in \"{projects[message.channel.id]['name']}\""
+        status = f"{projects_count} TAS projects, last processed post from {utils.nickname(message.author)} in \"{projects[message.channel.id]['name']}\""
     else:
-        status = f"{len(projects)} TAS projects"
+        status = f"{projects_count} TAS projects"
 
     log.info(f"Setting status to \"Watching {status}\"")
     await client.change_presence(status=discord.Status.online, activity=discord.Activity(name=status, type=discord.ActivityType.watching))
@@ -509,4 +511,5 @@ headers = None
 login_time = None
 client: Optional[discord.Client] = None
 safe_mode = None
-safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564)
+safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564, 1067206696927248444)
+inaccessible_projects = 0
