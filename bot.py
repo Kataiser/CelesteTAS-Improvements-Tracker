@@ -69,7 +69,6 @@ async def on_ready():
     global safe_mode
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
-    await main.set_status()
     [await command_tree.sync(guild=server) for server in slash_command_servers]
     log.info(f"Servers: {[g.name for g in client.guilds]}")
     await main.handle_game_sync_results()
@@ -97,6 +96,7 @@ async def on_ready():
             await main.process_improvement_message(message)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
+    await main.set_status()
 
 
 @client.event
