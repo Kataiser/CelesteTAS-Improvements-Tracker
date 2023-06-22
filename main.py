@@ -411,7 +411,7 @@ async def set_status(message: Optional[discord.Message] = None):
 
 
 def projects_count() -> int:
-    return len(projects) - len(safe_projects) - inaccessible_projects
+    return len(set(projects) - inaccessible_projects)
 
 
 def get_user_github_account(discord_id: int) -> Optional[tuple]:
@@ -514,4 +514,4 @@ login_time = None
 client: Optional[discord.Client] = None
 safe_mode = None
 safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564, 1067206696927248444)
-inaccessible_projects = 0
+inaccessible_projects = set(safe_projects)

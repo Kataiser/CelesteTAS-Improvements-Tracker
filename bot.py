@@ -81,7 +81,7 @@ async def on_ready():
 
         if not improvements_channel or main.missing_channel_permissions(improvements_channel):
             log.error(f"Can't access improvements channel for project {main.projects[improvements_channel_id]['name']}")
-            main.inaccessible_projects += 1
+            main.inaccessible_projects.add(improvements_channel_id)
             continue
 
         if debug:
