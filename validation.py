@@ -128,6 +128,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             if command in disallowed_commands and not found_start:
                 continue
 
+            if message.channel.id == 879081769138286662 and command == 'set':
+                # hardcoded exception, ew
+                continue
+
             rules_functions = command_rules[command]
 
             if not isinstance(rules_functions, Tuple):
