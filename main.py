@@ -57,6 +57,8 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         if not has_video:
             if "bad bot" in message.content.lower():
                 await message.add_reaction('😢')
+            elif message.content == '👀':
+                await message.add_reaction('👁️')
             else:
                 await message.add_reaction('👍')
 
