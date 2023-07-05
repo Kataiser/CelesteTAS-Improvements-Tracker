@@ -5,6 +5,7 @@ import datetime
 import io
 import logging
 import os
+import random
 import sys
 import time
 import urllib.parse
@@ -264,9 +265,13 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     lobby_text = "Since this is channel is for a lobby, this is not automatically validated. " if project['is_lobby'] else ""
     level_text_ensure = ", the name of the level/map," if ensure_level else ''
     level_text_not_ensure = "" if ensure_level else " the name of the level/map,"
+    maingame_times = ("1A (49.130)", "1B (1:04.838)", "1C (15.147)", "2A (1:25.034)", "2B (1:15.667)", "2C (19.414)", "3A (3:14.310)", "3B (1:28.349)", "3C (15.878)", "4A (1:46.794)",
+                      "4B (2:00.819)", "4C (24.905)", "5A (3:10.077)", "5B (1:41.660)", "5C (16.337)", "6A (4:35.621)", "6B (3:15.296)", "6C (21.607)", "7A (6:39.636)", "7B (4:41.588)",
+                      "7C (34.153)", "8A (2:24.364)", "8B (2:04.406)", "8C (22.270)")
+    example_timesave = f"-{round(random.triangular(1, 50, 0))}f {random.choice(maingame_times)}"
 
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
-           f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `-4f 3B (1:30.168)`). {lobby_text}" \
+           f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `{example_timesave}`). {lobby_text}" \
            f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: <{1}> (using <https://desktop.github.com> is recommended)" \
            "\nPackage download: <{2}>" \
