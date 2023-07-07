@@ -10,6 +10,7 @@ import requests
 import ujson
 
 import game_sync
+import gen_token
 import main
 import utils
 from utils import plural
@@ -116,10 +117,17 @@ async def command_register_project(message: discord.Message):
         await message.channel.send(f"GitHub account \"{github_account}\" doesn't seem to exist")
         return
 
+    # verify app is installed
+    try:
+        main.generate_request_headers(github_account)
+    except gen_token.InstallationOwnerMissingError as missing_installation_owner:
+        log.error(f"GitHub account {missing_installation_owner} doesn't have the app installed")
+        await message.channel.send(f"GitHub account {missing_installation_owner} doesn't have the app installed, please do so here: https://github.com/apps/celestetas-improvements-tracker")
+        return
+
     # verify repo exists
     repo_split = repo_and_subdir.rstrip('/').split('/')
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
-    main.generate_request_headers(github_account)
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
         log.error(f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")

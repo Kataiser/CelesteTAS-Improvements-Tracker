@@ -53,7 +53,11 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         with open('sync\\installations.json', 'w') as installations_json_write:
             ujson.dump(installations_saved, installations_json_write, indent=4)
 
-    installation_id = installations_saved[installation_owner]
+    if installation_owner in installations_saved:
+        installation_id = installations_saved[installation_owner]
+    else:
+        raise InstallationOwnerMissingError(installation_owner)
+
     r = requests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers)
     utils.handle_potential_request_error(r, 201)
     access_token_data = ujson.loads(r.content)
@@ -81,6 +85,10 @@ def access_token(installation_owner: str, min_time: int):
 def installations_file() -> dict:
     with open('sync\\installations.json', 'r') as installations_json_read:
         return ujson.load(installations_json_read)
+
+
+class InstallationOwnerMissingError(Exception):
+    pass
 
 
 tokens = {}
