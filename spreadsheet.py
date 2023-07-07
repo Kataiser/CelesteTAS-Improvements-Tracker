@@ -2,10 +2,10 @@ import datetime
 import functools
 import logging
 import re
+from ssl import SSLEOFError
 from typing import List, Optional, Any
 
 import discord
-import ujson
 from fuzzywuzzy import process as fuzzy_process
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -368,7 +368,7 @@ def read_sheet(cell_range: str, multiple_rows=False):
             return result.get('values', [])
         else:
             return result.get('values', [])[0]
-    except HttpError as error:
+    except (HttpError, SSLEOFError) as error:
         log.error(repr(error))
 
 
