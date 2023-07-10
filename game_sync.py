@@ -205,7 +205,7 @@ def sync_test(project_id: int):
                 tas_finished = 'Running: False' in session_data
 
                 if not has_filetime:
-                    sid = session_data.partition('SID: ')[2].partition(' ')[0]
+                    sid = session_data.partition('SID: ')[2].partition(' (')[0]
 
         log.info("TAS has finished")
         time.sleep(8 if 'SID:  ()' in session_data else 3)
