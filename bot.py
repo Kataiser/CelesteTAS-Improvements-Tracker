@@ -241,7 +241,7 @@ spreadsheet.client = client
 main.client = client
 main.safe_mode = safe_mode
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
-substrings_1984_music = ('lab', 'psychokinetic', 'pk', 'superluminary', 'sl')
+substrings_1984_music = ('lab', 'psychokinetic', 'pk', 'superluminary')
 
 if __name__ == '__main__':
     start()
