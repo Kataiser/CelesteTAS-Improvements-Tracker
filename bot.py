@@ -109,13 +109,15 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.projects:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
+    elif message.author.id in (438978127973318656, 155149108183695360):
+        return
 
     message_lower = message.content.lower()
     substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
     substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
 
     if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or 'song' in message_lower)):
-        await (await client.fetch_user(219955313334288385)).send(f"{utils.detailed_user(message)}: \"{message.content}\" {message.jump_url}")
+        await (await client.fetch_user(219955313334288385)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url}")
 
 
 @client.event
