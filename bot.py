@@ -110,6 +110,13 @@ async def on_message(message: discord.Message):
         await client.wait_until_ready()
         await main.process_improvement_message(message)
 
+    message_lower = message.content.lower()
+    substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
+    substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
+
+    if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or 'song' in message_lower)):
+        await (await client.fetch_user(219955313334288385)).send(f"{utils.detailed_user(message)}: \"{message.content}\" {message.jump_url}")
+
 
 @client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
@@ -231,6 +238,8 @@ commands.client = client
 spreadsheet.client = client
 main.client = client
 main.safe_mode = safe_mode
+substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
+substrings_1984_music = ('lab', 'psychokinetic', 'pk', 'superluminary', 'sl')
 
 if __name__ == '__main__':
     start()
