@@ -109,7 +109,7 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.projects:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
-    elif message.author.id in (438978127973318656, 155149108183695360):
+    elif message.author.id in (438978127973318656, 155149108183695360, 219955313334288385):
         return
 
     message_lower = message.content.lower()
@@ -241,7 +241,7 @@ spreadsheet.client = client
 main.client = client
 main.safe_mode = safe_mode
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
-substrings_1984_music = ('lab', 'psychokinetic', 'pk', 'superluminary')
+substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
 
 if __name__ == '__main__':
     start()
