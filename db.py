@@ -7,7 +7,7 @@ import ujson
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
 
-def get(table: str, key: Union[str, int], consistent_read = True) -> Any:
+def get(table: str, key: Union[str, int], consistent_read=True) -> Any:
     key_type = 'S' if isinstance(key, str) else 'N'
     item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{table}', Key={table_primaries[table]: {key_type: str(key)}}, ConsistentRead=consistent_read)
     item_deserialized = deserializer.deserialize({'M': item['Item']})

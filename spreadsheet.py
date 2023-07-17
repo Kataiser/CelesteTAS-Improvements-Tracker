@@ -2,6 +2,7 @@ import datetime
 import functools
 import logging
 import re
+import time
 from ssl import SSLEOFError
 from typing import List, Optional, Any
 
@@ -11,6 +12,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+import db
 import utils
 import validation
 from utils import plural
@@ -55,13 +57,16 @@ class MapRow:
     def update(self):
         if self.changed_data:
             sheet_log = str((self.map_name, self.range, ' '.join(self.writes)))
+            current_time = time.time()
+            current_time_local = time.localtime(current_time)
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S,', current_time_local) + str(round(current_time % 1, 3))[2:]
 
             try:
                 sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
-                sheet_writes.info(sheet_log)
+                db.set('sheet_writes', timestamp, {'status': 'INFO', 'log': sheet_log})
             except HttpError as error:
                 log.error(repr(error))
-                sheet_writes.error(sheet_log)
+                db.set('sheet_writes', timestamp, {'status': 'ERROR', 'log': sheet_log})
 
 
 class Cell:
@@ -374,7 +379,6 @@ def read_sheet(cell_range: str, multiple_rows=False):
 
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
-sheet_writes: Optional[logging.Logger] = None
 SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
 creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()

@@ -494,19 +494,12 @@ def create_loggers(main_filename: str, all_logs: bool) -> (logging.Logger, Optio
         file_handler = logging.FileHandler(filename='sync\\history.log', encoding='UTF8', mode='a')
         file_handler.setFormatter(log_formatter)
         history.addHandler(file_handler)
-
-        sheet_writes = logging.getLogger('sheet_writes')
-        sheet_writes.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(filename='sync\\sheet_writes.log', encoding='UTF8', mode='a')
-        file_handler.setFormatter(log_formatter)
-        sheet_writes.addHandler(file_handler)
-        logger.info("Other logs created")
+        logger.info("History log created")
 
         global history_log
         history_log = history
         commands.history_log = history
         utils.history_log = history
-        spreadsheet.sheet_writes = sheet_writes
         return logger, history
 
     return logger
