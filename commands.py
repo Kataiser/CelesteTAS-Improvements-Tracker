@@ -9,6 +9,7 @@ import discord
 import requests
 import ujson
 
+import db
 import game_sync
 import gen_token
 import main
@@ -184,7 +185,7 @@ async def command_register_project(message: discord.Message):
     utils.save_projects()
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {main.projects[improvements_channel_id]}"
     log.info(project_added_log)
-    history_log.info(project_added_log)
+    db.set('history_log', utils.log_timestamp(), project_added_log)
 
     if editing:
         await message.channel.send("Successfully verified and edited project.")
@@ -446,15 +447,12 @@ async def command_about(message: discord.Message):
         if main.projects[project_id]['do_run_validation']:
             sync_checks += 1
 
-    with open('sync\\history.log', 'r', encoding='UTF8') as history_log_file:
-        commits_made = len([line for line in history_log_file if 'Added project' not in line and 'Edited project' not in line])
-
     text_out = text.format(main.projects_count(),
                            len(client.guilds),
                            len(installations),
                            round((time.time() - main.login_time) / 3600, 1),
                            sync_checks,
-                           commits_made,
+                           db.table_size('history_log'),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks))
 
     log.info(text_out)
@@ -554,7 +552,6 @@ async def report_command_used(command_name: str, message: discord.Message):
 
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
-history_log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
 reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_edit_admin)
 

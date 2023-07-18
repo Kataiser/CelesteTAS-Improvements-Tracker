@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any, Callable, Optional, Sized, Union, Tuple
 
 import discord
@@ -96,6 +97,11 @@ def load_sj_data() -> Tuple[dict, dict]:
         return sj_data, sj_data_filenames
 
 
+def log_timestamp() -> str:
+    current_time = time.time()
+    current_time_local = time.localtime(current_time)
+    return time.strftime('%Y-%m-%d %H:%M:%S,', current_time_local) + str(round(current_time % 1, 3))[2:]
+
+
 log: Optional[logging.Logger] = None
-history_log: Optional[logging.Logger] = None
 validate_project_schema = load_project_schema()

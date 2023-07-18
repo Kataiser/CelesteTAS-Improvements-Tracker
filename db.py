@@ -28,6 +28,10 @@ def set(table: str, key: Union[str, int], value: Any):
     client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{table}', Item=serializer.serialize(item)['M'])
 
 
+def table_size(table: str) -> int:
+    return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{table}')['Table']['ItemCount']
+
+
 client = boto3.client('dynamodb')
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
@@ -81,21 +85,21 @@ if __name__ == '__main__':
         set('githubs', int(discord_id), githubs[discord_id])
 
     print(get('githubs', 219955313334288385))
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_sheet_writes'))
-
-    with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as history_log:
-        for line in history_log:
-            if line.startswith('2023-02-09'):
-                continue
-
-            line_partitioned = line.partition(': ')
-            line_partitioned2 = line_partitioned[0].rpartition(':')
-            timestamp = line_partitioned2[0]
-            status = line_partitioned2[2]
-            data = eval(line_partitioned[2][:-1])
-            set('sheet_writes', timestamp, {'status': status, 'log': data})
-
-    print(get('sheet_writes', '2023-07-07 07:31:27,264'))
+    # print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_sheet_writes'))
+    #
+    # with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as history_log:
+    #     for line in history_log:
+    #         if line.startswith('2023-02-09'):
+    #             continue
+    #
+    #         line_partitioned = line.partition(': ')
+    #         line_partitioned2 = line_partitioned[0].rpartition(':')
+    #         timestamp = line_partitioned2[0]
+    #         status = line_partitioned2[2]
+    #         data = eval(line_partitioned[2][:-1])
+    #         set('sheet_writes', timestamp, {'status': status, 'log': data})
+    #
+    # print(get('sheet_writes', '2023-07-07 07:31:27,264'))
     print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_history_log'))
 
     with open('sync\\history.log', 'r', encoding='UTF8') as history_log:

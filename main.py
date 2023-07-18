@@ -18,6 +18,7 @@ import ujson
 from discord.ext import tasks
 
 import commands
+import db
 import gen_token
 import spreadsheet
 import utils
@@ -123,7 +124,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
             if commit_status:
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
-                history_log.info(history_data)
+                db.set('history_log', utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
                 await edit_pin(message.channel)
@@ -465,7 +466,7 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_loggers(main_filename: str, all_logs: bool) -> (logging.Logger, Optional[logging.Logger]):
+def create_logger(main_filename: str, all_logs: bool) -> (logging.Logger, Optional[logging.Logger]):
     if os.path.isfile('bot.log'):
         os.replace('bot.log', 'bot_old.log')
 
@@ -478,7 +479,7 @@ def create_loggers(main_filename: str, all_logs: bool) -> (logging.Logger, Optio
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
     logger.addHandler(stdout_handler)
-    logger.info("Main log created")
+    logger.info("Log created")
 
     global log
     log = logger
@@ -488,25 +489,10 @@ def create_loggers(main_filename: str, all_logs: bool) -> (logging.Logger, Optio
     commands.log = logger
     spreadsheet.log = logger
 
-    if all_logs:
-        history = logging.getLogger('history')
-        history.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(filename='sync\\history.log', encoding='UTF8', mode='a')
-        file_handler.setFormatter(log_formatter)
-        history.addHandler(file_handler)
-        logger.info("History log created")
-
-        global history_log
-        history_log = history
-        commands.history_log = history
-        utils.history_log = history
-        return logger, history
-
     return logger
 
 
 log: Optional[logging.Logger] = None
-history_log: Optional[logging.Logger] = None
 projects = utils.load_projects()
 project_logs = {}
 path_caches = {}

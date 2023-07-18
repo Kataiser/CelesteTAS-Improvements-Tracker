@@ -2,7 +2,6 @@ import datetime
 import functools
 import logging
 import re
-import time
 from ssl import SSLEOFError
 from typing import List, Optional, Any
 
@@ -57,16 +56,13 @@ class MapRow:
     def update(self):
         if self.changed_data:
             sheet_log = str((self.map_name, self.range, ' '.join(self.writes)))
-            current_time = time.time()
-            current_time_local = time.localtime(current_time)
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S,', current_time_local) + str(round(current_time % 1, 3))[2:]
 
             try:
                 sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
-                db.set('sheet_writes', timestamp, {'status': 'INFO', 'log': sheet_log})
+                db.set('sheet_writes', utils.log_timestamp(), {'status': 'INFO', 'log': sheet_log})
             except HttpError as error:
                 log.error(repr(error))
-                db.set('sheet_writes', timestamp, {'status': 'ERROR', 'log': sheet_log})
+                db.set('sheet_writes', utils.log_timestamp(), {'status': 'ERROR', 'log': sheet_log})
 
 
 class Cell:
