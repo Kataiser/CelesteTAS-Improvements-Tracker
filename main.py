@@ -423,12 +423,11 @@ def projects_count() -> int:
     return len(set(projects) - inaccessible_projects)
 
 
-def get_user_github_account(discord_id: int) -> Optional[tuple]:
-    with open('sync\\githubs.json', 'r') as githubs_json:
-        github_accounts = ujson.load(githubs_json)
-
-    if str(discord_id) in github_accounts:
-        return github_accounts[str(discord_id)]
+def get_user_github_account(discord_id: int) -> Optional[list]:
+    try:
+        return db.githubs.get(discord_id, consistent_read=False)
+    except db.DBKeyError:
+        return
 
 
 # load the saved message IDs of already committed posts
