@@ -124,7 +124,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
             if commit_status:
                 history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
-                db.set('history_log', utils.log_timestamp(), str(history_data))
+                db.history_log.set(utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
                 await edit_pin(message.channel)

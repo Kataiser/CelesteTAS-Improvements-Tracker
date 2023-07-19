@@ -185,7 +185,7 @@ async def command_register_project(message: discord.Message):
     utils.save_projects()
     project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {main.projects[improvements_channel_id]}"
     log.info(project_added_log)
-    db.set('history_log', utils.log_timestamp(), project_added_log)
+    db.history_log.set(utils.log_timestamp(), project_added_log)
 
     if editing:
         await message.channel.send("Successfully verified and edited project.")
@@ -452,7 +452,7 @@ async def command_about(message: discord.Message):
                            len(installations),
                            round((time.time() - main.login_time) / 3600, 1),
                            sync_checks,
-                           db.table_size('history_log'),  # techically inaccurate because add/edit project logs but close enough
+                           db.history_log.size(),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks))
 
     log.info(text_out)

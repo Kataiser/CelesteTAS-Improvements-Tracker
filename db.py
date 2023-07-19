@@ -1,3 +1,4 @@
+import atexit
 import copy
 import os
 from typing import Union, Any
@@ -7,106 +8,129 @@ import ujson
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
 
-def get(table: str, key: Union[str, int], consistent_read=True) -> Any:
-    key_type = 'S' if isinstance(key, str) else 'N'
-    item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{table}', Key={table_primaries[table]: {key_type: str(key)}}, ConsistentRead=consistent_read)
-    item_deserialized = deserializer.deserialize({'M': item['Item']})
+class Table:
+    def __init__(self, table_name: str):
+        self.table_name = table_name
 
-    if '_value' in item_deserialized:
-        return item_deserialized['_value']
-    else:
-        return item_deserialized
+    def get(self, key: Union[str, int], consistent_read: bool = True) -> Any:
+        key_type = 'S' if isinstance(key, str) else 'N'
+        item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={table_primaries[self.table_name]: {key_type: str(key)}}, ConsistentRead=consistent_read)
+
+        if 'Item' in item:
+            item_deserialized = deserializer.deserialize({'M': item['Item']})
+        else:
+            raise DBKeyError(f"'{key}' not found in table 'CelesteTAS-Improvement-Tracker_{self.table_name}'")
+
+        if '_value' in item_deserialized:
+            return item_deserialized['_value']
+        else:
+            return item_deserialized
+
+    def set(self, key: Union[str, int], value: Any):
+        if isinstance(value, dict):
+            item = copy.copy(value)
+            item[table_primaries[self.table_name]] = key
+        else:
+            item = {table_primaries[self.table_name]: key, '_value': value}
+
+        client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(item)['M'])
+
+    def metadata(self) -> dict:
+        return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')
+
+    def size(self) -> int:
+        return self.metadata()['Table']['ItemCount']
 
 
-def set(table: str, key: Union[str, int], value: Any):
-    if isinstance(value, dict):
-        item = copy.copy(value)
-        item[table_primaries[table]] = key
-    else:
-        item = {table_primaries[table]: key, '_value': value}
-
-    client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{table}', Item=serializer.serialize(item)['M'])
+class DBKeyError(Exception):
+    pass
 
 
-def table_size(table: str) -> int:
-    return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{table}')['Table']['ItemCount']
-
+githubs = Table('githubs')
+history_logs = Table('history_logs')
+installations = Table('installations')
+path_caches = Table('path_caches')
+projects = Table('projects')
+project_logs = Table('project_logs')
+sheet_writes = Table('sheet_writes')
 
 client = boto3.client('dynamodb')
+atexit.register(client.close)
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
 table_primaries = {'projects': 'project_id', 'githubs': 'discord_id', 'history_log': 'timestamp', 'installations': 'github_username', 'path_caches': 'project_id',
                    'project_logs': 'project_id', 'sheet_writes': 'timestamp'}
 
 if __name__ == '__main__':
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_projects'))
+    print(projects.metadata())
 
     with open('sync\\projects.json', 'r', encoding='UTF8') as projects_json:
         projects_loaded = ujson.load(projects_json)
         projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
 
     for project_id in projects_fixed:
-        set('projects', project_id, projects_fixed[project_id])
+        projects.set(project_id, projects_fixed[project_id])
 
-    print(get('projects', 970380662907482142))
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_project_logs'))
+    print(projects.get(970380662907482142))
+    print(project_logs.metadata())
 
     for project_log_name in os.listdir('sync\\project_logs'):
         with open(f'sync\\project_logs\\{project_log_name}', 'r', encoding='UTF8') as project_log:
             project_log_loaded = ujson.load(project_log)
 
-        set('project_logs', int(project_log_name.removesuffix('.json')), project_log_loaded)
+        project_logs.set(int(project_log_name.removesuffix('.json')), project_log_loaded)
 
-    print(get('project_logs', 970380662907482142))
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_path_caches'))
+    print(project_logs.get(970380662907482142))
+    print(path_caches.metadata())
 
     with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
-        path_caches = ujson.load(path_caches_json)
+        path_caches_loaded = ujson.load(path_caches_json)
 
-    for project_id in path_caches:
-        set('path_caches', int(project_id), path_caches[project_id])
+    for project_id in path_caches_loaded:
+        path_caches.set(int(project_id), path_caches_loaded[project_id])
 
-    print(get('path_caches', 970380662907482142))
+    path_caches.get(970380662907482142)
     print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_installations'))
+    print(installations.metadata())
 
     with open('sync\\installations.json', 'r', encoding='UTF8') as installations_json:
-        installations = ujson.load(installations_json)
+        installations_loaded = ujson.load(installations_json)
 
-    for github_username in installations:
-        set('installations', github_username, installations[github_username])
+    for github_username in installations_loaded:
+        installations.set(github_username, installations_loaded[github_username])
 
-    print(get('installations', 'Kataiser'))
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_githubs'))
+    print(installations.get('Kataiser'))
+    print(githubs.metadata())
 
     with open('sync\\githubs.json', 'r', encoding='UTF8') as githubs_json:
-        githubs = ujson.load(githubs_json)
+        githubs_loaded = ujson.load(githubs_json)
 
-    for discord_id in githubs:
-        set('githubs', int(discord_id), githubs[discord_id])
+    for discord_id in githubs_loaded:
+        installations.set(int(discord_id), githubs_loaded[discord_id])
 
-    print(get('githubs', 219955313334288385))
-    # print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_sheet_writes'))
-    #
-    # with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as history_log:
-    #     for line in history_log:
-    #         if line.startswith('2023-02-09'):
-    #             continue
-    #
-    #         line_partitioned = line.partition(': ')
-    #         line_partitioned2 = line_partitioned[0].rpartition(':')
-    #         timestamp = line_partitioned2[0]
-    #         status = line_partitioned2[2]
-    #         data = eval(line_partitioned[2][:-1])
-    #         set('sheet_writes', timestamp, {'status': status, 'log': data})
-    #
-    # print(get('sheet_writes', '2023-07-07 07:31:27,264'))
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_history_log'))
+    print(githubs.get(219955313334288385))
+    print(sheet_writes.metadata())
+
+    with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as history_log:
+        for line in history_log:
+            if line.startswith('2023-02-09'):
+                continue
+
+            line_partitioned = line.partition(': ')
+            line_partitioned2 = line_partitioned[0].rpartition(':')
+            timestamp = line_partitioned2[0]
+            status = line_partitioned2[2]
+            data = eval(line_partitioned[2][:-1])
+            sheet_writes.set(timestamp, {'status': status, 'log': data})
+
+    print(sheet_writes.get('2023-07-07 07:31:27,264'))
+    print(history_logs.metadata())
 
     with open('sync\\history.log', 'r', encoding='UTF8') as history_log:
         for line in history_log:
             line_partitioned = line.partition(': ')
             timestamp = line_partitioned[0].replace(':history', '').rpartition(':')[0]
-            set('history_log', timestamp, line_partitioned[2][:-1])
+            history_logs.set(timestamp, line_partitioned[2][:-1])
 
-    print(get('history_log', '2023-03-06 20:31:44,890'))
+    print(history_logs.get('2023-03-06 20:31:44,890'))
     client.close()

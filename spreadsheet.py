@@ -59,10 +59,10 @@ class MapRow:
 
             try:
                 sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
-                db.set('sheet_writes', utils.log_timestamp(), {'status': 'INFO', 'log': sheet_log})
+                db.sheet_writes.set(utils.log_timestamp(), {'status': 'INFO', 'log': sheet_log})
             except HttpError as error:
                 log.error(repr(error))
-                db.set('sheet_writes', utils.log_timestamp(), {'status': 'ERROR', 'log': sheet_log})
+                db.sheet_writes.set(utils.log_timestamp(), {'status': 'ERROR', 'log': sheet_log})
 
 
 class Cell:
