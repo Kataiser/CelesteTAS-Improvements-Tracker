@@ -47,7 +47,7 @@ class DBKeyError(Exception):
 
 
 githubs = Table('githubs')
-history_logs = Table('history_logs')
+history_log = Table('history_log')
 installations = Table('installations')
 path_caches = Table('path_caches')
 projects = Table('projects')
@@ -111,8 +111,8 @@ if __name__ == '__main__':
     print(githubs.get(219955313334288385))
     print(sheet_writes.metadata())
 
-    with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as history_log:
-        for line in history_log:
+    with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as sheet_writes_file:
+        for line in sheet_writes_file:
             if line.startswith('2023-02-09'):
                 continue
 
@@ -124,13 +124,13 @@ if __name__ == '__main__':
             sheet_writes.set(timestamp, {'status': status, 'log': data})
 
     print(sheet_writes.get('2023-07-07 07:31:27,264'))
-    print(history_logs.metadata())
+    print(history_log.metadata())
 
     with open('sync\\history.log', 'r', encoding='UTF8') as history_log:
         for line in history_log:
             line_partitioned = line.partition(': ')
             timestamp = line_partitioned[0].replace(':history', '').rpartition(':')[0]
-            history_logs.set(timestamp, line_partitioned[2][:-1])
+            history_log.set(timestamp, line_partitioned[2][:-1])
 
-    print(history_logs.get('2023-03-06 20:31:44,890'))
+    print(history_log.get('2023-03-06 20:31:44,890'))
     client.close()
