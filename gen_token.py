@@ -1,5 +1,4 @@
 import datetime
-import functools
 import logging
 import time
 from typing import Optional
@@ -8,6 +7,7 @@ import jwt
 import requests
 import ujson
 
+import db
 import utils
 from utils import plural
 
@@ -37,21 +37,20 @@ def generate_jwt(min_time: int) -> str:
 
 def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
     headers = {'Authorization': f'Bearer {generate_jwt(min_jwt_time)}', 'Accept': 'application/vnd.github.v3+json'}
-    installations_saved = installations_file()
+    installations_saved = {}
 
-    if installation_owner not in installations_file():
+    try:
+        installations_saved[installation_owner] = db.installations.get(installation_owner, consistent_read=False)
+    except db.DBKeyError:
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
         r = requests.get('https://api.github.com/app/installations', headers=headers)
         utils.handle_potential_request_error(r, 200)
         installations = ujson.loads(r.content)
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
-        installations_file.cache_clear()
 
         for installation in installations:
             installations_saved[installation['account']['login']] = installation['id']
-
-        with open('sync\\installations.json', 'w') as installations_json_write:
-            ujson.dump(installations_saved, installations_json_write, indent=4)
+            db.installations.set(installation['account']['login'], installation['id'])
 
     if installation_owner in installations_saved:
         installation_id = installations_saved[installation_owner]
@@ -81,12 +80,6 @@ def access_token(installation_owner: str, min_time: int):
     return tokens[installation_owner][0]
 
 
-@functools.cache
-def installations_file() -> dict:
-    with open('sync\\installations.json', 'r') as installations_json_read:
-        return ujson.load(installations_json_read)
-
-
 class InstallationOwnerMissingError(Exception):
     pass
 
@@ -96,4 +89,4 @@ log: Optional[logging.Logger] = None
 
 
 if __name__ == '__main__':
-    generate_access_token('Kataiser')
+    generate_access_token('Kataiser', 30)
