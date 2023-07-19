@@ -175,7 +175,7 @@ async def command_register_project(message: discord.Message):
         pinned_message = await main.edit_pin(improvements_channel, create=True)
         await pinned_message.pin()
         main.projects[improvements_channel_id]['pin'] = pinned_message.id
-        main.project_logs[improvements_channel_id] = []
+        db.project_logs.set(improvements_channel_id, [])
     else:
         for previous_key in previous:
             main.projects[improvements_channel_id][previous_key] = previous[previous_key]

@@ -11,8 +11,13 @@ from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 class Table:
     def __init__(self, table_name: str):
         self.table_name = table_name
+        self.caching = False
+        self.cache = {}
 
     def get(self, key: Union[str, int], consistent_read: bool = True) -> Any:
+        if self.caching and key in self.cache:
+            return self.cache[key]
+
         key_type = 'S' if isinstance(key, str) else 'N'
         item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={table_primaries[self.table_name]: {key_type: str(key)}}, ConsistentRead=consistent_read)
 
@@ -22,9 +27,14 @@ class Table:
             raise DBKeyError(f"'{key}' not found in table 'CelesteTAS-Improvement-Tracker_{self.table_name}'")
 
         if '_value' in item_deserialized:
-            return item_deserialized['_value']
+            result = item_deserialized['_value']
         else:
-            return item_deserialized
+            result = item_deserialized
+
+        if self.caching:
+            self.cache[key] = result
+
+        return result
 
     def set(self, key: Union[str, int], value: Any):
         if isinstance(value, dict):
@@ -40,6 +50,13 @@ class Table:
 
     def size(self) -> int:
         return self.metadata()['Table']['ItemCount']
+
+    def enable_cache(self):
+        self.caching = True
+
+    def disable_cache(self):
+        self.caching = False
+        self.cache = {}
 
 
 class DBKeyError(Exception):
@@ -126,8 +143,8 @@ if __name__ == '__main__':
     print(sheet_writes.get('2023-07-07 07:31:27,264'))
     print(history_log.metadata())
 
-    with open('sync\\history.log', 'r', encoding='UTF8') as history_log:
-        for line in history_log:
+    with open('sync\\history.log', 'r', encoding='UTF8') as history_log_file:
+        for line in history_log_file:
             line_partitioned = line.partition(': ')
             timestamp = line_partitioned[0].replace(':history', '').rpartition(':')[0]
             history_log.set(timestamp, line_partitioned[2][:-1])

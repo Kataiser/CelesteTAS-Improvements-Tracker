@@ -7,6 +7,7 @@ from typing import List
 import discord
 
 import commands
+import db
 import main
 import spreadsheet
 import utils
@@ -38,12 +39,12 @@ def start():
         print("DEBUG MODE")
 
     main.projects = utils.load_projects()
-    main.load_project_logs()
     main.path_caches = utils.load_path_caches()
-    log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {len(main.project_logs)} project message log{plural(main.project_logs)}, "
+    project_logs = db.project_logs.size()
+    log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {project_logs} project message log{plural(project_logs)}, "
              f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
 
-    if not len(main.projects) == len(main.project_logs) == len(main.path_caches):
+    if not len(main.projects) == project_logs == len(main.path_caches):
         log.critical("Project data component lengths are not equal, exiting")
         return
 
@@ -75,6 +76,7 @@ async def on_ready():
     main.handle_game_sync_results.start()
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else main.projects
+    db.project_logs.enable_cache()
 
     for improvements_channel_id in reversed(projects_to_scan):
         improvements_channel = client.get_channel(improvements_channel_id)
@@ -96,6 +98,7 @@ async def on_ready():
             await main.process_improvement_message(message)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
+    db.project_logs.disable_cache()
     await main.set_status()
 
 
@@ -138,7 +141,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         await client.wait_until_ready()
 
         for project_id in main.projects:
-            if payload.message_id in main.project_logs[project_id]:
+            if payload.message_id in db.project_logs.get(project_id):
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
                 if payload.user_id in (message.author.id, *main.projects[project_id]['admins'], 219955313334288385):

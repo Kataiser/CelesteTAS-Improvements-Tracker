@@ -250,7 +250,7 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message) -> bool:
-    if message.id in project_logs[message.channel.id] or message.author.id == 970375635027525652 or (safe_mode and message.channel.id not in safe_projects):
+    if message.id in db.project_logs.get(message.channel.id) or message.author.id == 970375635027525652 or (safe_mode and message.channel.id not in safe_projects):
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that
@@ -430,34 +430,10 @@ def get_user_github_account(discord_id: int) -> Optional[list]:
         return
 
 
-# load the saved message IDs of already committed posts
-def load_project_logs():
-    if project_logs:
-        # bot restarted itself
-        return
-
-    for project in projects:
-        project_log_path = f'sync\\project_logs\\{project}.json'
-
-        if not os.path.isfile(project_log_path):
-            with open(project_log_path, 'w') as project_log_db:
-                project_log_db.write('[]')
-
-            project_logs[project] = []
-            log.info(f"Created {project_log_path}")
-        else:
-            with open(project_log_path, 'r') as project_log_db:
-                project_logs[project] = ujson.load(project_log_db)
-
-
 def add_project_log(message: discord.Message):
-    project_logs[message.channel.id].append(message.id)
-    project_log_path = f'sync\\project_logs\\{message.channel.id}.json'
-
-    with open(project_log_path, 'w') as project_log_db:
-        ujson.dump(project_logs[message.channel.id], project_log_db, indent=2)
-
-    log.info(f"Added message ID {message.id} to {project_log_path}")
+    project_logs = db.project_logs.get(message.channel.id)
+    project_logs.append(message.id)
+    db.project_logs.set(message.channel.id, project_logs)
 
 
 def generate_request_headers(installation_owner: str, min_time: int = 30):
@@ -493,7 +469,6 @@ def create_logger(main_filename: str, all_logs: bool) -> (logging.Logger, Option
 
 log: Optional[logging.Logger] = None
 projects = utils.load_projects()
-project_logs = {}
 path_caches = {}
 headers = None
 login_time = None
