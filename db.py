@@ -53,10 +53,23 @@ class Table:
 
     def enable_cache(self):
         self.caching = True
+        self.cache = {}
 
     def disable_cache(self):
         self.caching = False
         self.cache = {}
+
+
+class PathCaches(Table):
+    def add_file(self, project_id: int, filename: str, file_path: str):
+        path_cache = self.get(project_id)
+        path_cache[filename] = file_path
+        self.set(project_id, path_cache)
+
+    def remove_file(self, project_id: int, filename: str):
+        path_cache = self.get(project_id)
+        del path_cache[filename]
+        self.set(project_id, path_cache)
 
 
 class DBKeyError(Exception):
@@ -66,10 +79,10 @@ class DBKeyError(Exception):
 githubs = Table('githubs')
 history_log = Table('history_log')
 installations = Table('installations')
-path_caches = Table('path_caches')
 projects = Table('projects')
 project_logs = Table('project_logs')
 sheet_writes = Table('sheet_writes')
+path_caches = PathCaches('path_caches')
 
 client = boto3.client('dynamodb')
 atexit.register(client.close)
@@ -89,6 +102,15 @@ if __name__ == '__main__':
         projects.set(project_id, projects_fixed[project_id])
 
     print(projects.get(970380662907482142))
+    print(path_caches.metadata())
+
+    with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
+        path_caches_loaded = ujson.load(path_caches_json)
+
+    for project_id in path_caches_loaded:
+        path_caches.set(int(project_id), path_caches_loaded[project_id])
+
+    print(path_caches.get(970380662907482142))
     print(project_logs.metadata())
 
     for project_log_name in os.listdir('sync\\project_logs'):
@@ -98,15 +120,6 @@ if __name__ == '__main__':
         project_logs.set(int(project_log_name.removesuffix('.json')), project_log_loaded)
 
     print(project_logs.get(970380662907482142))
-    print(path_caches.metadata())
-
-    with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
-        path_caches_loaded = ujson.load(path_caches_json)
-
-    for project_id in path_caches_loaded:
-        path_caches.set(int(project_id), path_caches_loaded[project_id])
-
-    path_caches.get(970380662907482142)
     print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_installations'))
     print(installations.metadata())
 

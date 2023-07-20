@@ -296,9 +296,9 @@ async def command_rename_file(message: discord.Message):
             continue
 
         main.generate_request_headers(project['installation_owner'])
-        main.generate_path_cache(project_id)
+        path_cache = main.generate_path_cache(project_id)
 
-        if filename_before not in main.path_caches[project_id]:
+        if filename_before not in path_cache:
             not_found_text = f"{filename_before} not in project {project['name']}"
             log.warning(not_found_text)
             await message.channel.send(not_found_text)
@@ -308,7 +308,7 @@ async def command_rename_file(message: discord.Message):
         log.info(renaming_text)
         await message.channel.send(renaming_text)
         repo = project['repo']
-        file_path = main.path_caches[project_id][filename_before]
+        file_path = path_cache[filename_before]
         renamed_file = True
         user_github_account = main.get_user_github_account(message.author.id)
 
@@ -331,7 +331,7 @@ async def command_rename_file(message: discord.Message):
         log.info("Performing recreate commit")
         file_path_after = file_path.replace(filename_before, filename_after)
         data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
-        if filename_after in main.path_caches[project_id]:
+        if filename_after in path_cache:
             data['sha'] = main.get_sha(repo, file_path_after)
             expected_status = 200
         else:
@@ -343,9 +343,10 @@ async def command_rename_file(message: discord.Message):
         utils.handle_potential_request_error(r, expected_status)
 
         if r.status_code == expected_status:
-            del main.path_caches[project_id][filename_before]
-            main.path_caches[project_id][filename_after] = file_path_after
-            utils.save_path_caches()
+            db.path_caches.enable_cache()
+            db.path_caches.remove_file(project_id, filename_before)
+            db.path_caches.add_file(project_id, filename_after, file_path_after)
+            db.path_caches.disable_cache()
             log.info("Rename successful")
             await message.channel.send("Rename successful")
             improvements_channel = client.get_channel(project_id)

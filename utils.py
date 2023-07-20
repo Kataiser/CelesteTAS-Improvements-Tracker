@@ -68,18 +68,6 @@ def add_project_key(key: str, value: Any):
     log.info(f"Added `{key}: {value}` to {len(main.projects)} projects, be sure to update validate_project_formats and command_register_project")
 
 
-def load_path_caches() -> dict:
-    with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
-        path_caches_loaded = ujson.load(path_caches_json)
-        return {int(k): path_caches_loaded[k] for k in path_caches_loaded}
-
-
-def save_path_caches():
-    with open('sync\\path_caches.json', 'r+', encoding='UTF8') as path_caches_json:
-        path_caches_json.truncate()
-        ujson.dump(main.path_caches, path_caches_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
-
-
 def validate_project_formats(projects: dict):
     for project_id in projects:
         validate_project_schema(projects[project_id])

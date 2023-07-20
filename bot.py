@@ -39,12 +39,12 @@ def start():
         print("DEBUG MODE")
 
     main.projects = utils.load_projects()
-    main.path_caches = utils.load_path_caches()
-    project_logs = db.project_logs.size()
-    log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {project_logs} project message log{plural(project_logs)}, "
-             f"and {len(main.path_caches)} path cache{plural(main.path_caches)}")
+    path_caches_size = db.path_caches.size()
+    project_logs_size = db.project_logs.size()
+    log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {project_logs_size} project message log{plural(project_logs_size)}, "
+             f"and {path_caches_size} path cache{plural(path_caches_size)}")
 
-    if not len(main.projects) == project_logs == len(main.path_caches):
+    if not len(main.projects) == project_logs_size == path_caches_size:
         log.critical("Project data component lengths are not equal, exiting")
         return
 

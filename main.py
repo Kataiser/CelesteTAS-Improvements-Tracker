@@ -1,5 +1,4 @@
 import base64
-import copy
 import dataclasses
 import datetime
 import io
@@ -91,8 +90,9 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             file_content = attachment.content
 
         filename, filename_no_underscores = attachment.filename, attachment.filename.replace('_', ' ')
+        db.path_caches.enable_cache()
 
-        if filename not in path_caches[message.channel.id] and filename_no_underscores in path_caches[message.channel.id]:
+        if filename not in db.path_caches.get(message.channel.id) and filename_no_underscores in db.path_caches.get(message.channel.id):
             log.info(f"Considering {filename} as {filename_no_underscores}")
             filename = filename_no_underscores
 
@@ -105,7 +105,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             r_json = ujson.loads(r.content)
 
             if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
-                del path_caches[message.channel.id][filename]
+                db.path_caches.remove_file(message.channel.id, filename)
                 log.warning("File existed in path cache but doesn't seem to exist in repo")
             else:
                 utils.handle_potential_request_error(r, 200)
@@ -113,6 +113,7 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         else:
             log.info("No old version of file exists")
 
+        db.path_caches.disable_cache()
         validation_result = validation.validate(file_content, filename, message, old_file_content, is_lobby, skip_validation)
 
         if validation_result.valid_tas:
@@ -178,8 +179,7 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
         data['message'] = f"{filename} draft by {author}{chapter_time}"
         subdir = projects[message.channel.id]['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
-        path_caches[message.channel.id][filename] = file_path
-        utils.save_path_caches()
+        db.path_caches.add_file(message.channel.id, filename, file_path)
 
         if not projects[message.channel.id]['commit_drafts']:
             return
@@ -198,23 +198,24 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
 
 # if a file exists in the repo, get its path
 def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
-    if filename not in path_caches[project_id]:
-        generate_path_cache(project_id)
+    path_cache = db.path_caches.get(project_id)
 
-    if filename in path_caches[project_id]:
-        return path_caches[project_id][filename]
+    if filename not in path_cache:
+        path_cache = generate_path_cache(project_id)
+
+    if filename in path_cache:
+        return path_cache[filename]
 
 
 # walk the project's repo and cache the path of all TAS files found
-def generate_path_cache(project_id: int):
+def generate_path_cache(project_id: int) -> dict:
     repo = projects[project_id]['repo']
     project_subdir = projects[project_id]['subdir']
     project_subdir_base = project_subdir.partition('/')[0]
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
-    old_path_cache = copy.copy(path_caches[project_id]) if project_id in path_caches else None
-    path_caches[project_id] = {}  # always start from scratch
+    path_cache = {}  # always start from scratch
 
     for item in ujson.loads(r.content):
         if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
@@ -229,14 +230,13 @@ def generate_path_cache(project_id: int):
                     subitem_full_path = f"{item['name']}/{subitem['path']}"
 
                     if subitem_name.endswith('.tas') and (subitem_full_path.startswith(project_subdir) if project_subdir else True):
-                        path_caches[project_id][subitem_name] = subitem_full_path
+                        path_cache[subitem_name] = subitem_full_path
         elif not project_subdir and item['name'].endswith('.tas'):
-            path_caches[project_id][item['name']] = item['path']
+            path_cache[item['name']] = item['path']
 
-    if path_caches[project_id] != old_path_cache:
-        utils.save_path_caches()
-
-    log.info(f"Cached: {path_caches[project_id]}")
+    db.path_caches.set(project_id, path_cache)
+    log.info(f"Cached: {path_cache}")
+    return path_cache
 
 
 # we know the file exists, so get its SHA for updating
@@ -374,9 +374,8 @@ async def handle_game_sync_results():
     if not sync_result_found:
         return
 
-    global projects, path_caches, client
+    global projects, client
     projects = utils.load_projects()
-    path_caches = utils.load_path_caches()
 
     for sync_result_filename in sync_result_found:
         project_id = sync_result_filename.rpartition('_')[2][:-4]
@@ -469,7 +468,6 @@ def create_logger(main_filename: str, all_logs: bool) -> (logging.Logger, Option
 
 log: Optional[logging.Logger] = None
 projects = utils.load_projects()
-path_caches = {}
 headers = None
 login_time = None
 client: Optional[discord.Client] = None
