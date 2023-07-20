@@ -64,7 +64,10 @@ class Table:
 class PathCaches(Table):
     def get(self, key: int, consistent_read: bool = True) -> dict:
         result = super().get(key, consistent_read)
-        del result['project_id']
+
+        if 'project_id' in result:
+            del result['project_id']
+
         return dict(sorted(result.items(), key=itemgetter(1)))
 
     def add_file(self, project_id: int, filename: str, file_path: str):
