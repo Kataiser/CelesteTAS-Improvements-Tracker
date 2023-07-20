@@ -15,6 +15,7 @@ import requests
 import ujson
 import yaml
 
+import db
 import main
 import utils
 import validation
@@ -36,12 +37,11 @@ def run_syncs():
         test_projects = reversed(main.projects)
 
     utils.projects = utils.load_projects()
-    main.path_caches = utils.load_path_caches()
     load_sid_caches()
 
     try:
         for project_id in test_projects:
-            if (main.projects[project_id]['do_run_validation'] or cli_project_id) and main.path_caches[project_id]:
+            if (main.projects[project_id]['do_run_validation'] or cli_project_id) and db.path_caches.get(project_id):
                 sync_test(project_id)
     except Exception as error:
         log.error(repr(error))
@@ -76,7 +76,7 @@ def sync_test(project_id: int):
     # make sure path cache is correct while the game is launching
     main.generate_request_headers(project['installation_owner'], 300)
     main.generate_path_cache(project_id)
-    path_cache = main.path_caches[project_id]
+    path_cache = db.path_caches.get(project_id)
 
     # clone repo
     repo_cloned = repo.partition('/')[2]
