@@ -110,6 +110,7 @@ history_log = Table('history_log')
 installations = Table('installations')
 project_logs = Table('project_logs')
 sheet_writes = Table('sheet_writes')
+logs = Table('logs')
 projects = Projects('projects')
 path_caches = PathCaches('path_caches')
 
@@ -118,7 +119,7 @@ atexit.register(client.close)
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
 table_primaries = {'projects': 'project_id', 'githubs': 'discord_id', 'history_log': 'timestamp', 'installations': 'github_username', 'path_caches': 'project_id',
-                   'project_logs': 'project_id', 'sheet_writes': 'timestamp'}
+                   'project_logs': 'project_id', 'sheet_writes': 'timestamp', 'logs': 'time'}
 
 if __name__ == '__main__':
     print(projects.metadata())

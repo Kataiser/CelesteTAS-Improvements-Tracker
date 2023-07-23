@@ -5,6 +5,7 @@ import io
 import logging
 import os
 import random
+import socket
 import sys
 import time
 import urllib.parse
@@ -446,6 +447,9 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
 
 def create_logger(main_filename: str) -> (logging.Logger, Optional[logging.Logger]):
     if os.path.isfile('bot.log'):
+        with open('bot.log', 'r', encoding='UTF8') as old_log:
+            db.logs.set(int(os.path.getmtime('bot.log')), {'pc_name': socket.gethostname(), 'data': old_log.read()})
+
         os.replace('bot.log', 'bot_old.log')
 
     logger = logging.getLogger('bot')
