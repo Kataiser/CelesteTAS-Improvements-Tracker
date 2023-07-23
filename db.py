@@ -10,8 +10,9 @@ from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
 
 class Table:
-    def __init__(self, table_name: str):
+    def __init__(self, table_name: str, primary_key: str):
         self.table_name = table_name
+        self.primary_key = primary_key
         self.caching = False
         self.cache = {}
 
@@ -20,7 +21,7 @@ class Table:
             return self.cache[key]
 
         key_type = 'S' if isinstance(key, str) else 'N'
-        item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={table_primaries[self.table_name]: {key_type: str(key)}}, ConsistentRead=consistent_read)
+        item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}}, ConsistentRead=consistent_read)
 
         if 'Item' in item:
             item_deserialized = deserializer.deserialize({'M': item['Item']})
@@ -40,9 +41,9 @@ class Table:
     def set(self, key: Union[str, int], value: Any):
         if isinstance(value, dict):
             item = copy.copy(value)
-            item[table_primaries[self.table_name]] = key
+            item[self.primary_key] = key
         else:
-            item = {table_primaries[self.table_name]: key, '_value': value}
+            item = {self.primary_key: key, '_value': value}
 
         client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(item)['M'])
 
@@ -87,7 +88,7 @@ class PathCaches(Table):
 
 class Projects(Table):
     def dict(self, consistent_read: bool = True) -> dict:
-        return {int(item['project_id']): item for item in self.get_all(consistent_read)}
+        return {int(item[self.primary_key]): item for item in self.get_all(consistent_read)}
 
     def get_by_name(self, name: str, consistent_read: bool = True) -> dict:
         all_projects = self.get_all(consistent_read)
@@ -105,21 +106,19 @@ class DBKeyError(Exception):
     pass
 
 
-githubs = Table('githubs')
-history_log = Table('history_log')
-installations = Table('installations')
-project_logs = Table('project_logs')
-sheet_writes = Table('sheet_writes')
-logs = Table('logs')
-projects = Projects('projects')
-path_caches = PathCaches('path_caches')
+githubs = Table('githubs', 'discord_id')
+history_log = Table('history_log', 'timestamp')
+installations = Table('installations', 'github_username')
+project_logs = Table('project_logs', 'project_id')
+sheet_writes = Table('sheet_writes', 'timestamp')
+logs = Table('logs', 'time')
+projects = Projects('projects', 'project_id')
+path_caches = PathCaches('path_caches', 'project_id')
 
 client = boto3.client('dynamodb')
 atexit.register(client.close)
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
-table_primaries = {'projects': 'project_id', 'githubs': 'discord_id', 'history_log': 'timestamp', 'installations': 'github_username', 'path_caches': 'project_id',
-                   'project_logs': 'project_id', 'sheet_writes': 'timestamp', 'logs': 'time'}
 
 if __name__ == '__main__':
     print(projects.metadata())
