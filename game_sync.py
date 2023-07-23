@@ -282,7 +282,7 @@ def sync_test(project: dict):
         desyncs_formatted = '\n'.join(desyncs)
         desyncs_block = '' if desyncs == new_desyncs else f"\nAll desyncs:\n```\n{desyncs_formatted}```"
         report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
-                      f"\n```\n{new_desyncs_formatted}```{desyncs_block}"
+                      f"\n```\n{new_desyncs_formatted}```{desyncs_block}"[:1900]
 
     if time_since_last_commit > 1209600 and project['do_run_validation']:
         project['do_run_validation'] = False
@@ -290,11 +290,7 @@ def sync_test(project: dict):
         report_text = "Disabled nightly sync checking after two weeks of no improvements."
 
     db.projects.set(project_id, project)
-
-    with open(f'sync\\sync_result_{project_id}.txt', 'w', encoding='UTF8') as sync_result:
-        if report_text:
-            sync_result.write(report_text)
-
+    db.sync_results.set(project_id, report_text)
     log.info("Created result file")
 
     # commit updated fullgame files

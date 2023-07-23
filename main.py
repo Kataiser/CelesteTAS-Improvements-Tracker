@@ -371,36 +371,25 @@ def convert_line_endings(tas: bytes, old_tas: Optional[bytes]) -> bytes:
 
 @tasks.loop(minutes=1)
 async def handle_game_sync_results():
-    sync_result_found = []
+    sync_results_found = db.sync_results.get_all()
 
-    for file in os.listdir('sync'):
-        if file.startswith('sync_result_') and file.endswith('.txt'):
-            sync_result_found.append(f'sync\\{file}')
-
-    if not sync_result_found:
+    if not sync_results_found:
         return
 
     global client
-    projects = db.projects.dict()
 
-    for sync_result_filename in sync_result_found:
-        project_id = sync_result_filename.rpartition('_')[2][:-4]
-        log.info(f"Handling game sync result for project {projects[project_id]['name']}")
-
-        with open(sync_result_filename, 'r', encoding='UTF8') as sync_result_file:
-            report_text = sync_result_file.read()
-
-        improvements_channel = client.get_channel(int(project_id))
+    for sync_result in sync_results_found:
+        project_id = int(sync_result['project_id'])
+        project = db.projects.get(project_id)
+        log.info(f"Handling game sync result for project {project['name']}")
+        report_text = sync_result['_value']
+        improvements_channel = client.get_channel(project_id)
         await edit_pin(improvements_channel)
 
         if report_text:
-            if len(report_text) > 1900:
-                log.warning(f"Report text is too long ({len(report_text)} chars), trimming")
-                report_text = report_text[:1900]
-
             await improvements_channel.send(report_text)
 
-        os.remove(sync_result_filename)
+        db.sync_results.delete_item(project_id)
 
 
 def missing_channel_permissions(channel: discord.TextChannel) -> list:

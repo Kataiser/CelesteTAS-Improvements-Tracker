@@ -51,6 +51,10 @@ class Table:
         items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=consistent_read)
         return [deserializer.deserialize({'M': item}) for item in items['Items']]
 
+    def delete_item(self, key: Union[str, int]):
+        key_type = 'S' if isinstance(key, str) else 'N'
+        client.delete_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}})
+
     def metadata(self) -> dict:
         return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')
 
@@ -112,6 +116,7 @@ installations = Table('installations', 'github_username')
 project_logs = Table('project_logs', 'project_id')
 sheet_writes = Table('sheet_writes', 'timestamp')
 logs = Table('logs', 'time')
+sync_results = Table('sync_results', 'project_id')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 
