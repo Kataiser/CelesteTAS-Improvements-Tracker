@@ -46,6 +46,10 @@ class Table:
 
         client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(item)['M'])
 
+    def get_all(self, consistent_read: bool = True) -> list:
+        items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=consistent_read)
+        return [deserializer.deserialize({'M': item}) for item in items['Items']]
+
     def metadata(self) -> dict:
         return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')
 
@@ -81,6 +85,22 @@ class PathCaches(Table):
         self.set(project_id, path_cache)
 
 
+class Projects(Table):
+    def dict(self, consistent_read: bool = True) -> dict:
+        return {int(item['project_id']): item for item in self.get_all(consistent_read)}
+
+    def get_by_name(self, name: str, consistent_read: bool = True) -> dict:
+        all_projects = self.get_all(consistent_read)
+        name_lower = name.lower()
+        projects_selected = []
+
+        for project in all_projects:
+            if project['name'].lower() == name_lower:
+                projects_selected.append(project)
+
+        return projects_selected
+
+
 class DBKeyError(Exception):
     pass
 
@@ -88,9 +108,9 @@ class DBKeyError(Exception):
 githubs = Table('githubs')
 history_log = Table('history_log')
 installations = Table('installations')
-projects = Table('projects')
 project_logs = Table('project_logs')
 sheet_writes = Table('sheet_writes')
+projects = Projects('projects')
 path_caches = PathCaches('path_caches')
 
 client = boto3.client('dynamodb')
@@ -111,6 +131,7 @@ if __name__ == '__main__':
         projects.set(project_id, projects_fixed[project_id])
 
     print(projects.get(970380662907482142))
+    raise SystemExit
     print(path_caches.metadata())
 
     with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:

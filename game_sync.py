@@ -24,25 +24,27 @@ from utils import plural
 
 def run_syncs():
     global log
-    log = main.create_logger('game_sync.log', False)
+    log = main.create_logger('game_sync.log')
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', type=int, help="Only sync test a specific project (ID)", required=False)
     cli_project_id = parser.parse_args().p
 
     if cli_project_id:
         log.info(f"Running sync test for project ID {cli_project_id} only")
-        test_projects = (cli_project_id,)
+        test_project_ids = (cli_project_id,)
+        projects = db.projects.dict()
     else:
         log.info("Running all sync tests")
-        test_projects = reversed(main.projects)
+        test_project_ids = projects = db.projects.dict()
 
-    utils.projects = utils.load_projects()
-    load_sid_caches()
+    load_sid_caches(projects)
 
     try:
-        for project_id in test_projects:
-            if (main.projects[project_id]['do_run_validation'] or cli_project_id) and db.path_caches.get(project_id):
-                sync_test(project_id)
+        for project_id in test_project_ids:
+            project = projects[project_id]
+
+            if (db.projects.get(project_id)['do_run_validation'] or cli_project_id) and db.path_caches.get(project_id):
+                sync_test(project)
     except Exception as error:
         log.error(repr(error))
         close_game()
@@ -52,9 +54,9 @@ def run_syncs():
     post_cleanup()
 
 
-def sync_test(project_id: int):
-    project = main.projects[project_id]
+def sync_test(project: dict):
     log.info(f"Running sync test for project: {project['name']}")
+    project_id = project['project_id']
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -287,8 +289,7 @@ def sync_test(project_id: int):
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
         report_text = "Disabled nightly sync checking after two weeks of no improvements."
 
-    main.projects[project_id] = project  # yes this is dumb
-    utils.save_projects()
+    db.projects.set(project_id, project)
 
     with open(f'sync\\sync_result_{project_id}.txt', 'w', encoding='UTF8') as sync_result:
         if report_text:
@@ -443,7 +444,7 @@ def mods_dir() -> str:
         raise FileNotFoundError("ok where'd my mods go")
 
 
-def load_sid_caches():
+def load_sid_caches(projects: dict):
     global sid_caches
     added_key = False
 
@@ -451,11 +452,11 @@ def load_sid_caches():
         sid_caches = ujson.load(sid_caches_file)
         sid_caches = {int(k): sid_caches[k] for k in sid_caches}
 
-    for project_id in main.projects:
-        if main.projects[project_id]['do_run_validation'] and project_id not in sid_caches:
+    for project_id in projects:
+        if projects[project_id]['do_run_validation'] and project_id not in sid_caches:
             sid_caches[project_id] = {}
             added_key = True
-            log.info(f"Added SID cache entry for project {main.projects[project_id]['name']}")
+            log.info(f"Added SID cache entry for project {projects[project_id]['name']}")
 
     if added_key:
         save_sid_caches()

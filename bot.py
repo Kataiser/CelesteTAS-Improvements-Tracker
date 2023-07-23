@@ -38,13 +38,14 @@ def start():
     if debug:
         print("DEBUG MODE")
 
-    main.projects = utils.load_projects()
+    projects = db.projects.dict()
+    main.fast_project_ids = set(projects)
     path_caches_size = db.path_caches.size()
     project_logs_size = db.project_logs.size()
-    log.info(f"Loaded {len(main.projects)} project{plural(main.projects)}, {project_logs_size} project message log{plural(project_logs_size)}, "
+    log.info(f"Loaded {len(projects)} project{plural(projects)}, {project_logs_size} project message log{plural(project_logs_size)}, "
              f"and {path_caches_size} path cache{plural(path_caches_size)}")
 
-    if not len(main.projects) == project_logs_size == path_caches_size:
+    if not len(projects) == project_logs_size == path_caches_size:
         log.critical("Project data component lengths are not equal, exiting")
         return
 
@@ -75,27 +76,28 @@ async def on_ready():
     await main.handle_game_sync_results()
     main.handle_game_sync_results.start()
     downtime_message_count = 0
-    projects_to_scan = main.safe_projects if safe_mode else main.projects
+    projects_to_scan = main.safe_projects if safe_mode else db.projects.dict()
     db.project_logs.enable_cache()
 
     for improvements_channel_id in reversed(projects_to_scan):
+        project = db.projects.get(improvements_channel_id)
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel or main.missing_channel_permissions(improvements_channel):
-            log.error(f"Can't access improvements channel for project {main.projects[improvements_channel_id]['name']}")
+            log.error(f"Can't access improvements channel for project {project['name']}")
             main.inaccessible_projects.add(improvements_channel_id)
             continue
 
         if debug:
             history_limit = 2
-        elif main.login_time - main.projects[improvements_channel_id]['last_commit_time'] > 2600000:  # a month
+        elif main.login_time - project['last_commit_time'] > 2600000:  # a month
             history_limit = 10
         else:
             history_limit = 20
 
         for message in reversed([m async for m in improvements_channel.history(limit=history_limit)]):
             downtime_message_count += 1
-            await main.process_improvement_message(message)
+            await main.process_improvement_message(message, project)
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
     db.project_logs.disable_cache()
@@ -109,7 +111,7 @@ async def on_message(message: discord.Message):
     elif not message.guild:
         await client.wait_until_ready()
         await commands.handle(message)
-    elif message.channel.id in main.projects:
+    elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
     elif message.author.id in (438978127973318656, 155149108183695360, 219955313334288385):
@@ -119,37 +121,38 @@ async def on_message(message: discord.Message):
     substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
     substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
 
-    if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or 'song' in message_lower)):
-        await (await client.fetch_user(219955313334288385)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url}")
+    if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
+        await (await client.fetch_user(219955313334288385)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url}"[:1990])
 
 
 @client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
-    if payload.channel_id in main.projects:
+    if payload.channel_id in main.fast_project_ids:
         await client.wait_until_ready()
 
         async for message in client.get_channel(payload.channel_id).history(limit=50):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
-                log.info(f"Deleted bot reply message in project: {main.projects[payload.channel_id]['name']}")
+                log.info(f"Deleted bot reply message in project: {db.projects.get(payload.channel_id)['name']}")
                 break
 
 
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-    if '⏭' in payload.emoji.name and payload.channel_id in main.projects:
+    if '⏭' in payload.emoji.name and payload.channel_id in main.fast_project_ids:
         await client.wait_until_ready()
 
-        for project_id in main.projects:
+        for project_id in main.fast_project_ids:
             if payload.message_id in db.project_logs.get(project_id):
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
+                project = db.projects.get(project_id)
 
-                if payload.user_id in (message.author.id, *main.projects[project_id]['admins'], 219955313334288385):
+                if payload.user_id in (message.author.id, *project['admins'], 219955313334288385):
                     request_user = await client.fetch_user(payload.user_id)
                     log.info(f"{utils.detailed_user(user=request_user)} has requested committing invalid post")
                     await message.clear_reaction('⏭')
                     await message.reply(f"{request_user.mention} has requested committing invalid post.")
-                    await main.process_improvement_message(message, skip_validation=True)
+                    await main.process_improvement_message(message, project, skip_validation=True)
 
                 break
 
@@ -238,7 +241,7 @@ async def map_autocomplete(interaction: discord.Interaction, current: str) -> Li
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
 
-log = main.create_logger('bot.log', True)
+log = main.create_logger('bot.log')
 commands.client = client
 spreadsheet.client = client
 main.client = client

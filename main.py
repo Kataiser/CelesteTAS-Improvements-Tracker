@@ -26,11 +26,14 @@ from utils import plural
 
 
 # process a message posted in a registered improvements channel
-async def process_improvement_message(message: discord.Message, skip_validation: bool = False):
-    if not skip_validation and not is_processable_message(message):
+async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False):
+    if not project:
+        project = db.projects.get(message.channel.id)
+
+    if not skip_validation and not is_processable_message(message, project):
         return
 
-    log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {projects[message.channel.id]['name']}) at {message.jump_url}")
+    log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']}) at {message.jump_url}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
     zip_attachments = [a for a in message.attachments if a.filename.endswith('.zip')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
@@ -75,12 +78,12 @@ async def process_improvement_message(message: discord.Message, skip_validation:
         await message.clear_reaction('❌')
         await message.clear_reaction('⏭')
     await message.add_reaction('👀')
-    generate_request_headers(projects[message.channel.id]['installation_owner'])
+    generate_request_headers(project['installation_owner'])
 
     for attachment in tas_attachments:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
-        repo = projects[message.channel.id]['repo']
-        is_lobby = projects[message.channel.id]['is_lobby']
+        repo = project['repo']
+        is_lobby = project['is_lobby']
 
         if isinstance(attachment, discord.Attachment):
             r = requests.get(attachment.url)
@@ -114,17 +117,17 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             log.info("No old version of file exists")
 
         db.path_caches.disable_cache()
-        validation_result = validation.validate(file_content, filename, message, old_file_content, is_lobby, skip_validation)
+        validation_result = validation.validate(file_content, filename, message, old_file_content, is_lobby, project['ensure_level'], skip_validation)
 
         if validation_result.valid_tas:
             # I love it when
             # when timesave :)
             # (or drafts)
             file_content = convert_line_endings(file_content, old_file_content)
-            commit_status = commit(message, filename, file_content, validation_result)
+            commit_status = commit(project, message, filename, file_content, validation_result)
 
             if commit_status:
-                history_data = (utils.detailed_user(message), message.channel.id, projects[message.channel.id]['name'], *commit_status, attachment.url)
+                history_data = (utils.detailed_user(message), message.channel.id, project['name'], *commit_status, attachment.url)
                 db.history_log.set(utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
@@ -136,8 +139,8 @@ async def process_improvement_message(message: discord.Message, skip_validation:
             if validation_result.sj_sheet_data:
                 spreadsheet.update_stats(attachment.filename, validation_result)
 
-            projects[message.channel.id]['last_commit_time'] = int(time.time())
-            utils.save_projects()
+            project['last_commit_time'] = int(time.time())
+            db.projects.set(message.channel.id, project)
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
             await message.add_reaction('❌')
@@ -160,9 +163,9 @@ async def process_improvement_message(message: discord.Message, skip_validation:
 
 
 # assumes already verified TAS
-def commit(message: discord.Message, filename: str, content: bytes, validation_result: validation.ValidationResult) -> Optional[tuple]:
+def commit(project: dict, message: discord.Message, filename: str, content: bytes, validation_result: validation.ValidationResult) -> Optional[tuple]:
     log.info("Potentially committing file")
-    repo = projects[message.channel.id]['repo']
+    repo = project['repo']
     data = {'content': base64.b64encode(content).decode('UTF8')}
     author = utils.nickname(message.author)
     file_path = get_file_repo_path(message.channel.id, filename)
@@ -177,11 +180,11 @@ def commit(message: discord.Message, filename: str, content: bytes, validation_r
     else:
         draft = True
         data['message'] = f"{filename} draft by {author}{chapter_time}"
-        subdir = projects[message.channel.id]['subdir']
+        subdir = project['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
         db.path_caches.add_file(message.channel.id, filename, file_path)
 
-        if not projects[message.channel.id]['commit_drafts']:
+        if not project['commit_drafts']:
             return
 
     if user_github_account:
@@ -209,8 +212,9 @@ def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
 
 # walk the project's repo and cache the path of all TAS files found
 def generate_path_cache(project_id: int) -> dict:
-    repo = projects[project_id]['repo']
-    project_subdir = projects[project_id]['subdir']
+    project = db.projects.get(project_id)
+    repo = project['repo']
+    project_subdir = project['subdir']
     project_subdir_base = project_subdir.partition('/')[0]
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
@@ -249,17 +253,17 @@ def get_sha(repo: str, file_path: str) -> str:
 
 
 # haven't processed message before, and wasn't posted before project install
-def is_processable_message(message: discord.Message) -> bool:
+def is_processable_message(message: discord.Message, project: dict) -> bool:
     if message.id in db.project_logs.get(message.channel.id) or message.author.id == 970375635027525652 or (safe_mode and message.channel.id not in safe_projects):
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that
         post_time = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-        return post_time > projects[message.channel.id]['install_time']
+        return post_time > project['install_time']
 
 
 async def edit_pin(channel: discord.TextChannel, create: bool = False):
-    project = projects[channel.id]
+    project = db.projects.get(channel.id)
     ensure_level = project['ensure_level']
     desyncs = project['desyncs']
     desyncs_text = "\n"
@@ -374,12 +378,12 @@ async def handle_game_sync_results():
     if not sync_result_found:
         return
 
-    global projects, client
-    projects = utils.load_projects()
+    global client
+    projects = db.projects.dict()
 
     for sync_result_filename in sync_result_found:
         project_id = sync_result_filename.rpartition('_')[2][:-4]
-        log.info(f"Handling game sync result for project {projects[int(project_id)]['name']}")
+        log.info(f"Handling game sync result for project {projects[project_id]['name']}")
 
         with open(sync_result_filename, 'r', encoding='UTF8') as sync_result_file:
             report_text = sync_result_file.read()
@@ -419,7 +423,7 @@ async def set_status(message: Optional[discord.Message] = None):
 
 
 def projects_count() -> int:
-    return len(set(projects) - inaccessible_projects)
+    return len(fast_project_ids - inaccessible_projects)
 
 
 def get_user_github_account(discord_id: int) -> Optional[list]:
@@ -440,7 +444,7 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_logger(main_filename: str, all_logs: bool) -> (logging.Logger, Optional[logging.Logger]):
+def create_logger(main_filename: str) -> (logging.Logger, Optional[logging.Logger]):
     if os.path.isfile('bot.log'):
         os.replace('bot.log', 'bot_old.log')
 
@@ -467,10 +471,10 @@ def create_logger(main_filename: str, all_logs: bool) -> (logging.Logger, Option
 
 
 log: Optional[logging.Logger] = None
-projects = utils.load_projects()
 headers = None
 login_time = None
 client: Optional[discord.Client] = None
 safe_mode = None
 safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564, 1067206696927248444)
 inaccessible_projects = set(safe_projects)
+fast_project_ids = set()

@@ -7,6 +7,7 @@ import fastjsonschema
 import requests
 import ujson
 
+import db
 import main
 
 
@@ -43,29 +44,22 @@ def nickname(author: discord.User) -> str:
     return nicknames[author.id] if author.id in nicknames else author.global_name
 
 
-def load_projects() -> dict:
-    with open('sync\\projects.json', 'r', encoding='UTF8') as projects_json:
-        projects_loaded = ujson.load(projects_json)
-        projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
-
-    validate_project_formats(projects_fixed)
-    return projects_fixed
-
-
-def save_projects():
-    validate_project_formats(main.projects)
-
-    with open('sync\\projects.json', 'r+', encoding='UTF8') as projects_json:
-        projects_json.truncate()
-        ujson.dump(main.projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
+# def save_projects():
+#     validate_project_formats(main.projects)
+#
+#     with open('sync\\projects.json', 'r+', encoding='UTF8') as projects_json:
+#         projects_json.truncate()
+#         ujson.dump(main.projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
 
 
 def add_project_key(key: str, value: Any):
-    for project_id in main.projects:
-        main.projects[project_id][key] = value
+    projects = db.projects.dict()
 
-    save_projects()
-    log.info(f"Added `{key}: {value}` to {len(main.projects)} projects, be sure to update validate_project_formats and command_register_project")
+    for project_id in projects:
+        projects[project_id][key] = value
+        db.projects.set(project_id, projects[project_id])
+
+    log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
 
 
 def validate_project_formats(projects: dict):

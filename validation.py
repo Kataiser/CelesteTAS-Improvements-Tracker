@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, Callable, Union
 
 import discord
 
+import db
 import main
 
 
@@ -25,7 +26,7 @@ class ValidationResult:
                 log.warning("Valid tas result has no finaltime")
 
 
-def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool, skip_validation: bool = False) -> ValidationResult:
+def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool, ensure_level: bool, skip_validation: bool = False) -> ValidationResult:
     log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
 
     # validate length
@@ -221,7 +222,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                                     "no \"draft\" text in message")
 
     # validate level
-    if main.projects[message.channel.id]['ensure_level']:
+    if ensure_level:
         filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
         message_level = re_remove_punctuation.subn('', message_lowercase)[0].replace('_', '')
 

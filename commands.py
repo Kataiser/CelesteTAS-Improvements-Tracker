@@ -25,6 +25,8 @@ async def handle(message: discord.Message):
         log.info(f"Handling '{command_name}' command")
         await report_command_used(command_name, message)
         await command_functions[command_name](message)
+    elif message.content.lower() == 'ok':
+        await message.channel.send(message.content)
     else:
         await message.channel.send("Unrecognized command, try `help`")
 
@@ -85,15 +87,16 @@ async def command_register_project(message: discord.Message):
     await message.channel.send("Verifying...")
     _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, do_run_validation = message_split
     improvements_channel_id = int(improvements_channel_id)
-    editing = improvements_channel_id in main.projects
+    projects = db.projects.dict()
+    editing = improvements_channel_id in projects
 
     if editing:
-        if not await is_admin(message, improvements_channel_id):
+        if not await is_admin(message, projects[improvements_channel_id]):
             return
 
         log.info("This project already exists, preserving some keys")
         preserved_keys = ('install_time', 'pin', 'mods', 'last_run_validation', 'admins', 'desyncs', 'filetimes')
-        previous = {key: main.projects[improvements_channel_id][key] for key in preserved_keys}
+        previous = {key: projects[improvements_channel_id][key] for key in preserved_keys}
 
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
@@ -152,38 +155,39 @@ async def command_register_project(message: discord.Message):
     log.info("Verification successful")
 
     current_time = int(time.time())
-    main.projects[improvements_channel_id] = {'name': name.replace('"', ''),
-                                              'repo': repo,
-                                              'installation_owner': github_account,
-                                              'admins': (message.author.id,),
-                                              'install_time': current_time,
-                                              'commit_drafts': commit_drafts.lower() == 'y',
-                                              'is_lobby': is_lobby.lower() == 'y',
-                                              'ensure_level': ensure_level.lower() == 'y',
-                                              'do_run_validation': do_run_validation.lower() == 'y',
-                                              'last_run_validation': None,
-                                              'pin': None,
-                                              'subdir': subdir,
-                                              'mods': [],
-                                              'desyncs': [],
-                                              'last_commit_time': current_time,
-                                              'filetimes': {}}
+    registered_project = {'name': name.replace('"', ''),
+                          'repo': repo,
+                          'installation_owner': github_account,
+                          'admins': (message.author.id,),
+                          'install_time': current_time,
+                          'commit_drafts': commit_drafts.lower() == 'y',
+                          'is_lobby': is_lobby.lower() == 'y',
+                          'ensure_level': ensure_level.lower() == 'y',
+                          'do_run_validation': do_run_validation.lower() == 'y',
+                          'last_run_validation': None,
+                          'pin': None,
+                          'subdir': subdir,
+                          'mods': [],
+                          'desyncs': [],
+                          'last_commit_time': current_time,
+                          'filetimes': {}}
 
     if not editing:
         await message.channel.send("Generating path cache...")
         main.generate_path_cache(improvements_channel_id)
         pinned_message = await main.edit_pin(improvements_channel, create=True)
         await pinned_message.pin()
-        main.projects[improvements_channel_id]['pin'] = pinned_message.id
+        registered_project['pin'] = pinned_message.id
         db.project_logs.set(improvements_channel_id, [])
     else:
         for previous_key in previous:
-            main.projects[improvements_channel_id][previous_key] = previous[previous_key]
+            registered_project[previous_key] = previous[previous_key]
 
         await main.edit_pin(improvements_channel)
 
-    utils.save_projects()
-    project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {main.projects[improvements_channel_id]}"
+    db.projects.set(improvements_channel_id, registered_project)
+    main.fast_project_ids.add(improvements_channel_id)
+    project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel_id}: {registered_project}"
     log.info(project_added_log)
     db.history_log.set(utils.log_timestamp(), project_added_log)
 
@@ -210,15 +214,11 @@ async def command_add_mods(message: discord.Message):
         await message.channel.send("Incorrect command format, see `help add_mods`")
         return
 
-    project_search_name = message_split[1].replace('"', '').lower()
+    project_search_name = message_split[1].replace('"', '')
     project_mods_added = False
 
-    for project_id in main.projects:
-        project = main.projects[project_id]
-
-        if project['name'].lower() != project_search_name:
-            continue
-        elif not await is_admin(message, project_id):
+    for project in db.projects.get_by_name(project_search_name):
+        if not await is_admin(message, project):
             break
         elif not project['do_run_validation']:
             log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
@@ -233,7 +233,7 @@ async def command_add_mods(message: discord.Message):
         project_mods = project_mods.union(mods_given)
         log.info(f"{len(project_mods)} mod{plural(project_mods)} after adding: {project_mods}")
         project['mods'] = list(project_mods)
-        utils.save_projects()
+        db.projects.set(project['project_id'], project)
         mods_missing = set()
 
         for mod_given in mods_given:
@@ -259,12 +259,6 @@ async def command_add_mods(message: discord.Message):
         await message.channel.send("No projects (with sync checking enabled) matching that name found")
 
 
-async def command_add_category(message: discord.Message):
-    """Not yet implemented"""
-
-    await message.channel.send("Not yet implemented")
-
-
 async def command_rename_file(message: discord.Message):
     """
     rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
@@ -281,7 +275,7 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send("Incorrect command format, see `help rename_file`")
         return
 
-    project_search_name = message_split[1].replace('"', '').lower()
+    project_search_name = message_split[1].replace('"', '')
     filename_before, filename_after = message_split[2:]
     renamed_file = False
 
@@ -289,14 +283,9 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send("what")
         return
 
-    for project_id in main.projects:
-        project = main.projects[project_id]
-
-        if project['name'].lower() != project_search_name:
-            continue
-
+    for project in db.projects.get_by_name(project_search_name):
         main.generate_request_headers(project['installation_owner'])
-        path_cache = main.generate_path_cache(project_id)
+        path_cache = main.generate_path_cache(project['project_id'])
 
         if filename_before not in path_cache:
             not_found_text = f"{filename_before} not in project {project['name']}"
@@ -344,12 +333,12 @@ async def command_rename_file(message: discord.Message):
 
         if r.status_code == expected_status:
             db.path_caches.enable_cache()
-            db.path_caches.remove_file(project_id, filename_before)
-            db.path_caches.add_file(project_id, filename_after, file_path_after)
+            db.path_caches.remove_file(project['project_id'], filename_before)
+            db.path_caches.add_file(project['project_id'], filename_after, file_path_after)
             db.path_caches.disable_cache()
             log.info("Rename successful")
             await message.channel.send("Rename successful")
-            improvements_channel = client.get_channel(project_id)
+            improvements_channel = client.get_channel(project['project_id'])
             await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
             await main.edit_pin(improvements_channel)
         else:
@@ -377,16 +366,12 @@ async def command_edit_admin(message: discord.Message):
         await message.channel.send("Incorrect command format, see `help edit_admin`")
         return
 
-    project_search_name = message_split[1].replace('"', '').lower()
+    project_search_name = message_split[1].replace('"', '')
     admin_id = int(message_split[2])
     adding = message_split[3].lower() == 'y'
 
-    for project_id in main.projects:
-        project = main.projects[project_id]
-
-        if project['name'].lower() != project_search_name:
-            continue
-        elif not await is_admin(message, project_id):
+    for project in db.projects.get_by_name(project_search_name):
+        if not await is_admin(message, project):
             continue
 
         try:
@@ -403,21 +388,21 @@ async def command_edit_admin(message: discord.Message):
                 await message.channel.send(already_admin)
             else:
                 project['admins'].append(admin_id)
-                utils.save_projects()
+                db.projects.set(project['project_id'], project)
                 added_admin = f"Added {utils.detailed_user(user=new_admin)} as an admin to project \"{project['name']}\"."
                 log.info(added_admin)
                 await message.channel.send(added_admin)
                 await new_admin.send(f"{message.author.global_name} has added you as an admin to the \"{project['name']}\" TAS project.")
-                await main.edit_pin(client.get_channel(project_id))
+                await main.edit_pin(client.get_channel(project['project_id']))
         else:
             if admin_id in project['admins']:
                 project['admins'].remove(admin_id)
-                utils.save_projects()
+                db.projects.set(project['project_id'], project)
                 removed_admin = f"Removed {utils.detailed_user(user=new_admin)} as an admin from project \"{project['name']}\"."
                 log.info(removed_admin)
                 await message.channel.send(removed_admin)
                 await new_admin.send(f"{message.author.global_name} has removed you as an admin from the \"{project['name']}\" TAS project.")
-                await main.edit_pin(client.get_channel(project_id))
+                await main.edit_pin(client.get_channel(project['project_id']))
             else:
                 not_admin = f"{utils.detailed_user(user=new_admin)} is not an admin for project \"{project['name']}\"."
                 log.warning(not_admin)
@@ -442,10 +427,10 @@ async def command_about(message: discord.Message):
     sync_checks = 0
     installations = set()
 
-    for project_id in main.projects:
-        installations.add(main.projects[project_id]['installation_owner'])
+    for project in db.projects.get_all(consistent_read=False):
+        installations.add(project['installation_owner'])
 
-        if main.projects[project_id]['do_run_validation']:
+        if project['do_run_validation']:
             sync_checks += 1
 
     text_out = text.format(main.projects_count(),
@@ -474,7 +459,7 @@ async def command_about_project(message: discord.Message):
         await message.channel.send("Incorrect command format, see `help about_project`")
         return
 
-    project_search_name = message_split[1].replace('"', '').lower()
+    project_search_name = message_split[1].replace('"', '')
     found_matching_project = False
     text = "Name: **{0}**" \
            "\nRepo: <{1}>" \
@@ -489,12 +474,7 @@ async def command_about_project(message: discord.Message):
            "\nDo sync check: `{10}`" \
            "{11}"
 
-    for project_id in main.projects:
-        project = main.projects[project_id]
-
-        if project['name'].lower() != project_search_name:
-            continue
-
+    for project in db.projects.get_by_name(project_search_name):
         if project['do_run_validation']:
             last_run = project['last_run_validation']
 
@@ -510,11 +490,11 @@ async def command_about_project(message: discord.Message):
         admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
         text_out = text.format(project['name'],
                                f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}',
-                               project_id,
+                               project['project_id'],
                                ', '.join(admins),
                                project['installation_owner'],
                                project['install_time'],
-                               client.get_channel(project_id).get_partial_message(project['pin']).jump_url,
+                               client.get_channel(project['project_id']).get_partial_message(project['pin']).jump_url,
                                project['commit_drafts'],
                                project['is_lobby'],
                                project['ensure_level'],
@@ -532,8 +512,8 @@ async def command_about_project(message: discord.Message):
 
 
 # verify that the user editing the project is an admin (or Kataiser)
-async def is_admin(message: discord.Message, improvements_channel_id: int):
-    if message.author.id in (*main.projects[improvements_channel_id]['admins'], 219955313334288385):
+async def is_admin(message: discord.Message, project: dict):
+    if message.author.id in (*project['admins'], 219955313334288385):
         return True
     else:
         log.warning("Not project admin")
