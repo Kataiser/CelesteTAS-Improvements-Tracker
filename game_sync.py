@@ -322,7 +322,7 @@ def generate_blacklist(mods_to_load: set):
     blacklist = []
 
     for installed_mod in installed_mods:
-        if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip'):
+        if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip'):
             blacklist.append(installed_mod)
 
     with open(r'E:\Big downloads\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
