@@ -68,7 +68,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
 
         add_project_log(message)
         log.info("Done processing message")
-        await set_status(message)
+        await set_status(message, project['name'])
         return
     elif len(tas_attachments) > 1:
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
@@ -159,7 +159,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
 
     await message.clear_reaction('👀')
     log.info("Done processing message")
-    await set_status(message)
+    await set_status(message, project['name'])
 
 
 # assumes already verified TAS
@@ -412,9 +412,9 @@ def missing_channel_permissions(channel: discord.TextChannel) -> list:
     return [perm for perm in permissions_needed if not permissions_needed[perm]]
 
 
-async def set_status(message: Optional[discord.Message] = None):
+async def set_status(message: Optional[discord.Message] = None, project_name: Optional[str] = None):
     if message:
-        status = f"{projects_count()} TAS projects, last processed post from {utils.nickname(message.author)} in \"{projects[message.channel.id]['name']}\""
+        status = f"{projects_count()} TAS projects, last processed post from {utils.nickname(message.author)} in \"{project_name}\""
     else:
         status = f"{projects_count()} TAS projects"
 
