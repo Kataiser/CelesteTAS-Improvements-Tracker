@@ -90,7 +90,7 @@ async def on_ready():
 
         if debug:
             history_limit = 2
-        elif main.login_time - project['last_commit_time'] > 2600000:  # a month
+        elif main.login_time - int(project['last_commit_time']) > 2600000:  # a month
             history_limit = 10
         else:
             history_limit = 20
