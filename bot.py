@@ -78,6 +78,7 @@ async def on_ready():
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else db.projects.dict()
     db.project_logs.enable_cache()
+    set_default_status = True
 
     for improvements_channel_id in reversed(projects_to_scan):
         project = db.projects.get(improvements_channel_id)
@@ -97,11 +98,16 @@ async def on_ready():
 
         for message in reversed([m async for m in improvements_channel.history(limit=history_limit)]):
             downtime_message_count += 1
-            await main.process_improvement_message(message, project)
+            set_status = await main.process_improvement_message(message, project)
+
+            if set_status:
+                set_default_status = False
 
     log.info(f"Finished considering {downtime_message_count} downtime messages")
     db.project_logs.disable_cache()
-    await main.set_status()
+
+    if set_default_status:
+        await main.set_status()
 
 
 @client.event

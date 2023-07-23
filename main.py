@@ -27,12 +27,12 @@ from utils import plural
 
 
 # process a message posted in a registered improvements channel
-async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False):
+async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False) -> bool:
     if not project:
         project = db.projects.get(message.channel.id)
 
     if not skip_validation and not is_processable_message(message, project):
-        return
+        return False
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']}) at {message.jump_url}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
@@ -70,7 +70,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         add_project_log(message)
         log.info("Done processing message")
         await set_status(message, project['name'])
-        return
+        return True
     elif len(tas_attachments) > 1:
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
         # TODO: handle this better
@@ -161,6 +161,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     await message.clear_reaction('👀')
     log.info("Done processing message")
     await set_status(message, project['name'])
+    return True
 
 
 # assumes already verified TAS
