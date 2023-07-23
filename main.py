@@ -297,7 +297,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
     if project['do_run_validation']:
         last_run = project['last_run_validation']
-        filetimes = project['filetimes']
+        filetimes = dict(sorted(project['filetimes'].items()))
 
         if last_run:
             sync_timestamp = f"<t:{last_run}> (<t:{last_run}:R>)"
@@ -448,7 +448,7 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
 def create_logger(main_filename: str) -> (logging.Logger, Optional[logging.Logger]):
     if os.path.isfile('bot.log'):
         with open('bot.log', 'r', encoding='UTF8') as old_log:
-            db.logs.set(int(os.path.getmtime('bot.log')), {'pc_name': socket.gethostname(), 'data': old_log.read()})
+            db.logs.set(int(os.path.getctime('bot.log')), {'pc_name': socket.gethostname(), 'data': old_log.read()})
 
         os.replace('bot.log', 'bot_old.log')
 

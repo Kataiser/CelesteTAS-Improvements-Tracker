@@ -132,7 +132,6 @@ if __name__ == '__main__':
         projects.set(project_id, projects_fixed[project_id])
 
     print(projects.get(970380662907482142))
-    raise SystemExit
     print(path_caches.metadata())
 
     with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
