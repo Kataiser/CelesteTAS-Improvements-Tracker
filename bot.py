@@ -78,10 +78,11 @@ async def on_ready():
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else db.projects.dict()
     db.project_logs.enable_cache()
+    projects = db.projects.dict()
     set_default_status = True
 
     for improvements_channel_id in reversed(projects_to_scan):
-        project = db.projects.get(improvements_channel_id)
+        project = projects[improvements_channel_id]
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel or main.missing_channel_permissions(improvements_channel):
