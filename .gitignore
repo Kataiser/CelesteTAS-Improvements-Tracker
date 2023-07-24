@@ -1,27 +1,22 @@
 .idea/
 __pycache__/
-project_logs/
 test_tases/
 *.pem
 bot_token
 CelesteTAS Improvements Tracker.exe
 bot.log
-history.log
 improvements bot icon 32.ico
 improvements-bot-testing - Shortcut.lnk
 invite bot.txt
-projects.json
 secret.txt
-githubs.json
-installations.json
-path_caches.json
 CelesteTAS Improvement Tracker.rdp
 improvements-bot-data/
 game_sync.log
-bot_old.log
 sync/
 service.json
 sheet_id
 todo.txt
 PULL.bat
 sid_caches.json
+bot.old.log
+game_sync.old.log
