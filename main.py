@@ -435,16 +435,17 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_logger(main_filename: str) -> (logging.Logger, Optional[logging.Logger]):
-    if os.path.isfile('bot.log'):
-        with open('bot.log', 'r', encoding='UTF8') as old_log:
-            db.logs.set(int(os.path.getctime('bot.log')), {'pc_name': socket.gethostname(), 'data': old_log.read()})
+def create_logger(filename: str) -> (logging.Logger, Optional[logging.Logger]):
+    if os.path.isfile(filename):
+        with open(filename, 'r', encoding='UTF8') as old_log:
+            data = old_log.read()
+            db.logs.set(int(os.path.getmtime(filename)), {'filename': filename, 'pc_name': socket.gethostname(), 'size': len(data), 'data': data})
 
-        os.replace('bot.log', 'bot_old.log')
+        os.replace(filename, filename.replace('.', '.old.'))
 
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename=main_filename, encoding='UTF8', mode='w')
+    file_handler = logging.FileHandler(filename=filename, encoding='UTF8', mode='w')
     log_formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
