@@ -90,6 +90,7 @@ def sync_test(project: dict):
         shutil.rmtree(repo_path, onerror=del_rw)
 
     time.sleep(0.1)
+    clone_time = int(time.time())
     cwd = os.getcwd()
     os.chdir(r'E:\Big downloads\celeste\repos')
     subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
@@ -268,10 +269,9 @@ def sync_test(project: dict):
         files_timed += 1
 
     close_game()
-    current_time = int(time.time())
-    project['last_run_validation'] = current_time
+    project['last_run_validation'] = clone_time
     project['desyncs'] = desyncs
-    time_since_last_commit = current_time - project['last_commit_time']
+    time_since_last_commit = clone_time - project['last_commit_time']
     new_desyncs = [f for f in desyncs if f not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")

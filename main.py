@@ -284,7 +284,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
            "\n\nRepo: <{1}> (using <https://desktop.github.com> is recommended)" \
            "\nPackage download: <{2}>" \
            "\nAdmin{6}: {3}" \
-           "\nLast sync check: {4}{5}{7}" \
+           "\nLast sync check (start time): {4}{5}{7}" \
            "\nBot reactions key:" \
            "\n```" \
            "\n📝 = Successfully verified and committed" \
