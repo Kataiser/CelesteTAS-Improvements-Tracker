@@ -1,8 +1,10 @@
 import argparse
 import base64
 import functools
+import io
 import logging
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -55,6 +57,11 @@ def run_syncs():
 
 
 def sync_test(project: dict):
+    current_log = io.StringIO()
+    stream_handler = logging.StreamHandler(current_log)
+    stream_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
+    log.addHandler(stream_handler)
+
     log.info(f"Running sync test for project: {project['name']}")
     project_id = project['project_id']
     mods = project['mods']
@@ -275,7 +282,7 @@ def sync_test(project: dict):
     new_desyncs = [f for f in desyncs if f not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")
-    report_text = None
+    report_text = report_log = None
 
     if new_desyncs:
         new_desyncs_formatted = '\n'.join(new_desyncs)
@@ -283,6 +290,8 @@ def sync_test(project: dict):
         desyncs_block = '' if desyncs == new_desyncs else f"\nAll desyncs:\n```\n{desyncs_formatted}```"
         report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
                       f"\n```\n{new_desyncs_formatted}```{desyncs_block}"[:1900]
+        stream_handler.flush()
+        report_log = re_redact_token.sub("'token': [REDACTED]", current_log.getvalue())
 
     if time_since_last_commit > 1209600 and project['do_run_validation']:
         project['do_run_validation'] = False
@@ -290,8 +299,8 @@ def sync_test(project: dict):
         report_text = "Disabled nightly sync checking after two weeks of no improvements."
 
     db.projects.set(project_id, project)
-    db.sync_results.set(project_id, report_text)
-    log.info("Created result file")
+    db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log})
+    log.info("Wrote sync result to DB")
 
     # commit updated fullgame files
     for queued_commit in queued_filetime_commits:
@@ -465,6 +474,7 @@ def save_sid_caches():
 
 log: Optional[logging.Logger] = None
 sid_caches: Optional[dict] = None
+re_redact_token = re.compile(r"'token': '[^']*'")
 
 if __name__ == '__main__':
     run_syncs()

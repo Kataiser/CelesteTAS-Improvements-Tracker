@@ -381,13 +381,16 @@ async def handle_game_sync_results():
     for sync_result in sync_results_found:
         project_id = int(sync_result['project_id'])
         project = db.projects.get(project_id)
-        log.info(f"Handling game sync result for project {project['name']}")
-        report_text = sync_result['_value']
+        project_name = project['name']
+        log.info(f"Handling game sync result for project {project_name}")
+        report_text = sync_result['report_text']
         improvements_channel = client.get_channel(project_id)
         await edit_pin(improvements_channel)
 
         if report_text:
-            await improvements_channel.send(report_text)
+            sync_check_time = project['last_run_validation']
+            sync_log = discord.File(io.BytesIO(sync_result['log'].encode('UTF8')), filename=f'game_sync_{project_name}_{sync_check_time}.log')
+            await improvements_channel.send(report_text, file=sync_log)
 
         db.sync_results.delete_item(project_id)
 
@@ -435,7 +438,7 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_logger(filename: str) -> (logging.Logger, Optional[logging.Logger]):
+def create_logger(filename: str) -> logging.Logger:
     if os.path.isfile(filename):
         with open(filename, 'r', encoding='UTF8') as old_log:
             data = old_log.read()
