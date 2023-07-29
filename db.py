@@ -2,7 +2,7 @@ import atexit
 import copy
 import os
 from operator import itemgetter
-from typing import Union, Any, Callable
+from typing import Union, Any
 
 import boto3
 import fastjsonschema
@@ -98,12 +98,12 @@ class Projects(Table):
         with open('project_schema.json', 'r') as projects_schema_file:
             self.validate_project_schema = fastjsonschema.compile(ujson.load(projects_schema_file))
 
-    def set(self, key: Union[str, int], value: dict):
-        self.validate_project_schema(value)
-        super().set(key, value)
+    def set(self, project_id: Union[str, int], project: dict):
+        self.validate_project_schema(project)
+        super().set(project_id, project)
 
-    def get_all_validate(self, consistent_read: bool = True) -> list:
-        projects_list = self.get_all(consistent_read)
+    def get_all(self, consistent_read: bool = True) -> list:
+        projects_list = super().get_all(consistent_read)
 
         for project_unvalidated in projects_list:
             self.validate_project_schema(project_unvalidated)
@@ -111,10 +111,10 @@ class Projects(Table):
         return projects_list
 
     def dict(self, consistent_read: bool = True) -> dict:
-        return {int(item[self.primary_key]): item for item in self.get_all_validate(consistent_read)}
+        return {int(item[self.primary_key]): item for item in self.get_all(consistent_read)}
 
     def get_by_name(self, name: str, consistent_read: bool = True) -> dict:
-        all_projects = self.get_all_validate(consistent_read)
+        all_projects = self.get_all(consistent_read)
         name_lower = name.lower()
         projects_selected = []
 

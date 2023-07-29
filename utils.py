@@ -65,4 +65,22 @@ def log_timestamp() -> str:
     return time.strftime('%Y-%m-%d %H:%M:%S,', current_time_local) + str(round(current_time % 1, 3))[2:]
 
 
+def missing_channel_permissions(channel: discord.TextChannel) -> list:
+    improvements_channel_permissions = channel.permissions_for(channel.guild.me)
+    permissions_needed = {'View Channel': improvements_channel_permissions.view_channel,
+                          'Send Messages': improvements_channel_permissions.send_messages,
+                          'Read Messages': improvements_channel_permissions.read_messages,
+                          'Read Message History': improvements_channel_permissions.read_message_history,
+                          'Add Reactions': improvements_channel_permissions.add_reactions}
+
+    return [perm for perm in permissions_needed if not permissions_needed[perm]]
+
+
+def get_user_github_account(discord_id: int) -> Optional[list]:
+    try:
+        return db.githubs.get(discord_id, consistent_read=False)
+    except db.DBKeyError:
+        return
+
+
 log: Optional[logging.Logger] = None

@@ -13,7 +13,6 @@ import spreadsheet
 import utils
 from utils import plural
 
-
 intents = discord.Intents.none()
 intents.guilds = True
 intents.messages = True
@@ -84,7 +83,7 @@ async def on_ready():
         project = projects_startup[improvements_channel_id]
         improvements_channel = client.get_channel(improvements_channel_id)
 
-        if not improvements_channel or main.missing_channel_permissions(improvements_channel):
+        if not improvements_channel or utils.missing_channel_permissions(improvements_channel):
             log.error(f"Can't access improvements channel for project {project['name']}")
             main.inaccessible_projects.add(improvements_channel_id)
             continue

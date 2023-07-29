@@ -107,7 +107,7 @@ async def command_register_project(message: discord.Message):
         return
 
     # verify needed permissions in improvements channel
-    missing_permissions = main.missing_channel_permissions(improvements_channel)
+    missing_permissions = utils.missing_channel_permissions(improvements_channel)
     if missing_permissions:
         error = f"Don't have {missing_permissions[0]} permission for #{improvements_channel.name} ({improvements_channel_id})"
         log.error(error)
@@ -299,7 +299,7 @@ async def command_rename_file(message: discord.Message):
         repo = project['repo']
         file_path = path_cache[filename_before]
         renamed_file = True
-        user_github_account = main.get_user_github_account(message.author.id)
+        user_github_account = utils.get_user_github_account(message.author.id)
 
         log.info(f"Downloading {filename_before}")
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)

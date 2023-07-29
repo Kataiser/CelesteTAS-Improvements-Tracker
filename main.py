@@ -172,7 +172,7 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
     author = utils.nickname(message.author)
     file_path = get_file_repo_path(message.channel.id, filename)
     chapter_time = f" ({validation_result.finaltime})" if validation_result.finaltime else ""
-    user_github_account = get_user_github_account(message.author.id)
+    user_github_account = utils.get_user_github_account(message.author.id)
 
     if file_path:
         draft = False
@@ -395,17 +395,6 @@ async def handle_game_sync_results():
         db.sync_results.delete_item(project_id)
 
 
-def missing_channel_permissions(channel: discord.TextChannel) -> list:
-    improvements_channel_permissions = channel.permissions_for(channel.guild.me)
-    permissions_needed = {'View Channel': improvements_channel_permissions.read_messages,
-                          'Send Messages': improvements_channel_permissions.send_messages,
-                          'Read Messages': improvements_channel_permissions.read_messages,
-                          'Read Message History': improvements_channel_permissions.read_message_history,
-                          'Add Reactions': improvements_channel_permissions.add_reactions}
-
-    return [perm for perm in permissions_needed if not permissions_needed[perm]]
-
-
 async def set_status(message: Optional[discord.Message] = None, project_name: Optional[str] = None):
     if message:
         status = f"{projects_count()} TAS projects, last processed post from {utils.nickname(message.author)} in \"{project_name}\""
@@ -418,13 +407,6 @@ async def set_status(message: Optional[discord.Message] = None, project_name: Op
 
 def projects_count() -> int:
     return len(fast_project_ids - inaccessible_projects)
-
-
-def get_user_github_account(discord_id: int) -> Optional[list]:
-    try:
-        return db.githubs.get(discord_id, consistent_read=False)
-    except db.DBKeyError:
-        return
 
 
 def add_project_log(message: discord.Message):

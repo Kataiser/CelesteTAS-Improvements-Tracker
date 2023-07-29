@@ -4,9 +4,6 @@ from typing import List, Optional, Tuple, Callable, Union
 
 import discord
 
-import db
-import main
-
 
 class ValidationResult:
     def __init__(self, valid_tas: bool, warning_text: Optional[str] = None, log_text: Optional[str] = None, finaltime: Optional[str] = None, timesave: Optional[str] = None,
