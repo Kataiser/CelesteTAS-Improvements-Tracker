@@ -1,8 +1,11 @@
 {
     "type": "object",
     "additionalProperties": false,
-    "minProperties": 15,
+    "minProperties": 16,
     "properties": {
+		"project_id": {
+            "type": "number"
+        },
         "name": {
             "type": "string",
             "minLength": 1
@@ -19,11 +22,11 @@
             "type": "array",
             "minLength": 1,
             "items": {
-                "type": "integer"
+                "type": "number"
             }
         },
         "install_time": {
-            "type": "integer"
+            "type": "number"
         },
         "commit_drafts": {
             "type": "boolean"
@@ -35,14 +38,14 @@
             "type": "boolean"
         },
         "pin": {
-            "type": "integer"
+            "type": "number"
         },
         "do_run_validation": {
             "type": "boolean"
         },
         "last_run_validation": {
             "type": [
-                "integer",
+                "number",
                 "null"
             ]
         },
@@ -64,7 +67,7 @@
             }
         },
         "last_commit_time": {
-            "type": "integer"
+            "type": "number"
         },
         "filetimes": {
             "type": "object",

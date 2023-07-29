@@ -1,9 +1,8 @@
 import logging
 import time
-from typing import Any, Callable, Optional, Sized, Union, Tuple
+from typing import Any, Optional, Sized, Union, Tuple
 
 import discord
-import fastjsonschema
 import requests
 import ujson
 
@@ -43,14 +42,6 @@ def nickname(author: discord.User) -> str:
     return nicknames[author.id] if author.id in nicknames else author.global_name
 
 
-# def save_projects():
-#     validate_project_formats(main.projects)
-#
-#     with open('sync\\projects.json', 'r+', encoding='UTF8') as projects_json:
-#         projects_json.truncate()
-#         ujson.dump(main.projects, projects_json, ensure_ascii=False, indent=4, escape_forward_slashes=False)
-
-
 def add_project_key(key: str, value: Any):
     projects = db.projects.dict()
 
@@ -59,16 +50,6 @@ def add_project_key(key: str, value: Any):
         db.projects.set(project_id, projects[project_id])
 
     log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
-
-
-def validate_project_formats(projects: dict):
-    for project_id in projects:
-        validate_project_schema(projects[project_id])
-
-
-def load_project_schema() -> Callable:
-    with open('project_schema.json', 'r') as projects_schema_file:
-        return fastjsonschema.compile(ujson.load(projects_schema_file))
 
 
 def load_sj_data() -> Tuple[dict, dict]:
@@ -85,4 +66,3 @@ def log_timestamp() -> str:
 
 
 log: Optional[logging.Logger] = None
-validate_project_schema = load_project_schema()

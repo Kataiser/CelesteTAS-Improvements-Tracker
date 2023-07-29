@@ -2,9 +2,10 @@ import atexit
 import copy
 import os
 from operator import itemgetter
-from typing import Union, Any
+from typing import Union, Any, Callable
 
 import boto3
+import fastjsonschema
 import ujson
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
@@ -91,11 +92,29 @@ class PathCaches(Table):
 
 
 class Projects(Table):
+    def __init__(self, table_name: str, primary_key: str):
+        super().__init__(table_name, primary_key)
+
+        with open('project_schema.json', 'r') as projects_schema_file:
+            self.validate_project_schema = fastjsonschema.compile(ujson.load(projects_schema_file))
+
+    def set(self, key: Union[str, int], value: dict):
+        self.validate_project_schema(value)
+        super().set(key, value)
+
+    def get_all_validate(self, consistent_read: bool = True) -> list:
+        projects_list = self.get_all(consistent_read)
+
+        for project_unvalidated in projects_list:
+            self.validate_project_schema(project_unvalidated)
+
+        return projects_list
+
     def dict(self, consistent_read: bool = True) -> dict:
-        return {int(item[self.primary_key]): item for item in self.get_all(consistent_read)}
+        return {int(item[self.primary_key]): item for item in self.get_all_validate(consistent_read)}
 
     def get_by_name(self, name: str, consistent_read: bool = True) -> dict:
-        all_projects = self.get_all(consistent_read)
+        all_projects = self.get_all_validate(consistent_read)
         name_lower = name.lower()
         projects_selected = []
 

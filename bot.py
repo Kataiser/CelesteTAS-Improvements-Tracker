@@ -29,7 +29,7 @@ safe_mode = False
 
 
 def start():
-    global debug
+    global debug, projects_startup
     log.info("Bot starting")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
@@ -38,14 +38,14 @@ def start():
     if debug:
         print("DEBUG MODE")
 
-    projects = db.projects.dict()
-    main.fast_project_ids = set(projects)
+    projects_startup = db.projects.dict()
+    main.fast_project_ids = set(projects_startup)
     path_caches_size = db.path_caches.size()
     project_logs_size = db.project_logs.size()
-    log.info(f"Loaded {len(projects)} project{plural(projects)}, {project_logs_size} project message log{plural(project_logs_size)}, "
+    log.info(f"Loaded {len(projects_startup)} project{plural(projects_startup)}, {project_logs_size} project message log{plural(project_logs_size)}, "
              f"and {path_caches_size} path cache{plural(path_caches_size)}")
 
-    if not len(projects) == project_logs_size == path_caches_size:
+    if not len(projects_startup) == project_logs_size == path_caches_size:
         log.critical("Project data component lengths are not equal, exiting")
         return
 
@@ -68,7 +68,7 @@ def start():
 
 @client.event
 async def on_ready():
-    global safe_mode
+    global safe_mode, projects_startup
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     [await command_tree.sync(guild=server) for server in slash_command_servers]
@@ -76,13 +76,12 @@ async def on_ready():
     await main.handle_game_sync_results()
     main.handle_game_sync_results.start()
     downtime_message_count = 0
-    projects_to_scan = main.safe_projects if safe_mode else db.projects.dict()
+    projects_to_scan = main.safe_projects if safe_mode else projects_startup
     db.project_logs.enable_cache()
-    projects = db.projects.dict()
     set_default_status = True
 
     for improvements_channel_id in reversed(projects_to_scan):
-        project = projects[improvements_channel_id]
+        project = projects_startup[improvements_channel_id]
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel or main.missing_channel_permissions(improvements_channel):
@@ -253,6 +252,7 @@ commands.client = client
 spreadsheet.client = client
 main.client = client
 main.safe_mode = safe_mode
+projects_startup = None
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
 
