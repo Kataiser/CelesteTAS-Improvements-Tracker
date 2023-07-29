@@ -136,6 +136,7 @@ project_logs = Table('project_logs', 'project_id')
 sheet_writes = Table('sheet_writes', 'timestamp')
 logs = Table('logs', 'time')
 sync_results = Table('sync_results', 'project_id')
+misc = Table('misc', 'key')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 

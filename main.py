@@ -398,8 +398,13 @@ async def handle_game_sync_results():
 async def set_status(message: Optional[discord.Message] = None, project_name: Optional[str] = None):
     if message:
         status = f"{projects_count()} TAS projects, last processed post from {utils.nickname(message.author)} in \"{project_name}\""
+        db.misc.set('status', status)
     else:
-        status = f"{projects_count()} TAS projects"
+        try:
+            status = db.misc.get('status')
+        except db.DBKeyError:
+            status = f"{projects_count()} TAS projects"
+            db.misc.set('status', status)
 
     log.info(f"Setting status to \"Watching {status}\"")
     await client.change_presence(status=discord.Status.online, activity=discord.Activity(name=status, type=discord.ActivityType.watching))
