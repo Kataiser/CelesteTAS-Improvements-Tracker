@@ -264,7 +264,7 @@ def is_processable_message(message: discord.Message, project: dict) -> bool:
         return post_time > project['install_time']
 
 
-async def edit_pin(channel: discord.TextChannel, create: bool = False) -> discord.Message:
+async def edit_pin(channel: discord.TextChannel, create: bool = False):
     project = db.projects.get(channel.id)
     ensure_level = project['ensure_level']
     desyncs = project['desyncs']
@@ -317,7 +317,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False) -> discor
 
     name = project['name']
     repo = project['repo']
-    pin_id = project['pin']
+    pin = project['pin']
     subdir = project['subdir']
     admins = ', '.join([f'<@{admin}>' for admin in project['admins']])
     repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
@@ -331,17 +331,12 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False) -> discor
 
     if create:
         log.info("Creating pin")
-        pin_message = await channel.send(text_out)
+        return await channel.send(text_out)
     else:
-        pin_message = await channel.fetch_message(pin_id)
-
-        if pin_message.content == text_out:
-            log.info("Skipped editing pin")
-        else:
-            await pin_message.edit(content=text_out)
-            log.info("Edited pin")
-
-    return pin_message
+        pin_message = channel.get_partial_message(pin)
+        await pin_message.edit(content=text_out)
+        log.info("Edited pin")
+        return pin_message
 
 
 @dataclasses.dataclass
