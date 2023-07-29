@@ -248,7 +248,8 @@ def sync_test(project: dict):
 
             if not has_filetime:
                 log_command = log.info if synced else log.warning
-                log_command(f"{'Synced' if synced else 'Desynced'}: {final_time_trimmed} -> {final_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)")
+                time_delta = f"{final_time_trimmed} -> {final_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)"
+                log_command(f"{'Synced' if synced else 'Desynced'}: {time_delta}")
 
                 if synced:
                     if file_path_repo not in sid_caches[project_id] and sid:
@@ -258,7 +259,7 @@ def sync_test(project: dict):
                     elif not sid:
                         log.warning(f"Running {file_path_repo} yielded no SID")
                 else:
-                    desyncs.append(tas_filename)
+                    desyncs.append((tas_filename, time_delta))
             else:
                 project['filetimes'][tas_filename] = final_time_new_trimmed
 
@@ -271,22 +272,22 @@ def sync_test(project: dict):
         else:
             log.warning(f"Desynced (no {'FileTime' if has_filetime else 'ChapterTime'})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
-            desyncs.append(tas_filename)
+            desyncs.append((tas_filename, None))
 
         files_timed += 1
 
     close_game()
     project['last_run_validation'] = clone_time
-    project['desyncs'] = desyncs
+    project['desyncs'] = [desync[0] for desync in desyncs]
     time_since_last_commit = clone_time - project['last_commit_time']
-    new_desyncs = [f for f in desyncs if f not in previous_desyncs]
+    new_desyncs = [d for d in desyncs if d[0] not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")
     report_text = report_log = None
 
     if new_desyncs:
-        new_desyncs_formatted = '\n'.join(new_desyncs)
-        desyncs_formatted = '\n'.join(desyncs)
+        new_desyncs_formatted = format_desyncs(new_desyncs)
+        desyncs_formatted = format_desyncs(desyncs)
         desyncs_block = '' if desyncs == new_desyncs else f"\nAll desyncs:\n```\n{desyncs_formatted}```"
         report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
                       f"\n```\n{new_desyncs_formatted}```{desyncs_block}"[:1900]
@@ -305,7 +306,7 @@ def sync_test(project: dict):
     # commit updated fullgame files
     for queued_commit in queued_filetime_commits:
         file_path_repo, lines_joined, commit_message = queued_commit
-        desyncs_found = [d for d in desyncs if d[:-4] in lines_joined]
+        desyncs_found = [d for d in desyncs if d[0][:-4] in lines_joined]
 
         # but only if all the files in them sync
         if desyncs_found:
@@ -321,6 +322,18 @@ def sync_test(project: dict):
         utils.handle_potential_request_error(r, 200)
         commit_url = ujson.loads(r.content)['commit']['html_url']
         log.info(f"Successfully committed: {commit_url}")
+
+
+def format_desyncs(desyncs: list) -> str:
+    formatted = []
+
+    for desync in desyncs:
+        if desync[1]:
+            formatted.append(f'{desync[0]}: {desync[1]}')
+        else:
+            formatted.append(desync[0])
+
+    return '\n'.join(formatted)
 
 
 def generate_blacklist(mods_to_load: set):

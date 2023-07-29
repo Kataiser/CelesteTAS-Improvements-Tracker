@@ -8,7 +8,6 @@ import requests
 import ujson
 
 import db
-import main
 
 
 def plural(count: Union[int, Sized]) -> str:
