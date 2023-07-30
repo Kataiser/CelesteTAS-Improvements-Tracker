@@ -162,15 +162,14 @@ def sync_test(project: dict):
             tas_lines = tas_file.readlines()
 
         # set up tas file
-        _, found_final_time, final_time, final_time_trimmed, final_time_line_num = validation.parse_tas_file(tas_lines, False, False, True)
+        tas_parsed = validation.parse_tas_file(tas_lines, False, False, True)
 
-        if found_final_time:
-            has_filetime = tas_lines[final_time_line_num].startswith('FileTime')
+        if tas_parsed.found_finaltime:
+            has_filetime = tas_lines[tas_parsed.finaltime_line_num].startswith('FileTime')
 
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
-                final_time_line_num_og = final_time_line_num
-                tas_lines[final_time_line_num] = 'FileTime: \n'
+                tas_lines[tas_parsed.finaltime_line_num] = 'FileTime: \n'
                 has_console_load = [line for line in tas_lines if line.startswith('console load')] != []
 
                 if not has_console_load:
@@ -178,7 +177,7 @@ def sync_test(project: dict):
                     tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 5\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n',
                                      '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
             else:
-                tas_lines[final_time_line_num] = 'ChapterTime: \n'
+                tas_lines[tas_parsed.finaltime_line_num] = 'ChapterTime: \n'
         else:
             log.info(f"{tas_filename} has no final time")
             continue
@@ -193,7 +192,7 @@ def sync_test(project: dict):
         # now run it
         time.sleep(0.2)
         initial_mtime = os.path.getmtime(file_path)
-        log.info(f"Sync checking {tas_filename} ({final_time_trimmed})")
+        log.info(f"Sync checking {tas_filename} ({tas_parsed.finaltime_trimmed})")
         tas_started = False
         tas_finished = False
         sid = None
@@ -230,7 +229,7 @@ def sync_test(project: dict):
         with open(file_path, 'rb') as tas_file:
             tas_updated = validation.as_lines(tas_file.read())
 
-        _, found_final_time, final_time_new, final_time_new_trimmed, final_time_line_num = validation.parse_tas_file(tas_updated, False, False, True)
+        tas_parsed_new = validation.parse_tas_file(tas_updated, False, False, True)
 
         # clear debug save, for silvers
         if has_filetime:
@@ -242,13 +241,13 @@ def sync_test(project: dict):
             except (requests.Timeout, requests.ConnectionError):
                 pass
 
-        if found_final_time:
-            frame_diff = validation.calculate_time_difference(final_time_new, final_time)
+        if tas_parsed_new.found_finaltime:
+            frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
             synced = frame_diff == 0
 
             if not has_filetime:
                 log_command = log.info if synced else log.warning
-                time_delta = f"{final_time_trimmed} -> {final_time_new_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)"
+                time_delta = f"{tas_parsed.finaltime_trimmed} -> {tas_parsed_new.finaltime_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)"
                 log_command(f"{'Synced' if synced else 'Desynced'}: {time_delta}")
 
                 if synced:
@@ -261,12 +260,12 @@ def sync_test(project: dict):
                 else:
                     desyncs.append((tas_filename, time_delta))
             else:
-                project['filetimes'][tas_filename] = final_time_new_trimmed
+                project['filetimes'][tas_filename] = tas_parsed_new.finaltime_trimmed
 
                 if not synced:
-                    new_time_line = tas_updated[final_time_line_num]
-                    tas_lines_og[final_time_line_num_og] = new_time_line
-                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({final_time_new_trimmed})"
+                    new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
+                    tas_lines_og[tas_parsed.finaltime_line_num] = new_time_line
+                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
                     queued_filetime_commits.append((file_path_repo, ''.join(tas_lines_og), commit_message))
                     # don't commit now, since there may be desyncs
         else:

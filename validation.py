@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import re
 from typing import List, Optional, Tuple, Callable, Union
@@ -33,7 +34,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
-    breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line = parse_tas_file(tas_lines, True)
+    tas_parsed = parse_tas_file(tas_lines, True)
     dash_saves = re_dash_saves.search(message.content)
     is_dash_save = dash_saves is not None
     got_timesave = False
@@ -47,11 +48,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         log.info(f"Skipping validation ({wip_in_message=})")
         # ok this is really ugly, but we do need final time and timesave
 
-        if old_tas and found_finaltime and not is_dash_save:
-            old_has_finaltime, old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[1:4]
+        if old_tas and tas_parsed.found_finaltime and not is_dash_save:
+            old_tas_parsed = parse_tas_file(as_lines(old_tas), False)
 
-            if old_has_finaltime:
-                time_saved_num = calculate_time_difference(old_finaltime, finaltime)
+            if old_tas_parsed.found_finaltime:
+                time_saved_num = calculate_time_difference(old_tas_parsed.finaltime, tas_parsed.finaltime)
                 time_saved_text = f'-{time_saved_num}f' if time_saved_num >= 0 else f'+{abs(time_saved_num)}f'
                 got_timesave = True
 
@@ -63,17 +64,17 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         else:
             timesave = None
 
-        return ValidationResult(True, finaltime=finaltime, timesave=timesave, wip=wip_in_message)
+        return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, wip=wip_in_message)
 
     if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
         return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
 
-    if len(breakpoints) == 1:
-        return ValidationResult(False, f"Breakpoint found on line {breakpoints[0]}, please remove it (Ctrl+P in Studio) and post again.", f"breakpoint in {filename}")
-    elif len(breakpoints) > 1:
-        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(breakpoints)}, please remove them (Ctrl+P in Studio) and post again.",
-                                f"{len(breakpoints)} breakpoints in {filename}")
-    elif not found_finaltime:
+    if len(tas_parsed.breakpoints) == 1:
+        return ValidationResult(False, f"Breakpoint found on line {tas_parsed.breakpoints[0]}, please remove it (Ctrl+P in Studio) and post again.", f"breakpoint in {filename}")
+    elif len(tas_parsed.breakpoints) > 1:
+        return ValidationResult(False, f"Breakpoints found on lines: {', '.join(tas_parsed.breakpoints)}, please remove them (Ctrl+P in Studio) and post again.",
+                                f"{len(tas_parsed.breakpoints)} breakpoints in {filename}")
+    elif not tas_parsed.found_finaltime:
         if lobby_channel:
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
         else:
@@ -166,21 +167,21 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate chaptertime is in message content
     if not is_dash_save:
         if lobby_channel:
-            if finaltime not in message.content:
-                return ValidationResult(False, f"The file's final time ({finaltime}) is missing in your message, please add it and post again.",
-                                        f"final time ({finaltime}) missing in message content")
+            if tas_parsed.finaltime not in message.content:
+                return ValidationResult(False, f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
+                                        f"final time ({tas_parsed.finaltime}) missing in message content")
         else:
-            if finaltime not in message.content and finaltime_trimmed not in message.content:
-                chapter_time_notif = finaltime if finaltime == finaltime_trimmed else finaltime_trimmed
+            if tas_parsed.finaltime not in message.content and tas_parsed.finaltime_trimmed not in message.content:
+                chapter_time_notif = tas_parsed.finaltime if tas_parsed.finaltime == tas_parsed.finaltime_trimmed else tas_parsed.finaltime_trimmed
                 return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
                                         f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     if old_tas and not is_dash_save:
         # validate timesave frames is in message content
-        old_has_finaltime, old_finaltime, old_finaltime_trimmed = parse_tas_file(as_lines(old_tas), False)[1:4]
+        old_tas_parsed = parse_tas_file(as_lines(old_tas), False)
 
-        if old_has_finaltime:
-            time_saved_num = calculate_time_difference(old_finaltime, finaltime)
+        if old_tas_parsed.found_finaltime:
+            time_saved_num = calculate_time_difference(old_tas_parsed.finaltime, tas_parsed.finaltime)
             time_saved_minus = f'-{abs(time_saved_num)}f'
             time_saved_plus = f'+{abs(time_saved_num)}f'
             time_saved_messages = re_timesave_frames.search(message.content)
@@ -234,16 +235,27 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     else:
         timesave = None
 
-    sj_sheet_data = (tas_lines, finaltime_line) if message.channel.id == 1074148268407275520 else None
-    return ValidationResult(True, finaltime=finaltime, timesave=timesave, sj_sheet_data=sj_sheet_data)
+    sj_sheet_data = (tas_lines, tas_parsed.finaltime_line_num) if message.channel.id == 1074148268407275520 else None
+    return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, sj_sheet_data=sj_sheet_data)
+
+
+@dataclasses.dataclass
+class ParsedTASFile:
+    breakpoints: List[str]
+    found_finaltime: bool
+    finaltime: Optional[str]
+    finaltime_trimmed: Optional[str]
+    finaltime_line_num: Optional[int]
+    finaltime_frames: Optional[int]
 
 
 # get breakpoints and final time in one pass
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> Tuple[list, bool, Optional[str], Optional[str], Optional[int]]:
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> ParsedTASFile:
     breakpoints = []
-    finaltime_line = None
+    finaltime_line_num = None
     finaltime = None
     finaltime_trimmed = None
+    finaltime_frames = None
     found_chaptertime = False
 
     for line in enumerate(tas_lines):
@@ -253,27 +265,30 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
         else:
             if re_chapter_time.match(line[1]):
                 found_chaptertime = True
-                finaltime_line = line[0]
+                finaltime_line_num = line[0]
             elif find_file_time and not found_chaptertime and re_file_time.match(line[1]):
                 found_chaptertime = True
-                finaltime_line = line[0]
+                finaltime_line_num = line[0]
             elif allow_comment_time and not found_chaptertime and re_comment_time.match(line[1]):
                 found_chaptertime = False
-                finaltime_line = line[0]
+                finaltime_line_num = line[0]
 
-    found_finaltime = finaltime_line is not None
+    found_finaltime = finaltime_line_num is not None
 
     if found_finaltime:
         if found_chaptertime:
-            finaltime = tas_lines[finaltime_line].partition(' ')[2].partition('(')[0]
+            finaltime_components = tas_lines[finaltime_line_num].partition(' ')[2].partition('(')
+            finaltime = finaltime_components[0]
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
-            finaltime = finaltime_trimmed = tas_lines[finaltime_line].lstrip('#0:').partition('(')[0].strip()
+            finaltime_components = tas_lines[finaltime_line_num].lstrip('#0:').partition('(')
+            finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
+        finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
 
-    return breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line
+    return ParsedTASFile(breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line_num, finaltime_frames)
 
 
 def calculate_time_difference(time_old: str, time_new: str, get_old_frames: bool = False) -> Union[int, tuple]:
