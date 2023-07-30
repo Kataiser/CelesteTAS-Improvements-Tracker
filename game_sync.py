@@ -247,7 +247,8 @@ def sync_test(project: dict):
 
             if not has_filetime:
                 log_command = log.info if synced else log.warning
-                time_delta = f"{tas_parsed.finaltime_trimmed} -> {tas_parsed_new.finaltime_trimmed} ({'+' if frame_diff > 0 else ''}{frame_diff}f)"
+                time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
+                              f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
                 log_command(f"{'Synced' if synced else 'Desynced'}: {time_delta}")
 
                 if synced:
