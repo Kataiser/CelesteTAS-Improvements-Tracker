@@ -267,7 +267,7 @@ def sync_test(project: dict):
                     new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
                     tas_lines_og[tas_parsed.finaltime_line_num] = new_time_line
                     commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                    queued_filetime_commits.append((file_path_repo, ''.join(tas_lines_og), commit_message))
+                    queued_filetime_commits.append((file_path_repo, tas_lines_og, commit_message))
                     # don't commit now, since there may be desyncs
         else:
             log.warning(f"Desynced (no {'FileTime' if has_filetime else 'ChapterTime'})")
@@ -305,7 +305,8 @@ def sync_test(project: dict):
 
     # commit updated fullgame files
     for queued_commit in queued_filetime_commits:
-        file_path_repo, lines_joined, commit_message = queued_commit
+        file_path_repo, lines, commit_message = queued_commit
+        lines_joined = ''.join(lines)
         desyncs_found = [d for d in desyncs if d[0][:-4] in lines_joined]
 
         # but only if all the files in them sync
@@ -322,6 +323,9 @@ def sync_test(project: dict):
         utils.handle_potential_request_error(r, 200)
         commit_url = ujson.loads(r.content)['commit']['html_url']
         log.info(f"Successfully committed: {commit_url}")
+
+        if project_id == 1074148268407275520 and file_path_repo == '0-SJ All Levels.tas':
+            db.misc.set('sj_full_time', validation.parse_tas_file(lines, False).finaltime_frames)
 
 
 def format_desyncs(desyncs: list) -> str:

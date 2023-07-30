@@ -8,14 +8,14 @@ import discord
 
 class ValidationResult:
     def __init__(self, valid_tas: bool, warning_text: Optional[str] = None, log_text: Optional[str] = None, finaltime: Optional[str] = None, timesave: Optional[str] = None,
-                 wip: bool = False, sj_sheet_data: Optional[tuple] = None):
+                 wip: bool = False, sj_data: Optional[tuple] = None):
         self.valid_tas = valid_tas
         self.warning_text = warning_text
         self.log_text = log_text
         self.timesave = timesave
         self.finaltime = finaltime
         self.wip = wip
-        self.sj_sheet_data = sj_sheet_data
+        self.sj_data = sj_data
 
         if valid_tas:
             log.info("TAS file and improvement post have been validated")
@@ -235,8 +235,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     else:
         timesave = None
 
-    sj_sheet_data = (tas_lines, tas_parsed.finaltime_line_num) if message.channel.id == 1074148268407275520 else None
-    return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, sj_sheet_data=sj_sheet_data)
+    sj_data = (tas_lines, tas_parsed.finaltime_line_num, tas_parsed.finaltime_frames) if message.channel.id == 1074148268407275520 else None
+    return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, sj_data=sj_data)
 
 
 @dataclasses.dataclass

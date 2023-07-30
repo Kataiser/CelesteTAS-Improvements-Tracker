@@ -132,12 +132,16 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 db.history_log.set(utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
+
+                if validation_result.sj_data:
+                    db.misc.set('sj_full_time', db.misc.get('sj_full_time') - validation_result.sj_data[2])
+
                 await edit_pin(message.channel)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
 
-            if validation_result.sj_sheet_data:
+            if validation_result.sj_data:
                 spreadsheet.update_stats(attachment.filename, validation_result)
 
             project['last_commit_time'] = int(time.time())
@@ -278,9 +282,14 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
                       "7C (34.153)", "8A (2:24.364)", "8B (2:04.406)", "8C (22.270)")
     example_timesave = f"-{round(random.triangular(1, 50, 0))}f {random.choice(maingame_times)}"
 
+    if channel.id == 1074148268407275520:
+        sj_countdown = f"\n\n{db.misc.get('sj_full_time') - 635294}f to sub 3!"
+    else:
+        sj_countdown = ""
+
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
            f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `{example_timesave}`). {lobby_text}" \
-           f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
+           f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional.{sj_countdown}" \
            "\n\nRepo: <{1}> (using <https://desktop.github.com> is recommended)" \
            "\nPackage download: <{2}>" \
            "\nAdmin{6}: {3}" \
@@ -307,7 +316,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
         if desyncs:
             desyncs_formatted = '\n'.join(desyncs)
-            desyncs_text = f"\n\nCurrently desyncing file{plural(desyncs)}:\n```\n{desyncs_formatted}```"
+            desyncs_text = f"\n\nDesyncing file{plural(desyncs)}:\n```\n{desyncs_formatted}```"
 
         if filetimes:
             filetimes_formatted = '\n'.join([f"{file[:-4]}: {filetimes[file]}" for file in filetimes])
