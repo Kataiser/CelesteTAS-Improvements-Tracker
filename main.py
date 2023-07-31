@@ -283,7 +283,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     example_timesave = f"-{round(random.triangular(1, 50, 0))}f {random.choice(maingame_times)}"
 
     if channel.id == 1074148268407275520:
-        sj_countdown = f"\n\n{db.misc.get('sj_full_time') - 635294}f to sub 3!"
+        sj_countdown = f"\n\n**{db.misc.get('sj_full_time') - 635294}f to sub 3!**"
     else:
         sj_countdown = ""
 

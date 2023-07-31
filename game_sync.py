@@ -325,7 +325,7 @@ def sync_test(project: dict):
         log.info(f"Successfully committed: {commit_url}")
 
         if project_id == 1074148268407275520 and file_path_repo == '0-SJ All Levels.tas':
-            db.misc.set('sj_full_time', validation.parse_tas_file(lines, False).finaltime_frames)
+            db.misc.set('sj_full_time', validation.parse_tas_file(lines, False, find_file_time=True).finaltime_frames)
 
 
 def format_desyncs(desyncs: list) -> str:

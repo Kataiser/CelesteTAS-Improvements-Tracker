@@ -235,7 +235,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     else:
         timesave = None
 
-    sj_data = (tas_lines, tas_parsed.finaltime_line_num, tas_parsed.finaltime_frames) if message.channel.id == 1074148268407275520 else None
+    sj_data = (tas_lines, tas_parsed.finaltime_line_num, time_saved_num) if message.channel.id == 1074148268407275520 else None
     return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, sj_data=sj_data)
 
 
