@@ -134,7 +134,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
 
                 if validation_result.sj_data:
-                    db.misc.set('sj_full_time', db.misc.get('sj_full_time') - validation_result.sj_data[2])
+                    db.misc.set('sj_time_saved', db.misc.get('sj_time_saved') + validation_result.sj_data[2])
 
                 await edit_pin(message.channel)
             else:
@@ -283,7 +283,8 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     example_timesave = f"-{round(random.triangular(1, 50, 0))}f {random.choice(maingame_times)}"
 
     if channel.id == 1074148268407275520:
-        sj_countdown = f"\n\n**{db.misc.get('sj_full_time') - 635294}f to sub 3!**"
+        misc_table = db.misc.dict()
+        sj_countdown = f"\n\n**{misc_table['sj_full_time'] - misc_table['sj_time_saved'] - 635294}f to sub 3!**"
     else:
         sj_countdown = ""
 

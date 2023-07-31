@@ -1,5 +1,6 @@
 import atexit
 import copy
+import decimal
 import os
 from operator import itemgetter
 from typing import Union, Any
@@ -51,6 +52,17 @@ class Table:
     def get_all(self, consistent_read: bool = True) -> list:
         items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=consistent_read)
         return [deserializer.deserialize({'M': item}) for item in items['Items']]
+
+    def dict(self, consistent_read: bool = True) -> dict:
+        items_list = self.get_all(consistent_read)
+        items_dict = {}
+
+        for item in items_list:
+            key = item[self.primary_key]
+            value = item['_value'] if '_value' in item else item
+            items_dict[int(key) if isinstance(key, decimal.Decimal) else key] = value
+
+        return items_dict
 
     def delete_item(self, key: Union[str, int]):
         key_type = 'S' if isinstance(key, str) else 'N'
@@ -110,10 +122,7 @@ class Projects(Table):
 
         return projects_list
 
-    def dict(self, consistent_read: bool = True) -> dict:
-        return {int(item[self.primary_key]): item for item in self.get_all(consistent_read)}
-
-    def get_by_name(self, name: str, consistent_read: bool = True) -> dict:
+    def get_by_name(self, name: str, consistent_read: bool = True) -> list:
         all_projects = self.get_all(consistent_read)
         name_lower = name.lower()
         projects_selected = []

@@ -87,6 +87,9 @@ def sync_test(project: dict):
     main.generate_path_cache(project_id)
     path_cache = db.path_caches.get(project_id)
 
+    if project_id == 1074148268407275520:
+        db.misc.set('sj_time_saved', 0)
+
     # clone repo
     repo_cloned = repo.partition('/')[2]
     repo_path = f'E:\\Big downloads\\celeste\\repos\\{repo_cloned}'
