@@ -398,9 +398,12 @@ async def handle_game_sync_results():
         await edit_pin(improvements_channel)
 
         if report_text:
-            sync_check_time = project['last_run_validation']
-            sync_log = discord.File(io.BytesIO(sync_result['log'].encode('UTF8')), filename=f'game_sync_{project_name}_{sync_check_time}.log')
-            await improvements_channel.send(report_text, file=sync_log)
+            if sync_result['log']:
+                sync_check_time = project['last_run_validation']
+                sync_log = discord.File(io.BytesIO(sync_result['log'].encode('UTF8')), filename=f'game_sync_{project_name}_{sync_check_time}.log')
+                await improvements_channel.send(report_text, file=sync_log)
+        else:
+            await improvements_channel.send(report_text)
 
         db.sync_results.delete_item(project_id)
 

@@ -72,7 +72,6 @@ async def on_ready():
     main.login_time = time.time()
     [await command_tree.sync(guild=server) for server in slash_command_servers]
     log.info(f"Servers: {[g.name for g in client.guilds]}")
-    await main.handle_game_sync_results()
     main.handle_game_sync_results.start()
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else projects_startup
