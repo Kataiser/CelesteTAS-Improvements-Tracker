@@ -219,6 +219,10 @@ def sync_test(project: dict):
                 if not has_filetime:
                     sid = session_data.partition('SID: ')[2].partition(' (')[0]
 
+            if not tas_finished and not process.is_running():
+                log.error("Game crashed, abandoning game sync for project")
+                return
+
         log.info("TAS has finished")
         time.sleep(8 if 'SID:  ()' in session_data else 3)
         extra_sleeps = 0
