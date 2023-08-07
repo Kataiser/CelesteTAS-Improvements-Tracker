@@ -402,8 +402,8 @@ async def handle_game_sync_results():
                 sync_check_time = project['last_run_validation']
                 sync_log = discord.File(io.BytesIO(sync_result['log'].encode('UTF8')), filename=f'game_sync_{project_name}_{sync_check_time}.log')
                 await improvements_channel.send(report_text, file=sync_log)
-        else:
-            await improvements_channel.send(report_text)
+            else:
+                await improvements_channel.send(report_text)
 
         db.sync_results.delete_item(project_id)
 
