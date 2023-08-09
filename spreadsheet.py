@@ -2,6 +2,7 @@ import datetime
 import functools
 import logging
 import re
+import time
 from ssl import SSLEOFError
 from typing import List, Optional, Any
 
@@ -82,6 +83,7 @@ class Cell:
 
 async def draft(interaction: discord.Interaction, map_name: str):
     """Sign yourself up for drafting a map"""
+    update_last_command_used()
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} wants to draft \"{map_name}\"")
 
@@ -126,6 +128,7 @@ async def draft(interaction: discord.Interaction, map_name: str):
 
 async def update_progress(interaction: discord.Interaction, map_name: str, note: str):
     """Put a note for how progress is going"""
+    update_last_command_used()
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is setting progress for \"{map_name}\": \"{note}\"")
 
@@ -148,6 +151,7 @@ async def update_progress(interaction: discord.Interaction, map_name: str, note:
 
 async def progress(interaction: discord.Interaction, map_name: str):
     """Show progress note"""
+    update_last_command_used()
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking progress for \"{map_name}\"")
 
@@ -190,6 +194,7 @@ async def progress(interaction: discord.Interaction, map_name: str):
 
 async def drop(interaction: discord.Interaction, map_name: str, reason: str):
     """Drop a map (stop drafting it after having made progress)"""
+    update_last_command_used()
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is dropping \"{map_name}\" for reason: \"{reason}\"")
 
@@ -207,6 +212,7 @@ async def drop(interaction: discord.Interaction, map_name: str, reason: str):
 
 async def complete(interaction: discord.Interaction, map_name: str):
     """Mark a draft as completed"""
+    update_last_command_used()
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} has completed \"{map_name}\"")
 
@@ -231,6 +237,7 @@ async def complete(interaction: discord.Interaction, map_name: str):
 
 async def undraft(interaction: discord.Interaction, map_name: str):
     """Stop drafting a map without dropping a WIP file"""
+    update_last_command_used()
     map_name = correct_map_case(map_name)
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is undrafting \"{map_name}\"")
 
@@ -248,6 +255,7 @@ async def undraft(interaction: discord.Interaction, map_name: str):
 
 async def taser_status(interaction: discord.Interaction, taser: str):
     """See what maps a TASer is marked for drafting"""
+    update_last_command_used()
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking status for TASer \"{taser}\"")
 
     if re_ping.match(taser):
@@ -371,6 +379,10 @@ def read_sheet(cell_range: str, multiple_rows=False):
             return result.get('values', [])[0]
     except (HttpError, SSLEOFError) as error:
         log.error(repr(error))
+
+
+def update_last_command_used():
+    db.misc.set('last_command_used', f"{int(time.time())} ({datetime.datetime.now().strftime('%c')})")
 
 
 client: Optional[discord.Client] = None
