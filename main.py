@@ -291,8 +291,8 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
            f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `{example_timesave}`). {lobby_text}" \
            f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional.{sj_countdown}" \
-           "\n\nRepo: <{1}> (using <https://desktop.github.com> is recommended)" \
-           "\nPackage download: <{2}>" \
+           "\n\nRepo: [{8}](<{1}>) (using [Github Desktop](<https://desktop.github.com/>) is recommended)" \
+           "\n[Package download](<{2}>)" \
            "\nAdmin{6}: {3}" \
            "\nLast sync check (start time): {4}{5}{7}" \
            "\nBot reactions key:" \
@@ -333,7 +333,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else \
         f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text)
+    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text, repo)
 
     if len(text_out) > 1900:
         log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
