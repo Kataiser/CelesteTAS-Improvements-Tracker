@@ -120,7 +120,7 @@ def sync_test(project: dict):
 
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
-                        tas_lines.insert(tas_line[0] + 2, f'Assert,Equal,{sid},Session.Area.SID\n')
+                        tas_lines.insert(tas_line[0] + 2, f'Assert,Equal,{sid},{{Session.Area.SID}}\n')
                         tas_file.seek(0)
                         tas_file.writelines(tas_lines)
                         asserts_added.append((file_path_repo, sid))
@@ -186,7 +186,7 @@ def sync_test(project: dict):
             continue
 
         tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
-        tas_lines.append('***')
+        tas_lines.append('\n***')
 
         with open(file_path, 'w', encoding='UTF8') as tas_file:
             tas_file.truncate()
