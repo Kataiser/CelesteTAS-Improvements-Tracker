@@ -250,15 +250,15 @@ def sync_test(project: dict):
 
         if tas_parsed_new.found_finaltime:
             frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
-            synced = frame_diff == 0
+            time_synced = frame_diff == 0
 
             if not has_filetime:
-                log_command = log.info if synced else log.warning
+                log_command = log.info if time_synced else log.warning
                 time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
                               f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
-                log_command(f"{'Synced' if synced else 'Desynced'}: {time_delta}")
+                log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
 
-                if synced:
+                if time_synced:
                     if file_path_repo not in sid_caches[project_id] and sid:
                         sid_caches[project_id][file_path_repo] = sid
                         save_sid_caches()
@@ -268,9 +268,10 @@ def sync_test(project: dict):
                 else:
                     desyncs.append((tas_filename, time_delta))
             else:
+                log.info(f"Time: {tas_parsed_new.finaltime_trimmed}")
                 project['filetimes'][tas_filename] = tas_parsed_new.finaltime_trimmed
 
-                if not synced:
+                if not time_synced:
                     new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
                     tas_lines_og[tas_parsed.finaltime_line_num] = new_time_line
                     commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
