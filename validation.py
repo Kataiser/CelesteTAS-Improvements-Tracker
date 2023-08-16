@@ -109,7 +109,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 if room_index is not None and ((not uses_one_indexing and room_index != 0) or (uses_one_indexing and room_index != 1)):
                     init_str = "one" if uses_one_indexing else "zero"
                     return ValidationResult(False, f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms "
-                                                   f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
+                                            f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
 
             rooms_found[room_name] = room_index
 
@@ -209,15 +209,15 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
                 if time_saved_messages[0] != time_saved_actual:
                     return ValidationResult(False, f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
-                                                   f"please fix and post again{linn_moment}. Make sure you improved the latest version of the file.",
-                                                   f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
+                                            f"please fix and post again{linn_moment}. Make sure you improved the latest version of the file.",
+                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
         else:
             log.info("Old file has no final time, skipping validating timesave")
     elif not old_tas:
         # validate draft text
         if "draft" not in message_lowercase:
-            return ValidationResult(False, "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again.",
-                                    "no \"draft\" text in message")
+            return ValidationResult(False, "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. "
+                                    "If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.", "no \"draft\" text in message")
 
     # validate level
     if ensure_level:
