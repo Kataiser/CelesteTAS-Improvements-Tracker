@@ -230,17 +230,7 @@ async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
 
-@command_tree.command(description="No one will ever save a single frame in...", guilds=slash_command_servers)
-async def irreversible_fact(interaction, map_name: str):
-    copypasta = "No one will ever save a single frame in {0}. It's literally impossible. A lie, a myth, a farce propagated by the government to mislead the ignorant. " \
-                "Anyone who thinks it's possible is stupid and should feel ashamed, and can wallow in their own lack of intelligence. " \
-                "This is an irreversible fact of TASing and simply cannot be challenged. Go cry about it, nerds."
-
-    await interaction.response.send_message(copypasta.format(map_name))
-
-
 @progress.autocomplete('map_name')
-@irreversible_fact.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
