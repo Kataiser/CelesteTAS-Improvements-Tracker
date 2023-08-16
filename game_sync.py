@@ -88,7 +88,7 @@ def sync_test(project: dict):
     path_cache = db.path_caches.get(project_id)
 
     if project_id == 1074148268407275520:
-        db.misc.set('sj_time_saved', 0)
+        prev_sj_time_saved = db.misc.get('sj_time_saved')
 
     # clone repo
     repo_cloned = repo.partition('/')[2]
@@ -221,6 +221,7 @@ def sync_test(project: dict):
 
             if not tas_finished and not process.is_running():
                 log.error("Game crashed, abandoning game sync for project")
+                db.misc.set('sj_time_saved', prev_sj_time_saved + db.misc.get('sj_time_saved'))
                 return
 
         log.info("TAS has finished")
@@ -310,6 +311,7 @@ def sync_test(project: dict):
     db.projects.set(project_id, project)
     db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log})
     log.info("Wrote sync result to DB")
+    updated_sj_full_time = False
 
     # commit updated fullgame files
     for queued_commit in queued_filetime_commits:
@@ -334,6 +336,14 @@ def sync_test(project: dict):
 
         if project_id == 1074148268407275520 and file_path_repo == '0-SJ All Levels.tas':
             db.misc.set('sj_full_time', validation.parse_tas_file(lines, False, find_file_time=True).finaltime_frames)
+            updated_sj_full_time = True
+
+    if project_id == 1074148268407275520:
+        if desyncs:
+            db.misc.set('sj_time_saved', prev_sj_time_saved + db.misc.get('sj_time_saved'))
+            log.info("Reset SJ time saved due to desyncs")
+        elif updated_sj_full_time:
+            db.misc.set('sj_time_saved', 0)
 
 
 def format_desyncs(desyncs: list) -> str:

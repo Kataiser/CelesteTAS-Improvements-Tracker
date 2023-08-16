@@ -40,14 +40,23 @@ class Table:
 
         return result
 
-    def set(self, key: Union[str, int], value: Any):
+    def set(self, key: Union[str, int], value: Any, get_previous: bool = False) -> Any:
         if isinstance(value, dict):
             item = copy.copy(value)
             item[self.primary_key] = key
         else:
             item = {self.primary_key: key, '_value': value}
 
-        client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(item)['M'])
+        return_values = 'ALL_OLD' if get_previous else 'NONE'
+        response = client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(item)['M'], ReturnValues=return_values)
+
+        if get_previous:
+            prev_values = deserializer.deserialize({'M': response['Attributes']})
+
+            if '_value' in prev_values:
+                return prev_values['_value']
+            else:
+                return prev_values
 
     def get_all(self, consistent_read: bool = True) -> list:
         items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=consistent_read)
