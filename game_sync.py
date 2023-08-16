@@ -28,16 +28,20 @@ def run_syncs():
     global log
     log = main.create_logger('game_sync.log')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', type=int, help="Only sync test a specific project (ID)", required=False)
-    cli_project_id = parser.parse_args().p
+    parser.add_argument('project', help="Only sync test a specific project (ID)", nargs='?')
+    cli_project = parser.parse_args().project
+    projects = db.projects.dict()
 
-    if cli_project_id:
-        log.info(f"Running sync test for project ID {cli_project_id} only")
-        test_project_ids = (cli_project_id,)
-        projects = db.projects.dict()
+    if cli_project:
+        if cli_project.isdigit():
+            log.info(f"Running sync test for project ID {cli_project} only")
+            test_project_ids = (int(cli_project),)
+        else:
+            test_project_ids = [int(p['project_id']) for p in db.projects.get_by_name(cli_project)]
+            log.info(f"Running sync test for project ID{plural(test_project_ids)} {test_project_ids} only")
     else:
         log.info("Running all sync tests")
-        test_project_ids = projects = db.projects.dict()
+        test_project_ids = db.projects.dict()
 
     load_sid_caches(projects)
 
@@ -45,7 +49,7 @@ def run_syncs():
         for project_id in test_project_ids:
             project = projects[project_id]
 
-            if (db.projects.get(project_id)['do_run_validation'] or cli_project_id) and db.path_caches.get(project_id):
+            if db.projects.get(project_id)['do_run_validation'] and db.path_caches.get(project_id):
                 sync_test(project)
     except Exception as error:
         log.error(repr(error))

@@ -119,9 +119,9 @@ class Projects(Table):
         with open('project_schema.json', 'r') as projects_schema_file:
             self.validate_project_schema = fastjsonschema.compile(ujson.load(projects_schema_file))
 
-    def set(self, project_id: Union[str, int], project: dict):
-        self.validate_project_schema(project)
-        super().set(project_id, project)
+    def set(self, project_id: Union[str, int], project: dict, get_previous: bool = False) -> Any:
+        self.validate_project_schema(project, get_previous)
+        return super().set(project_id, project)
 
     def get_all(self, consistent_read: bool = True) -> list:
         projects_list = super().get_all(consistent_read)
