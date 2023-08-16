@@ -117,8 +117,8 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         else:
             log.info("No old version of file exists")
 
-        db.path_caches.disable_cache()
         validation_result = validation.validate(file_content, filename, message, old_file_content, is_lobby, project['ensure_level'], skip_validation)
+        db.path_caches.disable_cache()
 
         if validation_result.valid_tas:
             # I love it when
