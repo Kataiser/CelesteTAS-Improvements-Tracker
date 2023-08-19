@@ -332,8 +332,9 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
     admins = ', '.join([f'<@{admin}>' for admin in project['admins']])
     repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else \
-        f'https://github.com/{repo}/archive/refs/heads/master.zip'
-    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text, repo)
+                  f'https://github.com/{repo}/archive/refs/heads/master.zip'
+    repo_full = f'{repo}/{subdir}' if subdir else repo
+    text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text, repo_full)
 
     if len(text_out) > 1900:
         log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
