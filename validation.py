@@ -265,6 +265,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     finaltime_trimmed = None
     finaltime_frames = None
     found_chaptertime = False
+    is_comment_time = False
 
     for line in enumerate(tas_lines):
         if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
@@ -279,6 +280,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
                 finaltime_line_num = line[0]
             elif allow_comment_time and not found_chaptertime and re_comment_time.match(line[1]):
                 found_chaptertime = False
+                is_comment_time = True
                 finaltime_line_num = line[0]
 
     found_finaltime = finaltime_line_num is not None
@@ -289,10 +291,15 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             finaltime = finaltime_components[0]
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
-            finaltime_components = tas_lines[finaltime_line_num].lstrip('#0:').partition('(')
-            finaltime = finaltime_trimmed = finaltime_components[0].strip()
+            if is_comment_time:
+                finaltime = finaltime_trimmed = tas_lines[finaltime_line_num].strip('#\n ').partition(' ')[0].rstrip()
+            else:
+                finaltime_components = tas_lines[finaltime_line_num].lstrip('#0:').partition('(')
+                finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
-        finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
+        if not is_comment_time:
+            finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
+
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
 
