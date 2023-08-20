@@ -292,7 +292,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
             if is_comment_time:
-                finaltime = finaltime_trimmed = tas_lines[finaltime_line_num].strip('#\n ').partition(' ')[0].rstrip()
+                finaltime = finaltime_trimmed = tas_lines[finaltime_line_num].strip('#\n ').partition(' ')[0].partition('(')[0].rstrip()
             else:
                 finaltime_components = tas_lines[finaltime_line_num].lstrip('#0:').partition('(')
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
