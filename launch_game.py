@@ -23,7 +23,7 @@ def main():
 
     game_sync.generate_blacklist(mods)
     print(f"Created blacklist, launching game with {len(mods)} mod{plural(mods)}")
-    subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+    subprocess.Popen(r'G:\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
 
 
 if __name__ == '__main__':

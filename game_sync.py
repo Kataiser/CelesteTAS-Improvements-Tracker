@@ -83,7 +83,7 @@ def sync_test(project: dict):
 
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
-    subprocess.Popen(r'E:\Big downloads\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+    subprocess.Popen(r'G:\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
 
@@ -97,17 +97,17 @@ def sync_test(project: dict):
 
     # clone repo
     repo_cloned = repo.partition('/')[2]
-    repo_path = f'E:\\Big downloads\\celeste\\repos\\{repo_cloned}'
+    repo_path = f'G:\\celeste\\repos\\{repo_cloned}'
 
-    if not os.path.isdir(r'E:\Big downloads\celeste\repos'):
-        os.mkdir(r'E:\Big downloads\celeste\repos')
+    if not os.path.isdir(r'G:\celeste\repos'):
+        os.mkdir(r'G:\celeste\repos')
     elif os.path.isdir(repo_path):
         shutil.rmtree(repo_path, onerror=del_rw)
 
     time.sleep(0.1)
     clone_time = int(time.time())
     cwd = os.getcwd()
-    os.chdir(r'E:\Big downloads\celeste\repos')
+    os.chdir(r'G:\celeste\repos')
     subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
@@ -367,22 +367,22 @@ def format_desyncs(desyncs: list) -> str:
 
 
 def generate_blacklist(mods_to_load: set):
-    installed_mods = [item for item in os.listdir(r'E:\Big downloads\celeste\Mods') if item.endswith('.zip')]
+    installed_mods = [item for item in os.listdir(r'G:\celeste\Mods') if item.endswith('.zip')]
     blacklist = []
 
     for installed_mod in installed_mods:
         if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip'):
             blacklist.append(installed_mod)
 
-    with open(r'E:\Big downloads\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
+    with open(r'G:\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
 
 # remove all files related to any save
 def remove_save_files():
-    saves_dir = r'E:\Big downloads\celeste\Saves'
-    backups_dir = r'E:\Big downloads\celeste\Backups'
+    saves_dir = r'G:\celeste\Saves'
+    backups_dir = r'G:\celeste\Backups'
     save_files = [f'{saves_dir}\\{file}' for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
     backup_files = [f'{backups_dir}\\{file}' for file in os.listdir(backups_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
     files_to_remove = save_files + backup_files
@@ -405,14 +405,14 @@ def post_cleanup():
     dirs_removed = 0
 
     for file_to_remove in files_to_remove:
-        file_to_remove = f'E:\\Big downloads\\celeste\\{file_to_remove}'
+        file_to_remove = f'G:\\celeste\\{file_to_remove}'
 
         if os.path.isfile(file_to_remove):
             files_removed += 1
             os.remove(file_to_remove)
 
     for dir_to_remove in dirs_to_remove:
-        dir_to_remove = f'E:\\Big downloads\\celeste\\{dir_to_remove}'
+        dir_to_remove = f'G:\\celeste\\{dir_to_remove}'
 
         if os.path.isdir(dir_to_remove):
             dirs_removed += 1
@@ -481,7 +481,7 @@ def get_mod_dependencies(mod: str) -> list:
 
 @functools.cache
 def mods_dir() -> str:
-    pc_path = r'E:\Big downloads\celeste\Mods'
+    pc_path = r'G:\celeste\Mods'
     aws_path = r'C:\Users\Administrator\Desktop\mods'
 
     if os.path.isdir(pc_path):
