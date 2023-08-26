@@ -126,7 +126,7 @@ async def on_message(message: discord.Message):
     substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
 
     if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
-        await (await client.fetch_user(219955313334288385)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url}"[:1990])
+        await (await client.fetch_user(219955313334288385)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} {message.channel.jump_url}"[:1990])
 
 
 @client.event
