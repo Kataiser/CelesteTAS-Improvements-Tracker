@@ -118,7 +118,7 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
-    elif message.author.id in (438978127973318656, 155149108183695360, 219955313334288385):
+    elif message.author.id in (438978127973318656, 155149108183695360):
         return
 
     message_lower = message.content.lower()
@@ -134,7 +134,10 @@ async def on_message(message: discord.Message):
             user_id = 219955313334288385
 
     if user_id and user_id != message.author.id:
-        await (await client.fetch_user(user_id)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990])
+        dm = f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990]
+        user = await client.fetch_user(user_id)
+        await user.send(dm)
+        log.info(f"Sent 1984 DM to {user.display_name}:\n{dm}")
 
 
 @client.event
