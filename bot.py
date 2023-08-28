@@ -122,11 +122,19 @@ async def on_message(message: discord.Message):
         return
 
     message_lower = message.content.lower()
-    substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
-    substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
+    user_id = None
 
-    if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
-        await (await client.fetch_user(219955313334288385)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} {message.channel.jump_url}"[:1990])
+    if 'shattersong' in message_lower:
+        user_id = 236760821286436865
+    else:
+        substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
+        substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
+
+        if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or 'song' in message_lower)):
+            user_id = 219955313334288385
+
+    if user_id and user_id != message.author.id:
+        await (await client.fetch_user(user_id)).send(f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990])
 
 
 @client.event
