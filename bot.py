@@ -122,18 +122,21 @@ async def on_message(message: discord.Message):
         return
 
     message_lower = message.content.lower()
-    user_id = None
+    substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
+    substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
+    substrings_1984_hydro_found = [s for s in substrings_1984_hydro if s in message_lower]
+    user_ids = []
 
-    if 'shattersong' in message_lower:
-        user_id = 236760821286436865
-    else:
-        substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
-        substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
+    if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
+        user_ids.append(219955313334288385)
 
-        if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or 'song' in message_lower)):
-            user_id = 219955313334288385
+    if substrings_1984_hydro_found:
+        user_ids.append(236760821286436865)
 
-    if user_id and user_id != message.author.id:
+    for user_id in user_ids:
+        if user_id == message.author.id:
+            continue
+
         dm = f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990]
         user = await client.fetch_user(user_id)
         await user.send(dm)
@@ -254,6 +257,7 @@ main.safe_mode = safe_mode
 projects_startup = None
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
+substrings_1984_hydro = ('shatter', 'hydro')
 
 if __name__ == '__main__':
     start()
