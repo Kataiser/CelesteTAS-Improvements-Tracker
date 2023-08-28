@@ -124,13 +124,12 @@ async def on_message(message: discord.Message):
     message_lower = message.content.lower()
     substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
     substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
-    substrings_1984_hydro_found = [s for s in substrings_1984_hydro if s in message_lower]
     user_ids = []
 
     if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
         user_ids.append(219955313334288385)
 
-    if substrings_1984_hydro_found:
+    if 'shatter' in message_lower or ('hydro' in message_lower and 'hydroshock' not in message_lower):
         user_ids.append(236760821286436865)
 
     for user_id in user_ids:
@@ -257,7 +256,6 @@ main.safe_mode = safe_mode
 projects_startup = None
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
-substrings_1984_hydro = ('shatter', 'hydro')
 
 if __name__ == '__main__':
     start()
