@@ -383,16 +383,13 @@ def generate_blacklist(mods_to_load: set):
 # remove all files related to any save
 def remove_save_files():
     saves_dir = r'G:\celeste\Saves'
-    backups_dir = r'G:\celeste\Backups'
     save_files = [f'{saves_dir}\\{file}' for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
-    backup_files = [f'{backups_dir}\\{file}' for file in os.listdir(backups_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
-    files_to_remove = save_files + backup_files
 
-    for save_file in files_to_remove:
+    for save_file in save_files:
         os.remove(save_file)
 
     try:
-        log.info(f"Removed {len(files_to_remove)} save files")
+        log.info(f"Removed {len(save_files)} save files")
     except AttributeError:
         pass
 
@@ -400,26 +397,6 @@ def remove_save_files():
 def post_cleanup():
     generate_blacklist(set())
     remove_save_files()
-    files_to_remove = ['log.txt']
-    dirs_to_remove = ['LogHistory', 'TAS Files\\Backups', 'repos']
-    files_removed = 0
-    dirs_removed = 0
-
-    for file_to_remove in files_to_remove:
-        file_to_remove = f'G:\\celeste\\{file_to_remove}'
-
-        if os.path.isfile(file_to_remove):
-            files_removed += 1
-            os.remove(file_to_remove)
-
-    for dir_to_remove in dirs_to_remove:
-        dir_to_remove = f'G:\\celeste\\{dir_to_remove}'
-
-        if os.path.isdir(dir_to_remove):
-            dirs_removed += 1
-            shutil.rmtree(dir_to_remove, onerror=del_rw)
-
-    log.info(f"Deleted {files_removed} file{plural(files_removed)} and {dirs_removed} dir{plural(dirs_to_remove)} from game install")
 
 
 def del_rw(action, name, exc):
