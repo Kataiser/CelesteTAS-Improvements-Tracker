@@ -113,7 +113,7 @@ def sync_test(project: dict):
     log.info(f"Cloned repo to {repo_path}")
 
     # add asserts for cached SIDs
-    asserts_added = []
+    asserts_added = {}
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
@@ -125,10 +125,11 @@ def sync_test(project: dict):
 
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
-                        tas_lines.insert(tas_line[0] + 2, f'Assert,Equal,{sid},{{Session.Area.SID}}\n')
+                        assert_line = f'Assert,Equal,{sid},{{Session.Area.SID}}\n'
+                        tas_lines.insert(tas_line[0] + 3, assert_line)
                         tas_file.seek(0)
                         tas_file.writelines(tas_lines)
-                        asserts_added.append((file_path_repo, sid))
+                        asserts_added[file_path_repo] = assert_line
                         break
 
     if asserts_added:
