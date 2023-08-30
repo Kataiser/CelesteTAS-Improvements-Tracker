@@ -220,12 +220,17 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         # validate draft text
         if "draft" not in message_lowercase:
             path_cache = db.path_caches.get(message.channel.id)
-            fuzzes = fuzzy_process.extract(filename, path_cache.keys())
-            possible_filename = fuzzes[0][0] if fuzzes[0][1] >= 90 else None
-            did_you_mean_text = f" (did you mean `{possible_filename}`?)" if possible_filename else ""
 
-            return ValidationResult(False, "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. "
-                                    f"If it shouldn't be a draft, make sure your filename is exactly the same as in the repo{did_you_mean_text}.", "no \"draft\" text in message")
+            if path_cache:
+                fuzzes = fuzzy_process.extract(filename, path_cache.keys())
+                possible_filename = fuzzes[0][0] if fuzzes[0][1] >= 90 else None
+                did_you_mean_text = f" (did you mean `{possible_filename}`?)" if possible_filename else ""
+                shouldnt_be_draft_text = f" If it shouldn't be a draft, make sure your filename is exactly the same as in the repo{did_you_mean_text}."
+            else:
+                shouldnt_be_draft_text = ""
+
+            return ValidationResult(False, f"Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again."
+                                           f"{shouldnt_be_draft_text}", "no \"draft\" text in message")
 
     # validate level
     if ensure_level:
