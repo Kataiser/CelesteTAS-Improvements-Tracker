@@ -1,9 +1,10 @@
 import base64
+import inspect
 import logging
 import os
 import re
 import time
-from typing import Optional
+from typing import Optional, List
 
 import discord
 import requests
@@ -15,6 +16,10 @@ import gen_token
 import main
 import utils
 from utils import plural
+
+
+report_commands = set()
+command_functions = {}
 
 
 async def handle(message: discord.Message):
@@ -31,21 +36,48 @@ async def handle(message: discord.Message):
         await message.channel.send("Unrecognized command, try `help`")
 
 
-async def command_help(message: discord.Message):
+def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = False):
+    def outer(func: callable):
+        command_name = func.__name__.removeprefix('command_')
+        use_message_split = 'message_split' in inspect.signature(func).parameters
+
+        if report_usage:
+            report_commands.add(command_name)
+
+        try:
+            command_doc = func.__doc__.replace('\n    ', '\n')
+            func.help = f"```\n{command_doc}```"
+        except AttributeError:
+            log.error(f"{func.__name__} has no docstring")
+
+        async def inner(message: discord.Message):
+            if format_regex and not format_regex.match(message.content):
+                log.warning("Bad command format")
+                await message.channel.send(f"Incorrect command format.\n{func.help}")
+                return
+
+            if use_message_split:
+                return await func(message, re_command_split.split(message.content))
+            else:
+                return await func(message)
+
+        inner.help = func.help
+        command_functions[command_name] = inner
+        return inner
+
+    return outer
+
+
+@command()
+async def command_help(message: discord.Message, message_split: List[str]):
     """
     help COMMAND
 
       COMMAND: The command to get the parameter info for (optional)
     """
 
-    message_split = message.content.split()
-
     if len(message_split) > 1 and message_split[1] in command_functions:
-        try:
-            command_doc = command_functions[message_split[1]].__doc__.replace('\n    ', '\n')
-            await message.channel.send(f"```\n{command_doc}```")
-        except AttributeError:
-            log.error(f"{command_functions[message_split[1]]} has no docstring")
+        await message.channel.send(command_functions[message_split[1]].help)
     else:
         add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
         commands_available = '\n'.join(command_functions)
@@ -62,7 +94,8 @@ async def command_help(message: discord.Message):
         await message.channel.send(response)
 
 
-async def command_register_project(message: discord.Message):
+@command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN]'), report_usage=True)
+async def command_register_project(message: discord.Message, message_split: List[str]):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
 
@@ -75,13 +108,6 @@ async def command_register_project(message: discord.Message):
       ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file [Y or N]
       DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (recommended) [Y or N]
     """
-
-    message_split = re_command_split.split(message.content)
-
-    if len(message_split) != 9 or not re.match(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN]', message.content):
-        log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help register_project`")
-        return
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
@@ -199,20 +225,14 @@ async def command_register_project(message: discord.Message):
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}")
 
 
-async def command_add_mods(message: discord.Message):
+@command(re.compile(r'(?i)add_mods .+ .+'), report_usage=True)
+async def command_add_mods(message: discord.Message, message_split: List[str]):
     """
     add_mods PROJECT_NAME MODS
 
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
-
-    message_split = re_command_split.split(message.content)
-
-    if len(message_split) < 3 or not re.match(r'(?i)add_mods .+ .+', message.content):
-        log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help add_mods`")
-        return
 
     project_search_name = message_split[1].replace('"', '')
     project_mods_added = False
@@ -259,7 +279,8 @@ async def command_add_mods(message: discord.Message):
         await message.channel.send("No projects (with sync checking enabled) matching that name found")
 
 
-async def command_rename_file(message: discord.Message):
+@command(re.compile(r'(?i)rename_file .+ .+\.tas .+\.tas'), report_usage=True)
+async def command_rename_file(message: discord.Message, message_split: List[str]):
     """
     rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
 
@@ -267,13 +288,6 @@ async def command_rename_file(message: discord.Message):
       FILENAME_BEFORE: The current name of the TAS file you want to rename (with .tas)
       FILENAME_AFTER: What you want the TAS file to be renamed to (with .tas)
     """
-
-    message_split = re_command_split.split(message.content)
-
-    if len(message_split) != 4 or not re.match(r'(?i)rename_file .+ .+\.tas .+\.tas', message.content):
-        log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help rename_file`")
-        return
 
     project_search_name = message_split[1].replace('"', '')
     filename_before, filename_after = message_split[2:]
@@ -350,7 +364,8 @@ async def command_rename_file(message: discord.Message):
         await message.channel.send(f"{filename_before} not found in any project named {project_search_name}")
 
 
-async def command_edit_admin(message: discord.Message):
+@command(re.compile(r'(?i)edit_admin .+ \d+'), report_usage=True)
+async def command_edit_admin(message: discord.Message, message_split: List[str]):
     """
     edit_admin PROJECT_NAME ADMIN_ID ADDING
 
@@ -358,13 +373,6 @@ async def command_edit_admin(message: discord.Message):
       ADMIN_ID: The Discord ID (not the username) of the user you're adding or removing
       ADDING: Y if adding admin, N if removing admin
     """
-
-    message_split = re_command_split.split(message.content)
-
-    if len(message_split) != 4 or not re.match(r'(?i)edit_admin .+ \d+', message.content):
-        log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help edit_admin`")
-        return
 
     project_search_name = message_split[1].replace('"', '')
     admin_id = int(message_split[2])
@@ -409,6 +417,7 @@ async def command_edit_admin(message: discord.Message):
                 await message.channel.send(not_admin)
 
 
+@command()
 async def command_about(message: discord.Message):
     """
     about
@@ -445,20 +454,15 @@ async def command_about(message: discord.Message):
     await message.channel.send(text_out)
 
 
-async def command_about_project(message: discord.Message):
+@command(re.compile(r'(?i)about_project .+'))
+async def command_about_project(message: discord.Message, message_split: List[str]):
     """
     about PROJECT_NAME
 
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will show info for all of them
     """
 
-    message_split = re_command_split.split(message.content)
-
-    if len(message_split) != 2 or not re.match(r'(?i)about_project .+', message.content):
-        log.warning("Bad command format")
-        await message.channel.send("Incorrect command format, see `help about_project`")
-        return
-
+    # message_split = re_command_split.split(message.content)
     project_search_name = message_split[1].replace('"', '')
     found_matching_project = False
     text = "Name: **{0}**" \
@@ -524,7 +528,7 @@ async def is_admin(message: discord.Message, project: dict):
 # DM Kataiser when an important command is used
 async def report_command_used(command_name: str, message: discord.Message):
     try:
-        if command_functions[command_name] in reportable_commands and message.author.id != 219955313334288385:
+        if command_name in report_commands and message.author.id != 219955313334288385:
             await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
             log.info("Reported command usage to Kataiser")
     except Exception as error:
@@ -534,12 +538,3 @@ async def report_command_used(command_name: str, message: discord.Message):
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
-reportable_commands = (command_register_project, command_rename_file, command_add_mods, command_edit_admin)
-
-command_functions = {'help': command_help,
-                     'about': command_about,
-                     'about_project': command_about_project,
-                     'register_project': command_register_project,
-                     'rename_file': command_rename_file,
-                     'edit_admin': command_edit_admin,
-                     'add_mods': command_add_mods}
