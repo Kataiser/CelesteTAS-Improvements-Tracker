@@ -1,6 +1,7 @@
 .idea/
 __pycache__/
 test_tases/
+log_history/
 *.pem
 bot_token
 CelesteTAS Improvements Tracker.exe

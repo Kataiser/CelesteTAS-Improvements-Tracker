@@ -1,6 +1,7 @@
 import base64
 import dataclasses
 import datetime
+import gzip
 import io
 import logging
 import os
@@ -439,13 +440,16 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_logger(filename: str) -> logging.Logger:
-    if os.path.isfile(filename):
-        with open(filename, 'r', encoding='UTF8') as old_log:
-            data = old_log.read()
-            db.logs.set(int(os.path.getmtime(filename)), {'filename': filename, 'pc_name': socket.gethostname(), 'size': len(data), 'data': data})
+def create_logger(name: str) -> logging.Logger:
+    filename = f'{name}.log'
 
-        os.replace(filename, filename.replace('.', '.old.'))
+    # backup old logs
+    if os.path.isfile(filename):
+        with open(filename, 'rb') as old_log:
+            old_log_data = old_log.read()
+
+        with gzip.open(f'log_history\\{name}_{int(os.path.getmtime(filename))}_{socket.gethostname()}.log', 'wb') as old_log_gzip:
+            old_log_gzip.write(old_log_data)
 
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
