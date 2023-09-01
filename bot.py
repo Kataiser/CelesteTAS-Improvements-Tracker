@@ -118,7 +118,7 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
-    elif message.author.id in (438978127973318656, 155149108183695360):
+    elif message.author.id in (438978127973318656, 155149108183695360) or message.channel.id == 403698615446536206:
         return
 
     message_lower = message.content.lower()
