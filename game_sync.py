@@ -28,7 +28,7 @@ def run_syncs():
     global log
     log = main.create_logger('game_sync')
     parser = argparse.ArgumentParser()
-    parser.add_argument('project', help="Only sync test a specific project (ID)", nargs='?')
+    parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
     cli_project = parser.parse_args().project
     projects = db.projects.dict()
 

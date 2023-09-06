@@ -285,7 +285,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
     if channel.id == 1074148268407275520:
         misc_table = db.misc.dict()
-        sj_countdown = f"\n\n**{misc_table['sj_full_time'] - misc_table['sj_time_saved'] - 635294}f to sub 3!**"
+        sj_countdown = f"\n\n**{misc_table['sj_full_time'] - misc_table['sj_time_saved'] - 635294}f to sub 3!** (Updates on improvements)"
     else:
         sj_countdown = ""
 
@@ -322,7 +322,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
 
         if filetimes:
             filetimes_formatted = '\n'.join([f"{file[:-4]}: {filetimes[file]}" for file in filetimes])
-            filetimes_text = f"\nFullgame file time{plural(filetimes)}:\n```\n{filetimes_formatted}```"
+            filetimes_text = f"\nFullgame file time{plural(filetimes)} (updates on sync check):\n```\n{filetimes_formatted}```"
     else:
         sync_timestamp = "`Disabled`"
 
