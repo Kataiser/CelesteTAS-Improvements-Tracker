@@ -227,9 +227,10 @@ def sync_test(project: dict):
 
             if not tas_finished and not process.is_running():
                 log.error("Game crashed, abandoning game sync for project")
+                current_time_saved = db.misc.get('sj_time_saved')
 
                 if is_sj:
-                    db.misc.set('sj_time_saved', prev_sj_time_saved + db.misc.get('sj_time_saved'))
+                    db.misc.set('sj_time_saved', current_time_saved + (current_time_saved - prev_sj_time_saved))
 
                 return
 
