@@ -76,7 +76,6 @@ def sync_test(project: dict):
     files_timed = 0
     remove_save_files()
     queued_filetime_commits = []
-    is_sj = project_id == 1074148268407275520
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
@@ -91,9 +90,6 @@ def sync_test(project: dict):
     main.generate_request_headers(project['installation_owner'], 300)
     main.generate_path_cache(project_id)
     path_cache = db.path_caches.get(project_id)
-
-    if is_sj:
-        prev_sj_time_saved = db.misc.get('sj_time_saved')
 
     # clone repo
     repo_cloned = repo.partition('/')[2]
@@ -227,11 +223,6 @@ def sync_test(project: dict):
 
             if not tas_finished and not process.is_running():
                 log.error("Game crashed, abandoning game sync for project")
-                current_time_saved = db.misc.get('sj_time_saved')
-
-                if is_sj:
-                    db.misc.set('sj_time_saved', current_time_saved + (current_time_saved - prev_sj_time_saved))
-
                 return
 
         log.info("TAS has finished")
@@ -321,7 +312,6 @@ def sync_test(project: dict):
     db.projects.set(project_id, project)
     db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log})
     log.info("Wrote sync result to DB")
-    updated_sj_full_time = False
 
     # commit updated fullgame files
     for queued_commit in queued_filetime_commits:
@@ -343,17 +333,6 @@ def sync_test(project: dict):
         utils.handle_potential_request_error(r, 200)
         commit_url = ujson.loads(r.content)['commit']['html_url']
         log.info(f"Successfully committed: {commit_url}")
-
-        if is_sj and file_path_repo == '0-SJ All Levels.tas':
-            db.misc.set('sj_full_time', validation.parse_tas_file(lines, False, find_file_time=True).finaltime_frames)
-            updated_sj_full_time = True
-
-    if is_sj:
-        if desyncs:
-            db.misc.set('sj_time_saved', prev_sj_time_saved + db.misc.get('sj_time_saved'))
-            log.info("Reset SJ time saved due to desyncs")
-        elif updated_sj_full_time:
-            db.misc.set('sj_time_saved', 0)
 
 
 def format_desyncs(desyncs: list) -> str:

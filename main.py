@@ -134,9 +134,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 log.info("Added to history log")
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
 
-                if validation_result.sj_data:
-                    db.misc.set('sj_time_saved', db.misc.get('sj_time_saved') + validation_result.sj_data[2])
-
                 await edit_pin(message.channel)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
@@ -283,15 +280,9 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
                       "7C (34.153)", "8A (2:24.364)", "8B (2:04.406)", "8C (22.270)")
     example_timesave = f"-{round(random.triangular(1, 50, 0))}f {random.choice(maingame_times)}"
 
-    if channel.id == 1074148268407275520:
-        misc_table = db.misc.dict()
-        sj_countdown = f"\n\n**{misc_table['sj_full_time'] - misc_table['sj_time_saved'] - 635294}f to sub 3!** (Updates on improvements)"
-    else:
-        sj_countdown = ""
-
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
            f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `{example_timesave}`). {lobby_text}" \
-           f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional.{sj_countdown}" \
+           f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
            "\n\nRepo: [{8}](<{1}>) (using [Github Desktop](<https://desktop.github.com/>) is recommended)" \
            "\n[Package download](<{2}>)" \
            "\nAdmin{6}: {3}" \

@@ -21,3 +21,4 @@ PULL.bat
 sid_caches.json
 bot.old.log
 game_sync.old.log
+history_log.json
