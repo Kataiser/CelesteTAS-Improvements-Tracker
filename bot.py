@@ -28,14 +28,16 @@ safe_mode = False
 
 
 def start():
-    global debug, projects_startup
+    global debug, autostarted, projects_startup
     log.info("Bot starting")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
+    parser.add_argument('--autostarted', action='store_true', help="Automatically started on boot", default=False)
     debug = parser.parse_args().debug
+    autostarted = parser.parse_args().autostarted
 
     if debug:
-        print("DEBUG MODE")
+        log.info("DEBUG MODE")
 
     projects_startup = db.projects.dict()
     main.fast_project_ids = set(projects_startup)
@@ -67,6 +69,11 @@ def start():
 
 @client.event
 async def on_ready():
+    if autostarted:
+        autostarted_message = "Automatically started on boot"
+        log.info(autostarted_message)
+        await (await client.fetch_user(219955313334288385)).send(autostarted_message)
+
     global safe_mode, projects_startup
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
@@ -262,6 +269,7 @@ projects_startup = None
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
 substrings_1984_hydro = ('shatter', 'shong')
+autostarted = False
 
 if __name__ == '__main__':
     start()
