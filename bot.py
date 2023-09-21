@@ -144,6 +144,9 @@ async def on_message(message: discord.Message):
     if substrings_1984_hydro_found or ('hydro' in message_lower and 'hydroshock' not in message_lower):
         user_ids.append(236760821286436865)
 
+    if 'cabob' in message_lower:
+        user_ids.append(256796503530536970)
+
     for user_id in user_ids:
         if user_id == message.author.id:
             continue
