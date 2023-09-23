@@ -200,8 +200,8 @@ async def command_register_project(message: discord.Message, message_split: List
 
     if not editing:
         await message.channel.send("Generating path cache...")
-        main.generate_path_cache(improvements_channel_id)
-        pinned_message = await main.edit_pin(improvements_channel, create=True)
+        main.generate_path_cache(improvements_channel_id, registered_project)
+        pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)
         await pinned_message.pin()
         registered_project['pin'] = pinned_message.id
         db.project_logs.set(improvements_channel_id, [])

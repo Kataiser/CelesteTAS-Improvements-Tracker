@@ -215,32 +215,38 @@ def get_file_repo_path(project_id: int, filename: str) -> Optional[str]:
 
 
 # walk the project's repo and cache the path of all TAS files found
-def generate_path_cache(project_id: int) -> dict:
-    project = db.projects.get(project_id)
+def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict:
+    if not project:
+        project = db.projects.get(project_id)
+
     repo = project['repo']
     project_subdir = project['subdir']
     project_subdir_base = project_subdir.partition('/')[0]
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
+    contents_json = ujson.loads(r.content)
     path_cache = {}  # always start from scratch
 
-    for item in ujson.loads(r.content):
-        if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
-            # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
-            dir_sha = item['sha']
-            r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
-            utils.handle_potential_request_error(r, 200)
+    if 'message' in contents_json and contents_json['message'] == 'This repository is empty.':
+        log.info("Repo is empty")
+    else:
+        for item in contents_json:
+            if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
+                # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
+                dir_sha = item['sha']
+                r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
+                utils.handle_potential_request_error(r, 200)
 
-            for subitem in ujson.loads(r.content)['tree']:
-                if subitem['type'] == 'blob':
-                    subitem_name = subitem['path'].split('/')[-1]
-                    subitem_full_path = f"{item['name']}/{subitem['path']}"
+                for subitem in ujson.loads(r.content)['tree']:
+                    if subitem['type'] == 'blob':
+                        subitem_name = subitem['path'].split('/')[-1]
+                        subitem_full_path = f"{item['name']}/{subitem['path']}"
 
-                    if subitem_name.endswith('.tas') and (subitem_full_path.startswith(project_subdir) if project_subdir else True):
-                        path_cache[subitem_name] = subitem_full_path
-        elif not project_subdir and item['name'].endswith('.tas'):
-            path_cache[item['name']] = item['path']
+                        if subitem_name.endswith('.tas') and (subitem_full_path.startswith(project_subdir) if project_subdir else True):
+                            path_cache[subitem_name] = subitem_full_path
+            elif not project_subdir and item['name'].endswith('.tas'):
+                path_cache[item['name']] = item['path']
 
     db.path_caches.set(project_id, path_cache)
     log.info(f"Cached: {path_cache}")
@@ -266,8 +272,12 @@ def is_processable_message(message: discord.Message, project: dict) -> bool:
         return post_time > project['install_time']
 
 
-async def edit_pin(channel: discord.TextChannel, create: bool = False):
-    project = db.projects.get(channel.id)
+async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[dict] = None):
+    if create_from_project:
+        project = create_from_project
+    else:
+        project = db.projects.get(channel.id)
+
     ensure_level = project['ensure_level']
     desyncs = project['desyncs']
     desyncs_text = "\n"
@@ -332,7 +342,7 @@ async def edit_pin(channel: discord.TextChannel, create: bool = False):
         log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
         text_out = text_out[:1900]
 
-    if create:
+    if create_from_project:
         log.info("Creating pin")
         return await channel.send(text_out)
     else:
