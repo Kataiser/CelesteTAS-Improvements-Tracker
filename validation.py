@@ -130,9 +130,17 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             if command in disallowed_commands and not found_start:
                 continue
 
-            if message.channel.id == 879081769138286662 and command == 'set':
-                # hardcoded exception, ew
-                continue
+            if message.channel.id in project_exceptions:
+                project_exception = project_exceptions[message.channel.id]
+                except_command = False
+
+                for exception in project_exception:
+                    if command == exception[0] and exception[1] in line_stripped.lower():
+                        except_command = True
+                        break
+
+                if except_command:
+                    continue
 
             rules_functions = command_rules[command]
 
@@ -380,6 +388,9 @@ stunpause_modes = {'input': True, 'simulate': "Simulate mode is not allowed outs
 mouse_buttons = (('l', 'r', 'm', 'x1', 'x2'), "L, R, M, X1, or X2")
 set_exceptions = ('celestetas.simplifiedgraphics', 'celestetas.simplifiedbackdrop')
 disallowed_commands = ('console', 'invoke', 'set', 'exportlibtas', 'endexportlibtas', 'exitgame')
+project_exceptions = {879081769138286662: (('set', 'session.time'), ('set', 'engine.scene.timeactive')),
+                      1155076734450933791: (('invoke', 'luacutscenesutils.triggerbooleanvariant'),)}
+
 command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_modes[0] else f"mode must be {analog_modes[1]}, you used \"{mode.capitalize()}\"",),
                  'read': (True, OptionalArg(), OptionalArg()),
                  'play': (True, OptionalArg(lambda wait_frames: True if wait_frames.isdigit() else f"wait frames must be a number, you used \"{wait_frames}\"")),
