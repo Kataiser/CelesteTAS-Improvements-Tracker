@@ -106,7 +106,7 @@ async def command_register_project(message: discord.Message, message_split: List
       COMMIT_DRAFTS: Automatically commit drafts to the root directory [Y or N]
       IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently [Y or N]
       ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file [Y or N]
-      DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game on Kataiser's PC (recommended) [Y or N]
+      DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game (highly recommended) [Y or N]
     """
 
     log.info("Verifying project")
