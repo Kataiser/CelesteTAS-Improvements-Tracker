@@ -271,7 +271,7 @@ class ParsedTASFile:
 
 
 # get breakpoints and final time in one pass
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True, find_file_time: bool = False) -> ParsedTASFile:
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True) -> ParsedTASFile:
     breakpoints = []
     finaltime_line_num = None
     finaltime = None
@@ -288,7 +288,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             if re_chapter_time.match(line[1]):
                 found_chaptertime = True
                 finaltime_line_num = line[0]
-            elif find_file_time and not found_chaptertime and re_file_time.match(line[1]):
+            elif not found_chaptertime and re_file_time.match(line[1]):
                 found_chaptertime = True
                 finaltime_line_num = line[0]
             elif allow_comment_time and not found_chaptertime and re_comment_time.match(line[1]):

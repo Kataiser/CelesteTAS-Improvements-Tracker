@@ -41,7 +41,7 @@ def run_syncs():
             log.info(f"Running sync test for project ID{plural(test_project_ids)} {test_project_ids} only")
     else:
         log.info("Running all sync tests")
-        test_project_ids = db.projects.dict()
+        test_project_ids = projects
 
     load_sid_caches(projects)
 
@@ -167,7 +167,7 @@ def sync_test(project: dict):
             tas_lines = tas_file.readlines()
 
         # set up tas file
-        tas_parsed = validation.parse_tas_file(tas_lines, False, False, True)
+        tas_parsed = validation.parse_tas_file(tas_lines, False, False)
 
         if tas_parsed.found_finaltime:
             has_filetime = tas_lines[tas_parsed.finaltime_line_num].startswith('FileTime')
@@ -238,7 +238,7 @@ def sync_test(project: dict):
         with open(file_path, 'rb') as tas_file:
             tas_updated = validation.as_lines(tas_file.read())
 
-        tas_parsed_new = validation.parse_tas_file(tas_updated, False, False, True)
+        tas_parsed_new = validation.parse_tas_file(tas_updated, False, False)
 
         # clear debug save, for silvers
         if has_filetime:
@@ -307,7 +307,7 @@ def sync_test(project: dict):
     if time_since_last_commit > 1209600 and project['do_run_validation']:
         project['do_run_validation'] = False
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
-        report_text = "Disabled nightly sync checking after two weeks of no improvements."
+        report_text = "Disabled nightly sync checking after two weeks of no improvements. If you would like to re-enable it, rerun the `register_project` command."
 
     db.projects.set(project_id, project)
     db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log})
