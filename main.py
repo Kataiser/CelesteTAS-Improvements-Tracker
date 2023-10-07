@@ -183,7 +183,7 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
         data['message'] = f"{timesave}{filename}{chapter_time} from {author}"
     else:
         draft = True
-        data['message'] = f"{filename} draft by {author}{chapter_time}"
+        data['message'] = f"{filename} {'WIP' if validation_result.wip else 'draft'} by {author}{chapter_time}"
         subdir = project['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
         db.path_caches.add_file(message.channel.id, filename, file_path)
