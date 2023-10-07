@@ -127,13 +127,13 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             # (or drafts)
             file_content = convert_line_endings(file_content, old_file_content)
             commit_status = commit(project, message, filename, file_content, validation_result)
+            project['last_commit_time'] = int(time.time())
 
             if commit_status:
                 history_data = (utils.detailed_user(message), message.channel.id, project['name'], *commit_status, attachment.url)
                 db.history_log.set(utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
                 await message.add_reaction('🚧' if validation_result.wip else '📝')
-
                 await edit_pin(message.channel)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
@@ -142,7 +142,12 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             if validation_result.sj_data:
                 spreadsheet.update_stats(attachment.filename, validation_result)
 
-            project['last_commit_time'] = int(time.time())
+            if project['sync_check_timed_out']:
+                project['sync_check_timed_out'] = False
+                project['do_run_validation'] = True
+                log.info("Reenabled sync checking")
+                await message.channel.send("Reenabled sync checking for this project.")
+
             db.projects.set(message.channel.id, project)
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")

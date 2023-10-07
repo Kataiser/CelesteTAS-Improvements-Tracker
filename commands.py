@@ -196,7 +196,8 @@ async def command_register_project(message: discord.Message, message_split: List
                           'mods': [],
                           'desyncs': [],
                           'last_commit_time': current_time,
-                          'filetimes': {}}
+                          'filetimes': {},
+                          'sync_check_timed_out': False}
 
     if not editing:
         await message.channel.send("Generating path cache...")

@@ -43,13 +43,15 @@ def nickname(author: discord.User) -> str:
 
 
 def add_project_key(key: str, value: Any):
+    # update project_schema.json first
     projects = db.projects.dict()
 
     for project_id in projects:
+        print(projects[project_id]['name'])
         projects[project_id][key] = value
         db.projects.set(project_id, projects[project_id])
 
-    log.info(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update validate_project_formats and command_register_project")
+    print(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update command_register_project")
 
 
 def load_sj_data() -> Tuple[dict, dict]:

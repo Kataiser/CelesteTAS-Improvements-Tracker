@@ -74,6 +74,9 @@
             "additionalProperties": {
                 "type": "string"
             }
+        },
+        "sync_check_timed_out": {
+            "type": "boolean"
         }
     }
 }

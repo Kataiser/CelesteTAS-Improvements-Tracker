@@ -306,8 +306,10 @@ def sync_test(project: dict):
 
     if time_since_last_commit > 1209600 and project['do_run_validation']:
         project['do_run_validation'] = False
+        project['sync_check_timed_out'] = True
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
-        report_text = "Disabled nightly sync checking after two weeks of no improvements. If you would like to re-enable it, rerun the `register_project` command."
+        report_text = ("Disabled nightly sync checking after two weeks of no improvements. If you would like to reenable it, rerun the `register_project` command. "
+                       "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
 
     db.projects.set(project_id, project)
     db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log})
