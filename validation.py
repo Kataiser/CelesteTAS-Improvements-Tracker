@@ -27,14 +27,13 @@ class ValidationResult:
                 log.warning("Valid tas result has no finaltime")
 
 
-def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], lobby_channel: bool, ensure_level: bool, skip_validation: bool = False) -> ValidationResult:
-    log.info(f"Validating{' lobby file' if lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
+def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], is_lobby_channel: bool, ensure_level: bool, skip_validation: bool = False) -> ValidationResult:
+    log.info(f"Validating{' lobby file' if is_lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
 
     # validate length
     if not skip_validation and len(tas) > 204800:  # 200 kb
         return ValidationResult(False, f"This TAS file is very large ({len(tas) / 2048} KB). For safety, it won't be processed.", f"{filename} being too long ({len(tas)} bytes)")
 
-    # validate breakpoint doesn't exist and chaptertime does
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
     tas_parsed = parse_tas_file(tas_lines, True)
@@ -69,6 +68,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
         return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, wip=wip_in_message)
 
+    # validate breakpoint doesn't exist and chaptertime does
     if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
         return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
 
@@ -78,7 +78,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         return ValidationResult(False, f"Breakpoints found on lines: {', '.join(tas_parsed.breakpoints)}, please remove them (Ctrl+P in Studio) and post again.",
                                 f"{len(tas_parsed.breakpoints)} breakpoints in {filename}")
     elif not tas_parsed.found_finaltime:
-        if lobby_channel:
+        if is_lobby_channel:
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
         else:
             return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
@@ -177,7 +177,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate chaptertime is in message content
     if not is_dash_save:
-        if lobby_channel:
+        if is_lobby_channel:
             if tas_parsed.finaltime not in message.content:
                 return ValidationResult(False, f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
                                         f"final time ({tas_parsed.finaltime}) missing in message content")
@@ -186,6 +186,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 chapter_time_notif = tas_parsed.finaltime if tas_parsed.finaltime == tas_parsed.finaltime_trimmed else tas_parsed.finaltime_trimmed
                 return ValidationResult(False, f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
                                         f"ChapterTime ({chapter_time_notif}) missing in message content")
+
+    # validate #Start exists
+    if not found_start:
+        return ValidationResult(False, f"No `#Start` found in file, please add one between the console load frame and the intro frames (or first room label if none) and post again.",
+                                f"no #Start in file")
 
     if old_tas and not is_dash_save:
         # validate timesave frames is in message content
