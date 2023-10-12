@@ -136,16 +136,27 @@ async def on_message(message: discord.Message):
     substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
     substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
     substrings_1984_hydro_found = [s for s in substrings_1984_hydro if s in message_lower]
-    user_ids = []
+    user_ids = set()
 
     if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
-        user_ids.append(219955313334288385)
+        user_ids.add(219955313334288385)
 
     if substrings_1984_hydro_found or ('hydro' in message_lower and 'hydroshock' not in message_lower):
-        user_ids.append(236760821286436865)
+        user_ids.add(236760821286436865)
 
     if 'cabob' in message_lower:
-        user_ids.append(256796503530536970)
+        user_ids.add(256796503530536970)
+
+    if message.reference:
+        replied_to_kataiser = False
+
+        if message.reference.resolved:
+            replied_to_kataiser = message.reference.resolved.author.id == 219955313334288385
+        elif message.reference.cached_message:
+            replied_to_kataiser = message.reference.cached_message.author.id == 219955313334288385
+
+        if replied_to_kataiser and not [m for m in message.mentions if m.id == 219955313334288385]:
+            user_ids.add(219955313334288385)
 
     for user_id in user_ids:
         if user_id == message.author.id:
