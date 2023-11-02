@@ -74,6 +74,8 @@ async def command_help(message: discord.Message, message_split: List[str]):
     """
     help COMMAND
 
+      Get bot installation instructions, or the info for a command.
+
       COMMAND: The command to get the parameter info for (optional)
     """
 
@@ -99,6 +101,8 @@ async def command_help(message: discord.Message, message_split: List[str]):
 async def command_register_project(message: discord.Message, message_split: List[str]):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
+
+      Add or edit a project (improvements channel).
 
       NAME: The name of the project (in quotes if needed), ex: "Into the Jungle", "Strawberry Jam", "Celeste maingame", "Celeste mindash"
       IMPROVEMENTS_CHANNEL_ID: Turn on developer mode in Discord advanced settings, then right click the channel and click Copy ID
@@ -232,6 +236,8 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
     """
     add_mods PROJECT_NAME MODS
 
+      Set the game mods a sync check needs to load.
+
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
@@ -285,6 +291,8 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
 async def command_rename_file(message: discord.Message, message_split: List[str]):
     """
     rename_file PROJECT_NAME FILENAME_BEFORE FILENAME_AFTER
+
+      Rename a file in the repo of a project. Recommended over manually committing.
 
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
       FILENAME_BEFORE: The current name of the TAS file you want to rename (with .tas)
@@ -375,8 +383,10 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
     """
     edit_admin PROJECT_NAME ADMIN_ID ADDING
 
+      Add or remove admins from a project.
+
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
-      ADMIN_ID: The Discord ID (not the username) of the user you're adding or removing
+      ADMIN_ID: The Discord ID (not the username, display name, or nickname) of the user you're adding or removing
       ADDING: Y if adding admin, N if removing admin
     """
 
@@ -433,6 +443,8 @@ async def command_about(message: discord.Message):
     """
     about
 
+      Get bot info and status.
+
       (No parameters)
     """
 
@@ -468,7 +480,9 @@ async def command_about(message: discord.Message):
 @command(re.compile(r'(?i)about_project .+'))
 async def command_about_project(message: discord.Message, message_split: List[str]):
     """
-    about PROJECT_NAME
+    about_project PROJECT_NAME
+
+      Get the info and settings of a project.
 
       PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will show info for all of them
     """
@@ -530,7 +544,7 @@ async def command_projects_admined(message: discord.Message):
     """
     projects_admined
 
-      *List projects you're an admin of.*
+      List projects you're an admin of.
 
       (No parameters)
     """
@@ -555,7 +569,7 @@ async def is_admin(message: discord.Message, project: dict):
         return True
     else:
         log.warning("Not project admin")
-        await message.channel.send("Not allowed, you are not a project admin")
+        await message.channel.send("Not allowed, you are not a project admin.")
         return False
 
 
