@@ -525,6 +525,30 @@ async def command_about_project(message: discord.Message, message_split: List[st
         await message.channel.send(f"Found no projects matching that name.")
 
 
+@command()
+async def command_projects_admined(message: discord.Message):
+    """
+    projects_admined
+
+      *List projects you're an admin of.*
+
+      (No parameters)
+    """
+
+    projects_admined_names = []
+
+    for project in db.projects.get_all():
+        if message.author.id in project['admins']:
+            projects_admined_names.append(project['name'])
+
+    log.debug(f"Projects admined: {projects_admined_names}")
+
+    if projects_admined_names:
+        await message.channel.send('\n'.join(projects_admined_names))
+    else:
+        await message.channel.send("You're not an admin of any projects.")
+
+
 # verify that the user editing the project is an admin (or Kataiser)
 async def is_admin(message: discord.Message, project: dict):
     if message.author.id in (*project['admins'], 219955313334288385):
