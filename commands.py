@@ -36,6 +36,7 @@ async def handle(message: discord.Message):
         await message.channel.send("Unrecognized command, try `help`")
 
 
+# haha yep this definitely is code
 def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = False):
     def outer(func: callable):
         command_name = func.__name__.removeprefix('command_')
@@ -291,6 +292,7 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
     """
 
     project_search_name = message_split[1].replace('"', '')
+    matching_projects = db.projects.get_by_name(project_search_name)
     filename_before, filename_after = message_split[2:]
     renamed_file = False
 
@@ -298,7 +300,7 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
         await message.channel.send("what")
         return
 
-    for project in db.projects.get_by_name(project_search_name):
+    for project in matching_projects:
         main.generate_request_headers(project['installation_owner'])
         path_cache = main.generate_path_cache(project['project_id'])
 
@@ -360,9 +362,12 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
             log.error("Rename unsuccessful")
             await message.channel.send("Rename unsuccessful")
 
-    if not renamed_file:
+    if not matching_projects:
+        log.info("Found no matching projects")
+        await message.channel.send(f"Found no projects matching that name.")
+    elif not renamed_file:
         log.warning("No files renamed")
-        await message.channel.send(f"{filename_before} not found in any project named {project_search_name}")
+        await message.channel.send(f"{filename_before} not found in any project named `{project_search_name}`.")
 
 
 @command(re.compile(r'(?i)edit_admin .+ \d+'), report_usage=True)
@@ -376,10 +381,11 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
     """
 
     project_search_name = message_split[1].replace('"', '')
+    matching_projects = db.projects.get_by_name(project_search_name)
     admin_id = int(message_split[2])
     adding = message_split[3].lower() == 'y'
 
-    for project in db.projects.get_by_name(project_search_name):
+    for project in matching_projects:
         if not await is_admin(message, project):
             continue
 
@@ -416,6 +422,10 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
                 not_admin = f"{utils.detailed_user(user=new_admin)} is not an admin for project \"{project['name']}\"."
                 log.warning(not_admin)
                 await message.channel.send(not_admin)
+
+    if not matching_projects:
+        log.info("Found no matching projects")
+        await message.channel.send(f"Found no projects matching that name.")
 
 
 @command()
@@ -465,7 +475,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
 
     # message_split = re_command_split.split(message.content)
     project_search_name = message_split[1].replace('"', '')
-    found_matching_project = False
+    matching_projects = db.projects.get_by_name(project_search_name)
     text = "Name: **{0}**" \
            "\nRepo: <{1}>" \
            "\nImprovement channel: <#{2}>" \
@@ -479,7 +489,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
            "\nDo sync check: `{10}`" \
            "{11}"
 
-    for project in db.projects.get_by_name(project_search_name):
+    for project in matching_projects:
         if project['do_run_validation']:
             last_run = project['last_run_validation']
 
@@ -509,11 +519,10 @@ async def command_about_project(message: discord.Message, message_split: List[st
 
         log.info(text_out)
         await message.channel.send(text_out)
-        found_matching_project = True
 
-    if not found_matching_project:
+    if not matching_projects:
         log.info("Found no matching projects")
-        await message.channel.send(f"Found no projects matching that name")
+        await message.channel.send(f"Found no projects matching that name.")
 
 
 # verify that the user editing the project is an admin (or Kataiser)
