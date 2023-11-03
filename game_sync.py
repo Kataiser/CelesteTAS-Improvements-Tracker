@@ -80,11 +80,13 @@ def sync_test(project: dict):
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
 
+    get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
     subprocess.Popen(r'G:\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
+    everest_version = subprocess.check_output('mons show itch').decode('UTF8').partition('-')[2].partition('\r')[0]
 
     # make sure path cache is correct while the game is launching
     main.generate_request_headers(project['installation_owner'], 300)
@@ -142,9 +144,12 @@ def sync_test(project: dict):
             if current_time - last_game_loading_notify > 60:
                 last_game_loading_notify = current_time
         else:
-            log.info("Game loaded")
-            time.sleep(2)
             game_loaded = True
+
+    mod_versions_start_time = time.perf_counter()
+    log.info(f"Game loaded, mod versions: {mod_versions(mods_to_load)}")
+    log.info(f"Everest version: {everest_version}")
+    time.sleep(max(0, 2 - (time.perf_counter() - mod_versions_start_time)))
 
     for process in psutil.process_iter(['name']):
         if process.name() == 'Celeste.exe':
@@ -424,19 +429,44 @@ def close_game():
 
 # TODO: make recursive (if necessary)
 def get_mod_dependencies(mod: str) -> list:
+    everest_yaml = get_mod_everest_yaml(mod)
+
+    if everest_yaml is None:
+        return []
+    else:
+        return [d['Name'] for d in everest_yaml['Dependencies'] if d['Name'] != 'Everest']
+
+
+@functools.cache
+def get_mod_everest_yaml(mod: str) -> Optional[dict]:
     zip_path = f'{mods_dir()}\\{mod}.zip'
 
     if not os.path.isfile(zip_path):
-        return []
+        return None
 
     with zipfile.ZipFile(zip_path) as mod_zip:
-        if zipfile.Path(mod_zip, 'everest.yaml').is_file():
-            with mod_zip.open('everest.yaml') as everest_yaml:
-                mod_everest = yaml.safe_load(everest_yaml)
-        else:
-            return []
+        yaml_name = None
 
-    return [d['Name'] for d in mod_everest[0]['Dependencies'] if d['Name'] != 'Everest']
+        if zipfile.Path(mod_zip, 'everest.yaml').is_file():
+            yaml_name = 'everest.yaml'
+        elif zipfile.Path(mod_zip, 'everest.yml').is_file():
+            yaml_name = 'everest.yml'
+
+        if yaml_name:
+            with mod_zip.open(yaml_name) as everest_yaml:
+                return yaml.safe_load(everest_yaml)[0]
+        else:
+            return None
+
+
+def mod_versions(mods: set) -> str:
+    versions = []
+
+    for mod in mods:
+        everest_yaml = get_mod_everest_yaml(mod)
+        versions.append(f"{mod} = {get_mod_everest_yaml(mod)['Version'] if everest_yaml else "UNKNOWN"}")
+
+    return ", ".join(versions)
 
 
 @functools.cache
