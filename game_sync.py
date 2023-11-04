@@ -466,7 +466,7 @@ def mod_versions(mods: set) -> str:
         everest_yaml = get_mod_everest_yaml(mod)
         versions.append(f"{mod} = {get_mod_everest_yaml(mod)['Version'] if everest_yaml else "UNKNOWN"}")
 
-    return ", ".join(versions)
+    return ", ".join(sorted(versions))
 
 
 @functools.cache
