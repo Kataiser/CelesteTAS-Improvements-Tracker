@@ -400,7 +400,7 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
             continue
 
         try:
-            new_admin = await client.fetch_user(admin_id)
+            edited_admin = await client.fetch_user(admin_id)
         except discord.NotFound:
             log.error(f"User {admin_id} not found")
             await message.channel.send(f"User with ID {admin_id} could not be found")
@@ -408,30 +408,34 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
 
         if adding:
             if admin_id in project['admins']:
-                already_admin = f"{utils.detailed_user(user=new_admin)} is already an admin for project \"{project['name']}\"."
-                log.warning(already_admin)
-                await message.channel.send(already_admin)
+                already_admin_text = f"{utils.detailed_user(user=edited_admin)} is already an admin for project \"{project['name']}\"."
+                log.warning(already_admin_text)
+                await message.channel.send(already_admin_text)
             else:
                 project['admins'].append(admin_id)
                 db.projects.set(project['project_id'], project)
-                added_admin = f"Added {utils.detailed_user(user=new_admin)} as an admin to project \"{project['name']}\"."
-                log.info(added_admin)
-                await message.channel.send(added_admin)
-                await new_admin.send(f"{message.author.global_name} has added you as an admin to the \"{project['name']}\" TAS project.")
+                added_admin_text = f"Added {utils.detailed_user(user=edited_admin)} as an admin to project \"{project['name']}\"."
+                log.info(added_admin_text)
+                await message.channel.send(added_admin_text)
                 await main.edit_pin(client.get_channel(project['project_id']))
+
+                if edited_admin.id != message.author.id:
+                    await edited_admin.send(f"{message.author.global_name} has added you as an admin to the \"{project['name']}\" TAS project.")
         else:
             if admin_id in project['admins']:
                 project['admins'].remove(admin_id)
                 db.projects.set(project['project_id'], project)
-                removed_admin = f"Removed {utils.detailed_user(user=new_admin)} as an admin from project \"{project['name']}\"."
-                log.info(removed_admin)
-                await message.channel.send(removed_admin)
-                await new_admin.send(f"{message.author.global_name} has removed you as an admin from the \"{project['name']}\" TAS project.")
+                removed_admin_text = f"Removed {utils.detailed_user(user=edited_admin)} as an admin from project \"{project['name']}\"."
+                log.info(removed_admin_text)
+                await message.channel.send(removed_admin_text)
                 await main.edit_pin(client.get_channel(project['project_id']))
+
+                if edited_admin.id != message.author.id:
+                    await edited_admin.send(f"{message.author.global_name} has removed you as an admin from the \"{project['name']}\" TAS project.")
             else:
-                not_admin = f"{utils.detailed_user(user=new_admin)} is not an admin for project \"{project['name']}\"."
-                log.warning(not_admin)
-                await message.channel.send(not_admin)
+                not_admin_text = f"{utils.detailed_user(user=edited_admin)} is not an admin for project \"{project['name']}\"."
+                log.warning(not_admin_text)
+                await message.channel.send(not_admin_text)
 
     if not matching_projects:
         log.info("Found no matching projects")
