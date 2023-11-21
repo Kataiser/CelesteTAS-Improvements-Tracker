@@ -1,5 +1,4 @@
 import atexit
-import copy
 import decimal
 import os
 from operator import itemgetter
@@ -42,13 +41,13 @@ class Table:
 
     def set(self, key: Union[str, int], value: Any, get_previous: bool = False) -> Any:
         if isinstance(value, dict):
-            item = copy.copy(value)
-            item[self.primary_key] = key
+            value[self.primary_key] = key
         else:
-            item = {self.primary_key: key, '_value': value}
+            value = {self.primary_key: key, '_value': value}
 
         return_values = 'ALL_OLD' if get_previous else 'NONE'
-        response = client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(item)['M'], ReturnValues=return_values)
+        response = client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(value)['M'], ReturnValues=return_values)
+        del value[self.primary_key]
 
         if get_previous:
             prev_values = deserializer.deserialize({'M': response['Attributes']})
