@@ -149,6 +149,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.channel.send("Reenabled sync checking for this project.")
 
             db.projects.set(message.channel.id, project)
+            update_contributors(message.author, message.channel.id, project['admins'])
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
             await message.add_reaction('❌')
@@ -414,6 +415,22 @@ async def handle_game_sync_results():
                 await improvements_channel.send(report_text)
 
         db.sync_results.delete_item(project_id)
+
+
+def update_contributors(contributor: discord.User, project_id: int, admins: list):
+    try:
+        project_contributors = db.contributors.get(project_id)
+    except db.DBKeyError:
+        project_contributors = {}
+
+    contributor_id = str(contributor.id)
+
+    if contributor_id in project_contributors:
+        project_contributors[contributor_id]['count'] += 1
+    else:
+        project_contributors[contributor_id] = {'name': utils.nickname(contributor), 'count': 1}
+
+    db.contributors.set(project_id, project_contributors)
 
 
 async def set_status(message: Optional[discord.Message] = None, project_name: Optional[str] = None):

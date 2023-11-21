@@ -154,6 +154,7 @@ sheet_writes = Table('sheet_writes', 'timestamp')
 logs = Table('logs', 'time')
 sync_results = Table('sync_results', 'project_id')
 misc = Table('misc', 'key')
+contributors = Table('contributors', 'project_id')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 
