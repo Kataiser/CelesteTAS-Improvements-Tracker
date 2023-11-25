@@ -1,5 +1,7 @@
+import ctypes
 import logging
 import time
+import traceback
 from typing import Any, Optional, Sized, Union, Tuple
 
 import discord
@@ -14,6 +16,18 @@ def plural(count: Union[int, Sized]) -> str:
         return 's' if count != 1 else ''
     else:
         return 's' if len(count) != 1 else ''
+
+
+def log_error(message: Optional[str] = None) -> str:
+    error = message if message else traceback.format_exc()
+    log.error(error)
+    ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
+    return error
+
+
+async def report_error(client: discord.Client, message: Optional[str] = None):
+    error = log_error()
+    await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
 
 
 def handle_potential_request_error(req: requests.Response, code: int):

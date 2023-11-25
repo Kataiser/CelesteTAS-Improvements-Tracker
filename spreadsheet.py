@@ -61,8 +61,8 @@ class MapRow:
             try:
                 sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
                 db.sheet_writes.set(utils.log_timestamp(), {'status': 'INFO', 'log': sheet_log})
-            except HttpError as error:
-                log.error(repr(error))
+            except HttpError:
+                utils.log_error()
                 db.sheet_writes.set(utils.log_timestamp(), {'status': 'ERROR', 'log': sheet_log})
 
 
@@ -377,8 +377,8 @@ def read_sheet(cell_range: str, multiple_rows=False):
             return result.get('values', [])
         else:
             return result.get('values', [])[0]
-    except (HttpError, SSLEOFError) as error:
-        log.error(repr(error))
+    except (HttpError, SSLEOFError):
+        utils.log_error()
 
 
 def update_last_command_used():

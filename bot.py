@@ -1,7 +1,5 @@
 import argparse
-import ctypes
 import time
-import traceback
 from typing import List
 
 import discord
@@ -57,8 +55,8 @@ def start():
         try:
             log.info("Logging in...")
             client.run(bot_token, log_handler=None)
-        except Exception as error:
-            log.error(error)
+        except Exception:
+            utils.log_error()
 
             if not debug:
                 log.info("Restarting bot in 5 seconds, this can only end well")
@@ -89,7 +87,7 @@ async def on_ready():
         improvements_channel = client.get_channel(improvements_channel_id)
 
         if not improvements_channel or utils.missing_channel_permissions(improvements_channel):
-            log.error(f"Can't access improvements channel for project {project['name']}")
+            utils.log_error(f"Can't access improvements channel for project {project['name']}")
             main.inaccessible_projects.add(improvements_channel_id)
             continue
 
@@ -226,12 +224,7 @@ async def on_disconnect():
 
 @client.event
 async def on_error(*args):
-    error = traceback.format_exc()
-    log.error(error)
-    ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
-
-    if not debug:
-        await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
+    await utils.report_error(client)
 
 
 @discord.app_commands.check(spreadsheet.sj_command_allowed)

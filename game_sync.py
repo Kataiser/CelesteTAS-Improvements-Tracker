@@ -51,8 +51,8 @@ def run_syncs():
 
             if db.projects.get(project_id)['do_run_validation'] and db.path_caches.get(project_id):
                 sync_test(project)
-    except Exception as error:
-        log.error(repr(error))
+    except Exception:
+        utils.log_error()
         close_game()
         post_cleanup()
         raise
@@ -227,7 +227,7 @@ def sync_test(project: dict):
                     sid = session_data.partition('SID: ')[2].partition(' (')[0]
 
             if not tas_finished and not process.is_running():
-                log.error("Game crashed, abandoning game sync for project")
+                utils.log_error("Game crashed, abandoning game sync for project")
                 return
 
         log.info("TAS has finished")
@@ -397,9 +397,9 @@ def close_game():
     try:
         # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/tasklist
         processes = str(subprocess.check_output('tasklist /fi "STATUS eq running"')).split(r'\r\n')
-    except subprocess.CalledProcessError as error:
+    except subprocess.CalledProcessError:
         processes = []
-        log.error(repr(error))
+        utils.log_error()
 
     for process_line in processes:
         if '.exe' not in process_line:
@@ -413,15 +413,15 @@ def close_game():
                 psutil.Process(process_pid).kill()
                 log.info("Closed Celeste")
                 closed = True
-            except psutil.NoSuchProcess as error:
-                log.error(repr(error))
+            except psutil.NoSuchProcess:
+                utils.log_error()
         elif 'studio' in process_name.lower() and 'celeste' in process_name.lower():
             try:
                 psutil.Process(process_pid).kill()
                 log.info("Closed Studio")
                 closed = True
-            except psutil.NoSuchProcess as error:
-                log.error(repr(error))
+            except psutil.NoSuchProcess:
+                utils.log_error()
 
     if not closed:
         log.info("Game was not running")

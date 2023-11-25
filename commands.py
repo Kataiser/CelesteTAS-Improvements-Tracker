@@ -49,7 +49,7 @@ def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = Fals
             command_doc = func.__doc__.replace('\n    ', '\n')
             func.help = f"```\n{command_doc}```"
         except AttributeError:
-            log.error(f"{func.__name__} has no docstring")
+            utils.log_error(f"{func.__name__} has no docstring")
 
         async def inner(message: discord.Message):
             if format_regex and not format_regex.match(message.content):
@@ -133,7 +133,7 @@ async def command_register_project(message: discord.Message, message_split: List
     improvements_channel = client.get_channel(improvements_channel_id)
     if not improvements_channel:
         error = f"Channel {improvements_channel_id} doesn't exist"
-        log.error(error)
+        await utils.report_error(client, error)
         await message.channel.send(error)
         return
 
@@ -141,14 +141,14 @@ async def command_register_project(message: discord.Message, message_split: List
     missing_permissions = utils.missing_channel_permissions(improvements_channel)
     if missing_permissions:
         error = f"Don't have {missing_permissions[0]} permission for #{improvements_channel.name} ({improvements_channel_id})"
-        log.error(error)
+        await utils.report_error(client, error)
         await message.channel.send(error)
         return
 
     # verify github account exists
     r = requests.get(f'https://api.github.com/users/{github_account}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
-        log.error(f"GitHub account {github_account} doesn't seem to exist, status code is {r.status_code}")
+        await utils.report_error(client, f"GitHub account {github_account} doesn't seem to exist, status code is {r.status_code}")
         await message.channel.send(f"GitHub account \"{github_account}\" doesn't seem to exist")
         return
 
@@ -156,7 +156,7 @@ async def command_register_project(message: discord.Message, message_split: List
     try:
         main.generate_request_headers(github_account)
     except gen_token.InstallationOwnerMissingError as missing_installation_owner:
-        log.error(f"GitHub account {missing_installation_owner} doesn't have the app installed")
+        await utils.report_error(client, f"GitHub account {missing_installation_owner} doesn't have the app installed")
         await message.channel.send(f"GitHub account {missing_installation_owner} doesn't have the app installed, please do so here: https://github.com/apps/celestetas-improvements-tracker")
         return
 
@@ -165,7 +165,7 @@ async def command_register_project(message: discord.Message, message_split: List
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
-        log.error(f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")
+        await utils.report_error(client, f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")
         await message.channel.send(f"Repo \"{repo}\" doesn't seem to publically exist")
         return
 
@@ -173,13 +173,13 @@ async def command_register_project(message: discord.Message, message_split: List
     if subdir:
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}', headers={'Accept': 'application/vnd.github.v3+json'})
         if r.status_code != 200 or 'type' in ujson.loads(r.content):
-            log.error(f"Directory {subdir} doesn't seem to exist in repo {repo}, status code is {r.status_code}")
+            await utils.report_error(client, f"Directory {subdir} doesn't seem to exist in repo {repo}, status code is {r.status_code}")
             await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\"")
             return
 
     # verify not adding run validation to a lobby
     if do_run_validation.lower() == 'y' and is_lobby.lower() == 'y':
-        log.error("Can't add run validation to a lobby project")
+        await utils.report_error(client, "Can't add run validation to a lobby project")
         await message.channel.send("Enabling run validation for a lobby project is not allowed")
         return
 
@@ -367,7 +367,7 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
             await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
             await main.edit_pin(improvements_channel)
         else:
-            log.error("Rename unsuccessful")
+            await utils.report_error(client, "Rename unsuccessful")
             await message.channel.send("Rename unsuccessful")
 
     if not matching_projects:
@@ -402,7 +402,7 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
         try:
             edited_admin = await client.fetch_user(admin_id)
         except discord.NotFound:
-            log.error(f"User {admin_id} not found")
+            await utils.report_error(client, f"User {admin_id} not found")
             await message.channel.send(f"User with ID {admin_id} could not be found")
             return
 
@@ -584,7 +584,7 @@ async def report_command_used(command_name: str, message: discord.Message):
             await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
             log.info("Reported command usage to Kataiser")
     except Exception as error:
-        log.error(f"Couldn't report command usage to Kataiser: {repr(error)}")
+        utils.log_error(f"Couldn't report command usage to Kataiser: {repr(error)}")
 
 
 client: Optional[discord.Client] = None
