@@ -97,7 +97,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
         await message.channel.send(response)
 
 
-@command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN]'), report_usage=True)
+@command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN] [YN]'), report_usage=True)
 async def command_register_project(message: discord.Message, message_split: List[str]):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
@@ -111,12 +111,13 @@ async def command_register_project(message: discord.Message, message_split: List
       COMMIT_DRAFTS: Automatically commit drafts to the root directory [Y or N]
       IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently [Y or N]
       ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file [Y or N]
+      USE_CONTRIBUTORS_FILE: Save a Contributors.txt file [Y or N]
       DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game (highly recommended) [Y or N]
     """
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
-    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, do_run_validation = message_split
+    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, use_contributors_file, do_run_validation = message_split
     improvements_channel_id = int(improvements_channel_id)
     projects = db.projects.dict()
     editing = improvements_channel_id in projects
@@ -195,6 +196,7 @@ async def command_register_project(message: discord.Message, message_split: List
                           'is_lobby': is_lobby.lower() == 'y',
                           'ensure_level': ensure_level.lower() == 'y',
                           'do_run_validation': do_run_validation.lower() == 'y',
+                          'use_contributors_file': use_contributors_file.lower() == 'y',
                           'last_run_validation': None,
                           'pin': None,
                           'subdir': subdir,

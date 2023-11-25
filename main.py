@@ -435,14 +435,14 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
 
     db.contributors.set(project_id, project_contributors)
 
-    # TODO: remove after testing
-    if project_id not in safe_projects:
+    if not project['use_contributors_file']:
+        log.info("Skipping updating Contributors.txt")
         return
 
     contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
     repo = project['repo']
-    subdir = f'{project['subdir']}/' if project['subdir'] else ''
-    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}Contributors.txt', headers=headers)
+    contributors_txt_path = f'{project['subdir']}/Contributors.txt' if project['subdir'] else 'Contributors.txt'
+    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
     r_json = ujson.loads(r.content)
 
     if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
@@ -465,10 +465,14 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
         commit_message = f"Added {', '.join(sorted(contributors_added))} to Contributors.txt"
 
     if do_commit:
-        log.info(commit_message)
         file_data = '\n'.join(sorted(contributor_names)).encode('UTF8')
         commit_data = {'content': base64.b64encode(file_data).decode('UTF8'), 'message': commit_message}
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{subdir}Contributors.txt', headers=headers, data=ujson.dumps(commit_data))
+
+        if not created_file:
+            commit_data['sha'] = get_sha(repo, contributors_txt_path)
+
+        log.info(commit_message)
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers, data=ujson.dumps(commit_data))
         utils.handle_potential_request_error(r, 201 if created_file else 200)
 
 

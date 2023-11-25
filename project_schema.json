@@ -77,6 +77,9 @@
         },
         "sync_check_timed_out": {
             "type": "boolean"
+        },
+        "use_contributors_file": {
+            "type": "boolean"
         }
     }
 }
