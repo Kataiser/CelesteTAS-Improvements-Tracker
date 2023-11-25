@@ -149,7 +149,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.channel.send("Reenabled sync checking for this project.")
 
             db.projects.set(message.channel.id, project)
-            update_contributors(message.author, message.channel.id, project['admins'])
+            update_contributors(message.author, message.channel.id, project)
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
             await message.add_reaction('❌')
@@ -417,20 +417,59 @@ async def handle_game_sync_results():
         db.sync_results.delete_item(project_id)
 
 
-def update_contributors(contributor: discord.User, project_id: int, admins: list):
+def update_contributors(contributor: discord.User, project_id: int, project: dict):
     try:
         project_contributors = db.contributors.get(project_id)
     except db.DBKeyError:
         project_contributors = {}
+        log.info("Created contributors entry for project")
 
     contributor_id = str(contributor.id)
 
     if contributor_id in project_contributors:
         project_contributors[contributor_id]['count'] += 1
+        log.info(f"Incremented contributor: {contributor_id} = {project_contributors[contributor_id]}")
     else:
         project_contributors[contributor_id] = {'name': utils.nickname(contributor), 'count': 1}
+        log.info(f"Created contributor: {contributor_id} = {project_contributors[contributor_id]}")
 
     db.contributors.set(project_id, project_contributors)
+
+    # TODO: remove after testing
+    if project_id not in safe_projects:
+        return
+
+    contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
+    repo = project['repo']
+    subdir = f'{project['subdir']}/' if project['subdir'] else ''
+    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}Contributors.txt', headers=headers)
+    r_json = ujson.loads(r.content)
+
+    if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
+        commit_message = "Created Contributors.txt"
+        created_file = True
+        do_commit = True
+    else:
+        utils.handle_potential_request_error(r, 200)
+        existing_contributors = base64.b64decode(r_json['content']).decode('UTF8').splitlines()
+        contributors_added = []
+        created_file = False
+        do_commit = False
+
+        for db_contributor in contributor_names:
+            if db_contributor not in existing_contributors:
+                existing_contributors.append(db_contributor)
+                contributors_added.append(db_contributor)
+                do_commit = True
+
+        commit_message = f"Added {', '.join(sorted(contributors_added))} to Contributors.txt"
+
+    if do_commit:
+        log.info(commit_message)
+        file_data = '\n'.join(sorted(contributor_names)).encode('UTF8')
+        commit_data = {'content': base64.b64encode(file_data).decode('UTF8'), 'message': commit_message}
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{subdir}Contributors.txt', headers=headers, data=ujson.dumps(commit_data))
+        utils.handle_potential_request_error(r, 201 if created_file else 200)
 
 
 async def set_status(message: Optional[discord.Message] = None, project_name: Optional[str] = None):

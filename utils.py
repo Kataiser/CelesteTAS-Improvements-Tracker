@@ -26,7 +26,7 @@ def log_error(message: Optional[str] = None) -> str:
 
 
 async def report_error(client: discord.Client, message: Optional[str] = None):
-    error = log_error()
+    error = log_error(message)
     await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
 
 
