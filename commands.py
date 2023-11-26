@@ -270,7 +270,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
             all_project_mods = project_mods.union(game_sync.get_mod_dependencies(mod_given))
 
         log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")
-        installed_mods = [item.removesuffix('.zip') for item in os.listdir(game_sync.mods_dir()) if item.endswith('.zip')]
+        installed_mods = [item.stem for item in game_sync.mods_dir().iterdir() if item.suffix == '.zip']
 
         for mod in all_project_mods:
             if mod not in installed_mods:

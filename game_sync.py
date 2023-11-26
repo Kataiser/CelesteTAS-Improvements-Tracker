@@ -10,6 +10,7 @@ import stat
 import subprocess
 import time
 import zipfile
+from pathlib import Path
 from typing import Optional
 
 import psutil
@@ -443,9 +444,9 @@ def get_mod_dependencies(mod: str) -> list:
 
 @functools.cache
 def get_mod_everest_yaml(mod: str) -> Optional[dict]:
-    zip_path = f'{mods_dir()}\\{mod}.zip'
+    zip_path = mods_dir().joinpath(f'{mod}.zip')
 
-    if not os.path.isfile(zip_path):
+    if not zip_path.is_file():
         return None
 
     with zipfile.ZipFile(zip_path) as mod_zip:
@@ -474,13 +475,13 @@ def mod_versions(mods: set) -> str:
 
 
 @functools.cache
-def mods_dir() -> str:
-    pc_path = r'G:\celeste\Mods'
-    aws_path = r'C:\Users\Administrator\Desktop\mods'
+def mods_dir() -> Path:
+    pc_path = Path('G/celeste/Mods')
+    aws_path = Path('C:/Users/Administrator/Desktop/mods')
 
-    if os.path.isdir(pc_path):
+    if pc_path.is_dir():
         return pc_path
-    elif os.path.isdir(aws_path):
+    elif aws_path.is_dir():
         return aws_path
     else:
         raise FileNotFoundError("ok where'd my mods go")
