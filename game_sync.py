@@ -260,6 +260,10 @@ def sync_test(project: dict):
             time_synced = frame_diff == 0
 
             if not has_filetime:
+                if not tas_parsed_new.finaltime_frames:
+                    utils.log_error(f"Couldn't parse FileTime frames for {file_path_repo}")
+                    continue
+
                 log_command = log.info if time_synced else log.warning
                 time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
                               f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")

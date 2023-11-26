@@ -276,6 +276,7 @@ class ParsedTASFile:
 
 
 # get breakpoints and final time in one pass
+# this is easily the worst code in this bot
 def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True) -> ParsedTASFile:
     breakpoints = []
     finaltime_line_num = None
@@ -317,7 +318,10 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
         if not is_comment_time:
-            finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
+            try:
+                finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
+            except ValueError:
+                pass
 
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
