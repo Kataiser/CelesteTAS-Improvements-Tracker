@@ -462,10 +462,10 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
                 contributors_added.append(db_contributor)
                 do_commit = True
 
-        commit_message = f"Added {', '.join(sorted(contributors_added))} to Contributors.txt"
+        commit_message = f"Added {', '.join(sorted(contributors_added, key=str.casefold))} to Contributors.txt"
 
     if do_commit:
-        file_data = '\n'.join(sorted(contributor_names)).encode('UTF8')
+        file_data = '\n'.join(sorted(contributor_names, key=str.casefold)).encode('UTF8')
         commit_data = {'content': base64.b64encode(file_data).decode('UTF8'), 'message': commit_message}
 
         if not created_file:
