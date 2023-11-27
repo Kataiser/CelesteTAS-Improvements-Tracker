@@ -476,13 +476,13 @@ def mod_versions(mods: set) -> str:
 
 @functools.cache
 def mods_dir() -> Path:
-    pc_path = Path('G/celeste/Mods')
-    aws_path = Path('C:/Users/Administrator/Desktop/mods')
+    local_path = Path('G:/celeste/Mods')
+    remote_path = Path('C:/Users/Administrator/Desktop/mods')
 
-    if pc_path.is_dir():
-        return pc_path
-    elif aws_path.is_dir():
-        return aws_path
+    if local_path.is_dir():
+        return local_path
+    elif remote_path.is_dir():
+        return remote_path
     else:
         raise FileNotFoundError("ok where'd my mods go")
 
