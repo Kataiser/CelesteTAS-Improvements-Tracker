@@ -474,7 +474,7 @@ async def command_about(message: discord.Message):
 
     if os.path.isfile('host'):
         with open('host', 'r', encoding='UTF8') as host_file:
-            host = host_file.read()
+            host = host_file.read().strip('" ')
     else:
         host = "Unknown"
         await utils.report_error(client, "Couldn't determine host for about command")
