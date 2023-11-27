@@ -459,6 +459,7 @@ async def command_about(message: discord.Message):
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
            "\nCurrent uptime: {3} hours" \
+           "\nCurrent host: {7}" \
            "\nNightly sync check: {4} project{6}" \
            "\nImprovements/drafts processed and committed: {5}"
 
@@ -471,13 +472,26 @@ async def command_about(message: discord.Message):
         if project['do_run_validation']:
             sync_checks += 1
 
+    if os.path.isfile('host'):
+        with open('host', 'r', encoding='UTF8') as host_file:
+            host = host_file.read()
+    else:
+        host = "Unknown"
+        await utils.report_error(client, "Couldn't determine host for about command")
+
+    if main.login_time:
+        uptime = round((time.time() - main.login_time) / 3600, 1)
+    else:
+        uptime = 0.0
+
     text_out = text.format(main.projects_count(),
                            len(client.guilds),
                            len(installations),
-                           round((time.time() - main.login_time) / 3600, 1),
+                           uptime,
                            sync_checks,
                            db.history_log.size(),  # techically inaccurate because add/edit project logs but close enough
-                           plural(sync_checks))
+                           plural(sync_checks),
+                           host)
 
     log.info(text_out)
     await message.channel.send(text_out)
