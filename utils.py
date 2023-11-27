@@ -21,7 +21,12 @@ def plural(count: Union[int, Sized]) -> str:
 def log_error(message: Optional[str] = None) -> str:
     error = message if message else traceback.format_exc()
     log.error(error)
-    ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
+
+    try:
+        ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
+    except AttributeError:  # linux
+        pass
+
     return error
 
 
