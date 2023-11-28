@@ -18,14 +18,15 @@ def plural(count: Union[int, Sized]) -> str:
         return 's' if len(count) != 1 else ''
 
 
-def log_error(message: Optional[str] = None) -> str:
+def log_error(message: Optional[str] = None, flash_window: bool = True) -> str:
     error = message if message else traceback.format_exc()
     log.error(error)
 
-    try:
-        ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
-    except AttributeError:  # linux
-        pass
+    if flash_window:
+        try:
+            ctypes.windll.user32.FlashWindow(ctypes.windll.kernel32.GetConsoleWindow(), True)
+        except AttributeError:  # linux
+            pass
 
     return error
 
