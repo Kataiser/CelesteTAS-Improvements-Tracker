@@ -55,14 +55,17 @@ def start():
         try:
             log.info("Logging in...")
             client.run(bot_token, log_handler=None)
-        except Exception:
-            utils.log_error()
-
-            if not debug:
-                log.info("Restarting bot in 5 seconds, this can only end well")
-                time.sleep(5)
+        except Exception as error:
+            if isinstance(error, RuntimeError) and str(error) == "Session is closed":
+                log.info("Assuming bot has been closed, not restarting")
             else:
-                break
+                utils.log_error()
+
+                if not debug:
+                    log.info("Restarting bot in 5 seconds, this can only end well")
+                    time.sleep(5)
+                else:
+                    break
 
 
 @client.event
