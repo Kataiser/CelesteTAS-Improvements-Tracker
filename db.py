@@ -40,14 +40,20 @@ class Table:
         return result
 
     def set(self, key: Union[str, int], value: Any, get_previous: bool = False) -> Any:
+        added_primary = False
+
         if isinstance(value, dict):
-            value[self.primary_key] = key
+            if self.primary_key not in value:
+                value[self.primary_key] = key
+                added_primary = True
         else:
             value = {self.primary_key: key, '_value': value}
 
         return_values = 'ALL_OLD' if get_previous else 'NONE'
         response = client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(value)['M'], ReturnValues=return_values)
-        del value[self.primary_key]
+
+        if added_primary:
+            del value[self.primary_key]
 
         if get_previous:
             prev_values = deserializer.deserialize({'M': response['Attributes']})
