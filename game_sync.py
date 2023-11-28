@@ -476,15 +476,13 @@ def mod_versions(mods: set) -> str:
 
 @functools.cache
 def mods_dir() -> Path:
-    local_path = Path('G:/celeste/Mods')
-    remote_path = Path('C:/Users/Administrator/Desktop/mods')
+    mod_paths = (Path('G:/celeste/Mods'), Path('C:/Users/Administrator/Desktop/mods'), Path('C:/Users/Bob/Documents/Celeste - FNA/Mods'))
 
-    if local_path.is_dir():
-        return local_path
-    elif remote_path.is_dir():
-        return remote_path
-    else:
-        raise FileNotFoundError("ok where'd my mods go")
+    for mod_path in mod_paths:
+        if mod_path.is_dir():
+            return mod_path
+
+    raise FileNotFoundError("ok where'd my mods go")
 
 
 def load_sid_caches(projects: dict):
