@@ -52,13 +52,15 @@ def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = Fals
             utils.log_error(f"{func.__name__} has no docstring")
 
         async def inner(message: discord.Message):
-            if format_regex and not format_regex.match(message.content):
+            message_fixed = re_combine_whitespace.sub(" ", message.content)
+
+            if format_regex and not format_regex.match(message_fixed):
                 log.warning("Bad command format")
                 await message.channel.send(f"Incorrect command format.\n{func.help}")
                 return
 
             if use_message_split:
-                return await func(message, re_command_split.split(message.content))
+                return await func(message, re_command_split.split(message_fixed))
             else:
                 return await func(message)
 
@@ -380,7 +382,7 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
         await message.channel.send(f"{filename_before} not found in any project named `{project_search_name}`.")
 
 
-@command(re.compile(r'(?i)edit_admin .+ \d+'), report_usage=True)
+@command(re.compile(r'(?i)edit_admin .+ \d+ [YN]'), report_usage=True)
 async def command_edit_admin(message: discord.Message, message_split: List[str]):
     """
     edit_admin PROJECT_NAME ADMIN_ID ADDING
@@ -606,3 +608,4 @@ async def report_command_used(command_name: str, message: discord.Message):
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
+re_combine_whitespace = re.compile(r'\s+')
