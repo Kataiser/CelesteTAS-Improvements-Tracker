@@ -523,6 +523,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
            "\nIs lobby: `{8}`" \
            "\nEnsure level name in posts: `{9}`" \
            "\nDo sync check: `{10}`" \
+           "\nUse contributors file: `{13}`" \
            "{11}"
 
     for project in matching_projects:
@@ -551,7 +552,8 @@ async def command_about_project(message: discord.Message, message_split: List[st
                                project['ensure_level'],
                                project['do_run_validation'],
                                last_sync_check,
-                               plural(admins))
+                               plural(admins),
+                               project['use_contributors_file'])
 
         log.info(text_out)
         await message.channel.send(text_out)
