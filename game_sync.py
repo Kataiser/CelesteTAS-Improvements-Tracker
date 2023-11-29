@@ -84,6 +84,7 @@ def sync_test(project: dict):
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
+    close_game()
     subprocess.Popen(r'G:\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
@@ -424,12 +425,11 @@ def close_game():
             try:
                 psutil.Process(process_pid).kill()
                 log.info("Closed Studio")
-                closed = True
             except psutil.NoSuchProcess:
                 utils.log_error()
 
     if not closed:
-        log.info("Game was not running")
+        log.info("No running game to close")
 
 
 # TODO: make recursive (if necessary)
