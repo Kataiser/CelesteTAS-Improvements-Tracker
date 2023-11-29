@@ -1,7 +1,6 @@
 import base64
 import inspect
 import logging
-import os
 import re
 import time
 from typing import Optional, List
@@ -16,7 +15,6 @@ import gen_token
 import main
 import utils
 from utils import plural
-
 
 report_commands = set()
 command_functions = {}
@@ -475,13 +473,6 @@ async def command_about(message: discord.Message):
         if project['do_run_validation']:
             sync_checks += 1
 
-    if os.path.isfile('host'):
-        with open('host', 'r', encoding='UTF8') as host_file:
-            host = host_file.read().strip('" \n')
-    else:
-        host = "Unknown"
-        await utils.report_error(client, "Couldn't determine host for about command")
-
     if main.login_time:
         uptime = round((time.time() - main.login_time) / 3600, 1)
     else:
@@ -494,7 +485,7 @@ async def command_about(message: discord.Message):
                            sync_checks,
                            db.history_log.size(),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks),
-                           host)
+                           utils.host())
 
     log.info(text_out)
     await message.channel.send(text_out)

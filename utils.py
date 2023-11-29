@@ -1,5 +1,7 @@
 import ctypes
+import functools
 import logging
+import os
 import time
 import traceback
 from typing import Any, Optional, Sized, Union, Tuple
@@ -103,6 +105,16 @@ def get_user_github_account(discord_id: int) -> Optional[list]:
         return db.githubs.get(discord_id, consistent_read=False)
     except db.DBKeyError:
         return
+
+
+@functools.cache
+def host() -> str:
+    if os.path.isfile('host'):
+        with open('host', 'r', encoding='UTF8') as host_file:
+            return host_file.read().strip('" \n')
+    else:
+        log_error("Couldn't determine host for about command")
+        return "Unknown"
 
 
 log: Optional[logging.Logger] = None

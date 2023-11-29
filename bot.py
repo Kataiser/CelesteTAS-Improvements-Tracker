@@ -27,7 +27,7 @@ safe_mode = False
 
 def start():
     global debug, autostarted, projects_startup
-    log.info("Bot starting")
+    log.info(f"Bot starting, host = {utils.host()}")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
     parser.add_argument('--autostarted', action='store_true', help="Automatically started on boot", default=False)
@@ -115,10 +115,8 @@ async def on_ready():
     if set_default_status:
         await main.set_status()
 
-    try:
+    if not main.handle_game_sync_results.is_running():
         main.handle_game_sync_results.start()
-    except RuntimeError:
-        pass
 
 
 @client.event
