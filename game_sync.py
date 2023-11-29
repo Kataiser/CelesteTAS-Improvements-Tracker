@@ -38,7 +38,7 @@ def run_syncs():
             log.info(f"Running sync test for project ID {cli_project} only")
             test_project_ids = (int(cli_project),)
         else:
-            test_project_ids = [int(p['project_id']) for p in db.projects.get_by_name(cli_project)]
+            test_project_ids = [int(p['project_id']) for p in db.projects.get_by_name_or_id(cli_project)]
             log.info(f"Running sync test for project ID{plural(test_project_ids)} {test_project_ids} only")
     else:
         log.info("Running all sync tests")

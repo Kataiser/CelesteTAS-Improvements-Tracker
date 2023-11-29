@@ -242,14 +242,14 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
 
       Set the game mods a sync check needs to load.
 
-      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them
+      PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them.
       MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
     """
 
     project_search_name = message_split[1].replace('"', '')
     project_mods_added = False
 
-    for project in db.projects.get_by_name(project_search_name):
+    for project in db.projects.get_by_name_or_id(project_search_name):
         if not await is_admin(message, project):
             break
         elif not project['do_run_validation']:
@@ -288,7 +288,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
 
     if not project_mods_added:
         log.warning(f"No projects found matching: {project_search_name}")
-        await message.channel.send("No projects (with sync checking enabled) matching that name found")
+        await message.channel.send("No projects (with sync checking enabled) matching that name or ID found")
 
 
 @command(re.compile(r'(?i)rename_file .+ .+\.tas .+\.tas'), report_usage=True)
@@ -298,13 +298,13 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
 
       Rename a file in the repo of a project. Recommended over manually committing.
 
-      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
+      PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
       FILENAME_BEFORE: The current name of the TAS file you want to rename (with .tas)
       FILENAME_AFTER: What you want the TAS file to be renamed to (with .tas)
     """
 
     project_search_name = message_split[1].replace('"', '')
-    matching_projects = db.projects.get_by_name(project_search_name)
+    matching_projects = db.projects.get_by_name_or_id(project_search_name)
     filename_before, filename_after = message_split[2:]
     renamed_file = False
 
@@ -376,7 +376,7 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
 
     if not matching_projects:
         log.info("Found no matching projects")
-        await message.channel.send(f"Found no projects matching that name.")
+        await message.channel.send(f"Found no projects matching that name or ID.")
     elif not renamed_file:
         log.warning("No files renamed")
         await message.channel.send(f"{filename_before} not found in any project named `{project_search_name}`.")
@@ -389,13 +389,13 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
 
       Add or remove admins from a project.
 
-      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
+      PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will search in all of them
       ADMIN_ID: The Discord ID (not the username, display name, or nickname) of the user you're adding or removing
       ADDING: Y if adding admin, N if removing admin
     """
 
     project_search_name = message_split[1].replace('"', '')
-    matching_projects = db.projects.get_by_name(project_search_name)
+    matching_projects = db.projects.get_by_name_or_id(project_search_name)
     admin_id = int(message_split[2])
     adding = message_split[3].lower() == 'y'
 
@@ -443,7 +443,7 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
 
     if not matching_projects:
         log.info("Found no matching projects")
-        await message.channel.send(f"Found no projects matching that name.")
+        await message.channel.send(f"Found no projects matching that name or ID.")
 
 
 @command()
@@ -506,12 +506,12 @@ async def command_about_project(message: discord.Message, message_split: List[st
 
       Get the info and settings of a project.
 
-      PROJECT_NAME: The name of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will show info for all of them
+      PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will show info for all of them
     """
 
     # message_split = re_command_split.split(message.content)
     project_search_name = message_split[1].replace('"', '')
-    matching_projects = db.projects.get_by_name(project_search_name)
+    matching_projects = db.projects.get_by_name_or_id(project_search_name)
     text = "Name: **{0}**" \
            "\nRepo: <{1}>" \
            "\nImprovement channel: <#{2}>" \
@@ -560,7 +560,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
 
     if not matching_projects:
         log.info("Found no matching projects")
-        await message.channel.send(f"Found no projects matching that name.")
+        await message.channel.send(f"Found no projects matching that name or ID.")
 
 
 @command()
