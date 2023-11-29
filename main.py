@@ -119,7 +119,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         else:
             log.info("No old version of file exists")
 
-        validation_result = validation.validate(file_content, filename, message, old_file_content, is_lobby, project['ensure_level'], skip_validation)
+        validation_result = validation.validate(file_content, filename, message, old_file_content, project, skip_validation)
         db.path_caches.disable_cache()
 
         if validation_result.valid_tas:
@@ -228,6 +228,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
 
     repo = project['repo']
     project_subdir = project['subdir']
+    excluded_items = project['excluded_items']
     project_subdir_base = project_subdir.partition('/')[0]
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
@@ -235,10 +236,16 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
     contents_json = ujson.loads(r.content)
     path_cache = {}  # always start from scratch
 
+    if excluded_items:
+        log.info(f"Excluded items: {excluded_items}")
+
     if 'message' in contents_json and contents_json['message'] == 'This repository is empty.':
         log.info("Repo is empty")
     else:
         for item in contents_json:
+            if item['name'] in excluded_items:
+                continue
+
             if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
                 # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
                 dir_sha = item['sha']
@@ -249,8 +256,9 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
                     if subitem['type'] == 'blob':
                         subitem_name = subitem['path'].split('/')[-1]
                         subitem_full_path = f"{item['name']}/{subitem['path']}"
+                        in_subdir = subitem_full_path.startswith(project_subdir) if project_subdir else True
 
-                        if subitem_name.endswith('.tas') and (subitem_full_path.startswith(project_subdir) if project_subdir else True):
+                        if subitem_name.endswith('.tas') and in_subdir and subitem_name not in excluded_items:
                             path_cache[subitem_name] = subitem_full_path
             elif not project_subdir and item['name'].endswith('.tas'):
                 path_cache[item['name']] = item['path']

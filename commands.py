@@ -206,7 +206,8 @@ async def command_register_project(message: discord.Message, message_split: List
                           'desyncs': [],
                           'last_commit_time': current_time,
                           'filetimes': {},
-                          'sync_check_timed_out': False}
+                          'sync_check_timed_out': False,
+                          'excluded_items': []}
 
     if not editing:
         await message.channel.send("Generating path cache...")

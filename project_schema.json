@@ -80,6 +80,13 @@
         },
         "use_contributors_file": {
             "type": "boolean"
+        },
+        "excluded_items": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1
+            }
         }
     }
 }

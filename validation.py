@@ -27,8 +27,8 @@ class ValidationResult:
                 log.warning("Valid tas result has no finaltime")
 
 
-def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], is_lobby_channel: bool, ensure_level: bool, skip_validation: bool = False) -> ValidationResult:
-    log.info(f"Validating{' lobby file' if is_lobby_channel else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
+def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], project: dict, skip_validation: bool = False) -> ValidationResult:
+    log.info(f"Validating{' lobby file' if project['is_lobby'] else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
 
     # validate length
     if not skip_validation and len(tas) > 204800:  # 200 kb
@@ -68,6 +68,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
         return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, wip=wip_in_message)
 
+    # validate file not in excluded items
+    if filename in project['excluded_items']:
+        return ValidationResult(False, "This filename is excluded from the project.", f"file {filename} is excluded from project (in {project['excluded_items']})")
+
     # validate breakpoint doesn't exist and chaptertime does
     if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
         return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
@@ -78,7 +82,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         return ValidationResult(False, f"Breakpoints found on lines: {', '.join(tas_parsed.breakpoints)}, please remove them (Ctrl+P in Studio) and post again.",
                                 f"{len(tas_parsed.breakpoints)} breakpoints in {filename}")
     elif not tas_parsed.found_finaltime:
-        if is_lobby_channel:
+        if project['is_lobby']:
             return ValidationResult(False, "No final time found in file, please add one and post again.", f"no final time in {filename}")
         else:
             return ValidationResult(False, "No ChapterTime found in file, please add one and post again.", f"no ChapterTime in {filename}")
@@ -177,7 +181,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate chaptertime is in message content
     if not is_dash_save:
-        if is_lobby_channel:
+        if project['is_lobby']:
             if tas_parsed.finaltime not in message.content:
                 return ValidationResult(False, f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
                                         f"final time ({tas_parsed.finaltime}) missing in message content")
@@ -246,7 +250,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                                            f"{shouldnt_be_draft_text}", "no \"draft\" text in message")
 
     # validate level
-    if ensure_level:
+    if project['ensure_level']:
         filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
         message_level = re_remove_punctuation.subn('', message_lowercase)[0].replace('_', '')
 
