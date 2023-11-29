@@ -17,7 +17,7 @@ class Table:
         self.caching = False
         self.cache = {}
 
-    def get(self, key: Union[str, int], consistent_read: bool = True) -> Any:
+    def get(self, key: Union[str, int], consistent_read: bool = True, keep_primary_key: bool = True) -> Any:
         if self.caching and key in self.cache:
             return self.cache[key]
 
@@ -36,6 +36,10 @@ class Table:
 
         if self.caching:
             self.cache[key] = result
+
+        if not keep_primary_key:
+            del result[self.primary_key]
+            # I'd prefer it if this was the default, but that would require refactoring
 
         return result
 

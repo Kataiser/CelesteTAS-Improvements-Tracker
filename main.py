@@ -420,7 +420,7 @@ async def handle_game_sync_results():
 
 def update_contributors(contributor: discord.User, project_id: int, project: dict):
     try:
-        project_contributors = db.contributors.get(project_id)
+        project_contributors = db.contributors.get(project_id, keep_primary_key=False)
     except db.DBKeyError:
         project_contributors = {}
         log.info("Created contributors entry for project")
@@ -437,7 +437,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
     db.contributors.set(project_id, project_contributors)
 
     if not project['use_contributors_file']:
-        log.info("Skipping updating Contributors.txt")
+        log.info("Not updating Contributors.txt")
         return
 
     contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
