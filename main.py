@@ -430,6 +430,7 @@ async def handle_game_sync_results():
 
 @tasks.loop(seconds=30)
 async def check_for_updates():
+    subprocess.run('git fetch', capture_output=True)
     status_result = subprocess.run('git status', capture_output=True)
 
     if b"Your branch is behind" in status_result.stdout:
