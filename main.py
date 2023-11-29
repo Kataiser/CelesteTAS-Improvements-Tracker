@@ -7,6 +7,7 @@ import logging
 import os
 import random
 import socket
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 import discord
+import psutil
 import requests
 import ujson
 from discord.ext import tasks
@@ -424,6 +426,18 @@ async def handle_game_sync_results():
                 await improvements_channel.send(report_text)
 
         db.sync_results.delete_item(project_id)
+
+
+@tasks.loop(seconds=30)
+async def check_for_updates():
+    status_result = subprocess.run('git status', capture_output=True)
+
+    if b"Your branch is behind" in status_result.stdout:
+        updating_text = "New commit(s) found, updating and restarting"
+        log.info(updating_text)
+        await (await client.fetch_user(219955313334288385)).send(updating_text)
+        self_process = psutil.Process()
+        subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
 
 
 def update_contributors(contributor: discord.User, project_id: int, project: dict):

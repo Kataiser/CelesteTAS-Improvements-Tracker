@@ -117,6 +117,7 @@ async def on_ready():
 
     if not main.handle_game_sync_results.is_running():
         main.handle_game_sync_results.start()
+        main.check_for_updates.start()
 
 
 @client.event
