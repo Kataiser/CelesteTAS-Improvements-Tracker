@@ -30,9 +30,7 @@ def start():
     log.info(f"Bot starting, host = {utils.host()}")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
-    parser.add_argument('--autostarted', action='store_true', help="Automatically started on boot", default=False)
     debug = parser.parse_args().debug
-    autostarted = parser.parse_args().autostarted
 
     if debug:
         log.info("DEBUG MODE")
@@ -71,11 +69,6 @@ def start():
 
 @client.event
 async def on_ready():
-    if autostarted:
-        autostarted_message = "Automatically started on boot"
-        log.info(autostarted_message)
-        await (await client.fetch_user(219955313334288385)).send(autostarted_message)
-
     global safe_mode, projects_startup
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
