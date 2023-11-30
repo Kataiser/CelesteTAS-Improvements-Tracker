@@ -2,6 +2,7 @@ import ctypes
 import functools
 import logging
 import os
+import socket
 import time
 import traceback
 from typing import Any, Optional, Sized, Union, Tuple
@@ -115,6 +116,10 @@ def host() -> str:
     else:
         log_error("Couldn't determine host for about command")
         return "Unknown"
+
+
+def saved_log_name(base_name: str) -> str:
+    return f'{base_name}_{int(os.path.getmtime(f'{base_name}.log'))}_{socket.gethostname()}.log'
 
 
 log: Optional[logging.Logger] = None

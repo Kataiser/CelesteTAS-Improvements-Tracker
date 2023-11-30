@@ -16,7 +16,7 @@ import main
 import utils
 from utils import plural
 
-report_commands = set()
+report_commands, kataiser_only_commands = (set(), set())
 command_functions = {}
 
 
@@ -35,22 +35,28 @@ async def handle(message: discord.Message):
 
 
 # haha yep this definitely is code
-def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = False):
+def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = False, kataiser_only: bool = False):
     def outer(func: callable):
         command_name = func.__name__.removeprefix('command_')
         use_message_split = 'message_split' in inspect.signature(func).parameters
+        func.help = None
 
         if report_usage:
             report_commands.add(command_name)
 
-        try:
-            command_doc = func.__doc__.replace('\n    ', '\n')
-            func.help = f"```\n{command_doc}```"
-        except AttributeError:
-            utils.log_error(f"{func.__name__} has no docstring")
+        if not kataiser_only:
+            try:
+                command_doc = func.__doc__.replace('\n    ', '\n')
+                func.help = f"```\n{command_doc}```"
+            except AttributeError:
+                utils.log_error(f"{func.__name__} has no docstring")
 
         async def inner(message: discord.Message):
             message_fixed = re_combine_whitespace.sub(" ", message.content)
+
+            if kataiser_only and message.author.id != 219955313334288385:
+                await message.channel.send("Not allowed, you are not Kataiser.")
+                return
 
             if format_regex and not format_regex.match(message_fixed):
                 log.warning("Bad command format")
@@ -61,6 +67,9 @@ def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = Fals
                 return await func(message, re_command_split.split(message_fixed))
             else:
                 return await func(message)
+
+        if kataiser_only:
+            kataiser_only_commands.add(command_name)
 
         inner.help = func.help
         command_functions[command_name] = inner
@@ -79,11 +88,13 @@ async def command_help(message: discord.Message, message_split: List[str]):
       COMMAND: The command to get the parameter info for (optional)
     """
 
-    if len(message_split) > 1 and message_split[1] in command_functions:
-        await message.channel.send(command_functions[message_split[1]].help)
+    command_functions_public = [c for c in command_functions if c not in kataiser_only_commands]
+
+    if len(message_split) > 1 and message_split[1] in command_functions_public:
+        await message.channel.send(command_functions_public[message_split[1]].help)
     else:
         add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
-        commands_available = '\n'.join(command_functions)
+        commands_available = '\n'.join(command_functions_public)
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                    "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
@@ -577,6 +588,15 @@ async def command_projects_admined(message: discord.Message):
         await message.channel.send('\n'.join(projects_admined_names))
     else:
         await message.channel.send("You're not an admin of any projects.")
+
+
+@command(kataiser_only=True)
+async def command_log(message: discord.Message):
+    log.handlers[0].flush()
+    time.sleep(0.2)
+
+    with open('bot.log', 'rb') as bot_log:
+        await message.channel.send(file=discord.File(bot_log, filename=utils.saved_log_name('bot')))
 
 
 # verify that the user editing the project is an admin (or Kataiser)

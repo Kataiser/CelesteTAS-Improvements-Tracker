@@ -6,7 +6,6 @@ import io
 import logging
 import os
 import random
-import socket
 import subprocess
 import sys
 import time
@@ -538,7 +537,7 @@ def create_logger(name: str) -> logging.Logger:
         with open(filename, 'rb') as old_log:
             old_log_data = old_log.read()
 
-        with gzip.open(Path(f'log_history/{name}_{int(os.path.getmtime(filename))}_{socket.gethostname()}.log.gz'), 'wb') as old_log_gzip:
+        with gzip.open(Path(f'log_history/{utils.saved_log_name(name)}.gz'), 'wb') as old_log_gzip:
             old_log_gzip.write(old_log_data)
 
     logger = logging.getLogger('bot')
