@@ -433,7 +433,7 @@ async def check_for_updates():
     status_result = subprocess.run('git status', capture_output=True)
 
     if b"Your branch is behind" in status_result.stdout:
-        updating_text = "New commit(s) found, updating and restarting"
+        updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await client.fetch_user(219955313334288385)).send(updating_text)
         self_process = psutil.Process()

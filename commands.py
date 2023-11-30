@@ -599,6 +599,12 @@ async def command_log(message: discord.Message):
         await message.channel.send(file=discord.File(bot_log, filename=utils.saved_log_name('bot')))
 
 
+@command(kataiser_only=True)
+async def command_die(message: discord.Message):
+    await message.channel.send("https://cdn.discordapp.com/attachments/972366104204812338/1179648390649360454/wqovpsazm7z61.png")
+    raise SystemExit("guess I'll die")
+
+
 # verify that the user editing the project is an admin (or Kataiser)
 async def is_admin(message: discord.Message, project: dict):
     if message.author.id in (*project['admins'], 219955313334288385):
