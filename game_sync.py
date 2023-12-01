@@ -362,10 +362,11 @@ def format_desyncs(desyncs: list) -> str:
 
 def generate_blacklist(mods_to_load: set):
     installed_mods = [item for item in os.listdir(f'{game_dir()}\\Mods') if item.endswith('.zip')]
+    always_mods = ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip', 'HelperTestMapHider.zip')
     blacklist = []
 
     for installed_mod in installed_mods:
-        if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip'):
+        if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in always_mods:
             blacklist.append(installed_mod)
 
     with open(f'{game_dir()}\\Mods\\blacklist.txt', 'w') as blacklist_txt:
