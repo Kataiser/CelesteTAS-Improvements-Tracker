@@ -233,7 +233,7 @@ def sync_test(project: dict):
                 return
 
         log.info("TAS has finished")
-        time.sleep(15 if 'SID:  ()' in session_data else 3)
+        time.sleep(15 if 'SID:  ()' in session_data else 5)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
