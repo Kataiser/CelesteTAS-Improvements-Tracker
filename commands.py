@@ -2,6 +2,7 @@ import base64
 import inspect
 import logging
 import re
+import subprocess
 import time
 from typing import Optional, List
 
@@ -609,6 +610,12 @@ async def command_sync_log(message: discord.Message):
 async def command_die(message: discord.Message):
     await message.channel.send("https://cdn.discordapp.com/attachments/972366104204812338/1179648390649360454/wqovpsazm7z61.png")
     raise SystemExit("guess I'll die")
+
+
+@command(kataiser_only=True)
+async def command_run_cmd(message: discord.Message):
+    process = subprocess.Popen(message.content.partition(' ')[2], creationflags=0x00000010)
+    await message.channel.send(f"`{process.pid}`")
 
 
 # verify that the user editing the project is an admin (or Kataiser)
