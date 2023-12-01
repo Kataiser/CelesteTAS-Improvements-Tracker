@@ -368,7 +368,7 @@ def generate_blacklist(mods_to_load: set):
         if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip'):
             blacklist.append(installed_mod)
 
-    with open(f'{game_dir()}\\Mods\blacklist.txt', 'w') as blacklist_txt:
+    with open(f'{game_dir()}\\Mods\\blacklist.txt', 'w') as blacklist_txt:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
