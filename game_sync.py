@@ -195,7 +195,7 @@ def sync_test(project: dict):
             continue
 
         tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
-        tas_lines.append('\n***')
+        tas_lines.append('\n***\n1')
 
         with open(file_path, 'w', encoding='UTF8') as tas_file:
             tas_file.truncate()
