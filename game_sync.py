@@ -155,8 +155,8 @@ def sync_test(project: dict):
 
     for process in psutil.process_iter(['name']):
         if process.name() == 'Celeste.exe':
-            process.nice(psutil.HIGH_PRIORITY_CLASS)
-            log.info("Set game process to high priority")
+            process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+            log.info("Set game process to low priority")
             break
 
     for tas_filename in path_cache:
