@@ -218,7 +218,7 @@ def sync_test(project: dict):
 
         while not tas_finished:
             try:
-                time.sleep(10 if has_filetime else 1)
+                time.sleep(20 if has_filetime else 2)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
             except (requests.Timeout, requests.ConnectionError):
                 pass
