@@ -233,7 +233,7 @@ def sync_test(project: dict):
                 return
 
         log.info("TAS has finished")
-        time.sleep(8 if 'SID:  ()' in session_data else 3)
+        time.sleep(15 if 'SID:  ()' in session_data else 3)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
@@ -254,6 +254,7 @@ def sync_test(project: dict):
                 time.sleep(2)
                 requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
                 time.sleep(2)
+                log.info("Cleared debug save")
             except (requests.Timeout, requests.ConnectionError):
                 pass
 
