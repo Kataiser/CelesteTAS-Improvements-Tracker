@@ -28,7 +28,7 @@ async def handle(message: discord.Message):
         log.info(f"Handling '{command_name}' command")
         await report_command_used(command_name, message)
         await command_functions[command_name](message)
-    elif message.content.lower() == 'ok':
+    elif message.content.lower() in ('ok', 'hi', 'hello'):
         await message.channel.send(message.content)
     else:
         await message.channel.send("Unrecognized command, try `help`")

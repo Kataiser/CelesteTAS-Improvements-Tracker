@@ -549,7 +549,7 @@ def create_logger(name: str) -> logging.Logger:
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
     logger.addHandler(stdout_handler)
-    logger.info("Log created")
+    logger.info(f"Log created, host = {utils.host()}")
 
     global log
     log = logger

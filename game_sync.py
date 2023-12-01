@@ -77,15 +77,20 @@ def sync_test(project: dict):
     files_timed = 0
     remove_save_files()
     queued_filetime_commits = []
+    game_dirs = (Path('G:/celeste'), Path('C:/Users/Bob/Documents/Celeste Itch'))
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
+
+    for possible_game_dir in game_dirs:
+        if possible_game_dir.is_dir():
+            game_dir = possible_game_dir
 
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
     close_game()
-    subprocess.Popen(r'G:\celeste\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+    subprocess.Popen(f'{game_dir}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
     everest_version = subprocess.check_output('mons show itch').decode('UTF8').partition('-')[2].partition('\r')[0]
@@ -97,17 +102,17 @@ def sync_test(project: dict):
 
     # clone repo
     repo_cloned = repo.partition('/')[2]
-    repo_path = f'G:\\celeste\\repos\\{repo_cloned}'
+    repo_path = f'{game_dir}\\repos\\{repo_cloned}'
 
-    if not os.path.isdir(r'G:\celeste\repos'):
-        os.mkdir(r'G:\celeste\repos')
+    if not os.path.isdir(f'{game_dir}\\repos'):
+        os.mkdir(f'{game_dir}\\repos')
     elif os.path.isdir(repo_path):
         shutil.rmtree(repo_path, onerror=del_rw)
 
     time.sleep(0.1)
     clone_time = int(time.time())
     cwd = os.getcwd()
-    os.chdir(r'G:\celeste\repos')
+    os.chdir(f'{game_dir}\\repos')
     subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
@@ -361,21 +366,21 @@ def format_desyncs(desyncs: list) -> str:
 
 
 def generate_blacklist(mods_to_load: set):
-    installed_mods = [item for item in os.listdir(r'G:\celeste\Mods') if item.endswith('.zip')]
+    installed_mods = [item for item in os.listdir(f'{game_dir}\\Mods') if item.endswith('.zip')]
     blacklist = []
 
     for installed_mod in installed_mods:
         if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip'):
             blacklist.append(installed_mod)
 
-    with open(r'G:\celeste\Mods\blacklist.txt', 'w') as blacklist_txt:
+    with open(f'{game_dir}\\Mods\blacklist.txt', 'w') as blacklist_txt:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
 
 # remove all files related to any save
 def remove_save_files():
-    saves_dir = r'G:\celeste\Saves'
+    saves_dir = f'{game_dir}\\Saves'
     save_files = [f'{saves_dir}\\{file}' for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
 
     for save_file in save_files:
@@ -476,7 +481,7 @@ def mod_versions(mods: set) -> str:
 
 @functools.cache
 def mods_dir() -> Path:
-    mod_paths = (Path('G:/celeste/Mods'), Path('C:/Users/Administrator/Desktop/mods'), Path('C:/Users/Bob/Documents/Celeste - FNA/Mods'))
+    mod_paths = (Path('G:/celeste/Mods'), Path('C:/Users/Administrator/Desktop/mods'), Path('C:/Users/Bob/Documents/Celeste Itch/Mods'))
 
     for mod_path in mod_paths:
         if mod_path.is_dir():

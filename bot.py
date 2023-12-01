@@ -27,7 +27,7 @@ safe_mode = False
 
 def start():
     global debug, autostarted, projects_startup
-    log.info(f"Bot starting, host = {utils.host()}")
+    log.info("Bot starting")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
     debug = parser.parse_args().debug
