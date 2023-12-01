@@ -600,6 +600,12 @@ async def command_log(message: discord.Message):
 
 
 @command(kataiser_only=True)
+async def command_sync_log(message: discord.Message):
+    with open('game_sync.log', 'rb') as sync_log:
+        await message.channel.send(file=discord.File(sync_log, filename=utils.saved_log_name('game_sync')))
+
+
+@command(kataiser_only=True)
 async def command_die(message: discord.Message):
     await message.channel.send("https://cdn.discordapp.com/attachments/972366104204812338/1179648390649360454/wqovpsazm7z61.png")
     raise SystemExit("guess I'll die")
