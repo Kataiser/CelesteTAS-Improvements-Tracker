@@ -85,10 +85,11 @@ def sync_test(project: dict):
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
     close_game()
+    everest_install = subprocess.run('mons install itch stable', capture_output=True)
+    log.info(f"Installed Everest: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
     subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
-    everest_version = subprocess.check_output('mons show itch').decode('UTF8').partition('-')[2].partition('\r')[0]
 
     # make sure path cache is correct while the game is launching
     main.generate_request_headers(project['installation_owner'], 300)
@@ -150,7 +151,6 @@ def sync_test(project: dict):
 
     mod_versions_start_time = time.perf_counter()
     log.info(f"Game loaded, mod versions: {mod_versions(mods_to_load)}")
-    log.info(f"Everest version: {everest_version}")
     time.sleep(max(0, 2 - (time.perf_counter() - mod_versions_start_time)))
 
     for process in psutil.process_iter(['name']):
