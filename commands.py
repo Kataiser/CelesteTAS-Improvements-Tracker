@@ -89,7 +89,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
       COMMAND: The command to get the parameter info for (optional)
     """
 
-    command_functions_public = [c for c in command_functions if c not in kataiser_only_commands]
+    command_functions_public = {c: command_functions[c] for c in command_functions if c not in kataiser_only_commands}
 
     if len(message_split) > 1 and message_split[1] in command_functions_public:
         await message.channel.send(command_functions_public[message_split[1]].help)
