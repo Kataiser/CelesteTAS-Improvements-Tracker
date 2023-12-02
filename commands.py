@@ -597,13 +597,19 @@ async def command_log(message: discord.Message):
     time.sleep(0.2)
 
     with open('bot.log', 'rb') as bot_log:
-        await message.channel.send(file=discord.File(bot_log, filename=utils.saved_log_name('bot')))
+        log_bytes = bot_log.read()
+        bot_log.seek(0)
+        end_text = log_bytes[-1000:].decode('UTF8')
+        await message.channel.send(f'`{end_text}`', file=discord.File(bot_log, filename=utils.saved_log_name('bot')))
 
 
 @command(kataiser_only=True)
 async def command_sync_log(message: discord.Message):
     with open('game_sync.log', 'rb') as sync_log:
-        await message.channel.send(file=discord.File(sync_log, filename=utils.saved_log_name('game_sync')))
+        log_bytes = sync_log.read()
+        sync_log.seek(0)
+        end_text = log_bytes[-1000:].decode('UTF8')
+        await message.channel.send(f'`{end_text}`', file=discord.File(sync_log, filename=utils.saved_log_name('game_sync')))
 
 
 @command(kataiser_only=True)
