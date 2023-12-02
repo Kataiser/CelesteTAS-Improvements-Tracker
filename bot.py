@@ -196,14 +196,14 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
 @client.event
 async def on_guild_join(guild: discord.Guild):
-    join_message = f"Bot has been added to server: {guild.name}"
+    join_message = f"Bot has been added to server: {guild.name} (ID = {guild.id}, owner = {utils.detailed_user(user=guild.owner)})"
     log.info(join_message)
     await (await client.fetch_user(219955313334288385)).send(join_message)
 
 
 @client.event
 async def on_guild_remove(guild: discord.Guild):
-    remove_message = f"Bot has been removed from a server: {guild.name}"
+    remove_message = f"Bot has been removed from a server: {guild.name} (ID = {guild.id})"
     log.info(remove_message)
     await (await client.fetch_user(219955313334288385)).send(remove_message)
 
