@@ -127,10 +127,11 @@ def sync_test(project: dict):
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
                         assert_line = f'Assert,Equal,{sid},{{Session.Area.SID}}\n'
-                        tas_lines.insert(tas_line[0] + 3, assert_line)
+                        assert_line_num = tas_line[0] + 3
+                        tas_lines.insert(assert_line_num, assert_line)
                         tas_file.seek(0)
                         tas_file.writelines(tas_lines)
-                        asserts_added[file_path_repo] = assert_line
+                        asserts_added[file_path_repo] = (assert_line_num, assert_line)
                         break
 
     if asserts_added:
