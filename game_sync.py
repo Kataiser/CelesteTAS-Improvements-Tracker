@@ -151,7 +151,7 @@ def sync_test(project: dict):
 
     mod_versions_start_time = time.perf_counter()
     log.info(f"Game loaded, mod versions: {mod_versions(mods_to_load)}")
-    time.sleep(max(0, 2 - (time.perf_counter() - mod_versions_start_time)))
+    time.sleep(max(0, 8 - (time.perf_counter() - mod_versions_start_time)))
 
     for process in psutil.process_iter(['name']):
         if process.name() == 'Celeste.exe':
