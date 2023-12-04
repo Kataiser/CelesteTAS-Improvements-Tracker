@@ -87,7 +87,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     for attachment in tas_attachments:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
         repo = project['repo']
-        is_lobby = project['is_lobby']
 
         if isinstance(attachment, discord.Attachment):
             r = requests.get(attachment.url)
@@ -131,11 +130,14 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             commit_status = commit(project, message, filename, file_content, validation_result)
             project['last_commit_time'] = int(time.time())
 
+            if not skip_validation:
+                add_project_log(message)
+
             if commit_status:
+                await message.add_reaction('🚧' if validation_result.wip else '📝')
                 history_data = (utils.detailed_user(message), message.channel.id, project['name'], *commit_status, attachment.url)
                 db.history_log.set(utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
-                await message.add_reaction('🚧' if validation_result.wip else '📝')
                 await edit_pin(message.channel)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
@@ -164,9 +166,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
 
         if len(tas_attachments) > 1:
             log.info(f"Done processing {filename}")
-
-    if not skip_validation:
-        add_project_log(message)
 
     await message.clear_reaction('👀')
     log.info("Done processing message")
