@@ -140,7 +140,7 @@ def sync_test(project: dict):
     # wait for the game to load (handles mods updating as well)
     while not game_loaded:
         try:
-            time.sleep(2)
+            time.sleep(5)
             requests.get('http://localhost:32270/', timeout=2)
         except requests.Timeout:
             current_time = time.perf_counter()
@@ -152,7 +152,7 @@ def sync_test(project: dict):
 
     mod_versions_start_time = time.perf_counter()
     log.info(f"Game loaded, mod versions: {mod_versions(mods_to_load)}")
-    time.sleep(max(0, 8 - (time.perf_counter() - mod_versions_start_time)))
+    time.sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
 
     for process in psutil.process_iter(['name']):
         if process.name() == 'Celeste.exe':
@@ -203,7 +203,7 @@ def sync_test(project: dict):
             tas_file.write(''.join(tas_lines))
 
         # now run it
-        time.sleep(0.2)
+        time.sleep(0.5)
         initial_mtime = os.path.getmtime(file_path)
         log.info(f"Sync checking {tas_filename} ({tas_parsed.finaltime_trimmed})")
         tas_started = False
@@ -219,7 +219,7 @@ def sync_test(project: dict):
 
         while not tas_finished:
             try:
-                time.sleep(20 if has_filetime else 2)
+                time.sleep(20 if has_filetime else 5)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
             except (requests.Timeout, requests.ConnectionError):
                 pass
@@ -234,7 +234,7 @@ def sync_test(project: dict):
                 return
 
         log.info("TAS has finished")
-        time.sleep(15 if 'SID:  ()' in session_data else 5)
+        time.sleep(20 if 'SID:  ()' in session_data else 5)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
