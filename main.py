@@ -462,9 +462,15 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
         log.info("Not updating Contributors.txt")
         return
 
+    if project['contributors_file_path']:
+        contributors_txt_path = f'{project['contributors_file_path']}/Contributors.txt'
+    elif project['subdir']:
+        contributors_txt_path = f'{project['subdir']}/Contributors.txt'
+    else:
+        contributors_txt_path = 'Contributors.txt'
+
     contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
     repo = project['repo']
-    contributors_txt_path = f'{project['subdir']}/Contributors.txt' if project['subdir'] else 'Contributors.txt'
     r = requests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
     r_json = ujson.loads(r.content)
 
