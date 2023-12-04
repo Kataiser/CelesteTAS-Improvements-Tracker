@@ -65,18 +65,6 @@ def nickname(author: discord.User) -> str:
     return nicknames[author.id] if author.id in nicknames else (author.global_name if author.global_name else author.name)
 
 
-def add_project_key(key: str, value: Any):
-    # update project_schema.json first
-    projects = db.projects.dict()
-
-    for project_id in projects:
-        print(projects[project_id]['name'])
-        projects[project_id][key] = value
-        db.projects.set(project_id, projects[project_id])
-
-    print(f"Added `{key}: {value}` to {len(projects)} projects, be sure to update command_register_project")
-
-
 def load_sj_data() -> Tuple[dict, dict]:
     with open('sj.json', 'r', encoding='UTF8') as sj_file:
         sj_data: dict = ujson.load(sj_file)
