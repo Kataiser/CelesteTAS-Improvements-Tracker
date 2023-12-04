@@ -156,6 +156,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             update_contributors(message.author, message.channel.id, project)
         else:
             log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
+            add_project_log(message)
             await message.add_reaction('❌')
             await message.add_reaction('⏭')
 
