@@ -45,6 +45,8 @@ def run_syncs():
         test_project_ids = projects
 
     load_sid_caches(projects)
+    everest_install = subprocess.run('mons install itch stable', capture_output=True)
+    log.info(f"Installed Everest: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
 
     try:
         for project_id in test_project_ids:
@@ -85,8 +87,6 @@ def sync_test(project: dict):
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
     close_game()
-    everest_install = subprocess.run('mons install itch stable', capture_output=True)
-    log.info(f"Installed Everest: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
     subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
