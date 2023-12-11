@@ -124,7 +124,7 @@ async def command_register_project(message: discord.Message, message_split: List
       IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently [Y or N]
       ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file [Y or N]
       USE_CONTRIBUTORS_FILE: Save a Contributors.txt file [Y or N]
-      DO_SYNC_CHECK: Do a nightly sync test of all your files by actually running the game (highly recommended) [Y or N]
+      DO_SYNC_CHECK: Do regular sync tests of all your files by actually running the game (highly recommended) [Y or N]
     """
 
     log.info("Verifying project")
@@ -473,7 +473,7 @@ async def command_about(message: discord.Message):
            "\nGithub installations: {2}" \
            "\nCurrent uptime: {3} hours" \
            "\nCurrent host: {7}" \
-           "\nNightly sync check: {4} project{6}" \
+           "\nSync checks: {4} project{6}" \
            "\nImprovements/drafts processed and committed: {5}"
 
     sync_checks = 0
