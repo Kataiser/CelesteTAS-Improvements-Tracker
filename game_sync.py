@@ -44,7 +44,6 @@ def run_syncs():
         log.info("Running all sync tests")
         test_project_ids = projects
 
-    load_sid_caches(projects)
     everest_install = subprocess.run('mons install itch stable', capture_output=True)
     log.info(f"Installed Everest: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
 
@@ -79,6 +78,13 @@ def sync_test(project: dict):
     files_timed = 0
     remove_save_files()
     queued_filetime_commits = []
+
+    try:
+        sid_cache = db.sid_caches.get(project_id, consistent_read=False)
+        log.info(f'Loaded {len(sid_cache)} cached SIDs')
+    except db.DBKeyError:
+        sid_cache = {}
+        log.info("Created SID cache entry")
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
@@ -119,10 +125,10 @@ def sync_test(project: dict):
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
 
-        if file_path_repo in sid_caches[project_id]:
+        if file_path_repo in sid_cache:
             with open(f'{repo_path}\\{file_path_repo}'.replace('/', '\\'), 'r+') as tas_file:
                 tas_lines = tas_file.readlines()
-                sid = sid_caches[project_id][file_path_repo]
+                sid = sid_cache[file_path_repo]
 
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
@@ -274,9 +280,9 @@ def sync_test(project: dict):
                 log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
 
                 if time_synced:
-                    if file_path_repo not in sid_caches[project_id] and sid:
-                        sid_caches[project_id][file_path_repo] = sid
-                        save_sid_caches()
+                    if file_path_repo not in sid_cache and sid:
+                        sid_cache[file_path_repo] = sid
+                        db.sid_caches.set(project_id, sid_cache)
                         log.info(f"Cached SID for {file_path_repo}: {sid}")
                     elif not sid:
                         log.warning(f"Running {file_path_repo} yielded no SID")
@@ -497,31 +503,7 @@ def game_dir() -> Path:
             return possible_game_dir
 
 
-def load_sid_caches(projects: dict):
-    global sid_caches
-    added_key = False
-
-    with open('sid_caches.json', 'r', encoding='UTF8') as sid_caches_file:
-        sid_caches = ujson.load(sid_caches_file)
-        sid_caches = {int(k): sid_caches[k] for k in sid_caches}
-
-    for project_id in projects:
-        if projects[project_id]['do_run_validation'] and project_id not in sid_caches:
-            sid_caches[project_id] = {}
-            added_key = True
-            log.info(f"Added SID cache entry for project {projects[project_id]['name']}")
-
-    if added_key:
-        save_sid_caches()
-
-
-def save_sid_caches():
-    with open('sid_caches.json', 'w', encoding='UTF8') as sid_caches_file:
-        ujson.dump(sid_caches, sid_caches_file, ensure_ascii=False, indent=4, escape_forward_slashes=False)
-
-
 log: Optional[logging.Logger] = None
-sid_caches: Optional[dict] = None
 re_redact_token = re.compile(r"'token': '[^']*'")
 
 if __name__ == '__main__':

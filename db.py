@@ -183,6 +183,7 @@ logs = Table('logs', 'time')
 sync_results = Table('sync_results', 'project_id')
 misc = Table('misc', 'key')
 contributors = Table('contributors', 'project_id')
+sid_caches = Table('sid_caches', 'project_id')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 
@@ -263,4 +264,13 @@ if __name__ == '__main__':
             history_log.set(timestamp, line_partitioned[2][:-1])
 
     print(history_log.get('2023-03-06 20:31:44,890'))
+    print(sid_caches.metadata())
+
+    with open('sid_caches.json', 'r', encoding='UTF8') as sid_caches_json:
+        sid_caches_loaded = ujson.load(sid_caches_json)
+
+    for project_id in sid_caches_loaded:
+        sid_caches.set(int(project_id), sid_caches_loaded[project_id])
+
+    print(sid_caches.get(1180581916529922188))
     client.close()
