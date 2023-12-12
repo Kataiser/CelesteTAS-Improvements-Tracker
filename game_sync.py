@@ -103,7 +103,7 @@ def sync_test(project: dict):
     if not os.path.isdir(f'{game_dir()}\\repos'):
         os.mkdir(f'{game_dir()}\\repos')
     elif os.path.isdir(repo_path):
-        shutil.rmtree(repo_path, onerror=del_rw)
+        shutil.rmtree(repo_path, onexc=del_rw)
 
     time.sleep(0.1)
     clone_time = int(time.time())
@@ -395,9 +395,9 @@ def post_cleanup():
     remove_save_files()
 
 
-def del_rw(action, name, exc):
-    os.chmod(name, stat.S_IWRITE)
-    os.remove(name)
+def del_rw(function, path, excinfo):
+    os.chmod(path, stat.S_IWRITE)
+    os.remove(path)
 
 
 def close_game():
