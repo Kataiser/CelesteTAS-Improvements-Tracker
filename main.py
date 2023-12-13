@@ -102,23 +102,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             log.info(f"Considering {filename} as {filename_no_underscores}")
             filename = filename_no_underscores
 
-        old_file_path = get_file_repo_path(message.channel.id, filename)
-        old_file_content = None
-
-        if old_file_path:
-            log.info("Downloading old version of file, for time reference")
-            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
-            r_json = ujson.loads(r.content)
-
-            if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
-                db.path_caches.remove_file(message.channel.id, filename)
-                log.warning("File existed in path cache but doesn't seem to exist in repo")
-            else:
-                utils.handle_potential_request_error(r, 200)
-                old_file_content = base64.b64decode(r_json['content'])
-        else:
-            log.info("No old version of file exists")
-
+        old_file_content = download_old_file(message.channel.id, repo, filename)
         validation_result = validation.validate(file_content, filename, message, old_file_content, project, skip_validation)
         db.path_caches.disable_cache()
 
@@ -366,6 +350,33 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
         await pin_message.edit(content=text_out)
         log.info("Edited pin")
         return pin_message
+
+
+def download_old_file(project_id: int, repo: str, filename: str, path_cache: Optional[dict] = None) -> Optional[bytes]:
+    if path_cache:
+        old_file_path = path_cache[filename] if filename in path_cache else None
+    else:
+        old_file_path = get_file_repo_path(project_id, filename)
+
+    if old_file_path:
+        if path_cache is None:
+            log.info("Downloading old version of file, for time reference")
+
+        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
+        r_json = ujson.loads(r.content)
+
+        if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
+            if path_cache is None:
+                log.warning("File existed in path cache but doesn't seem to exist in repo. Retrying download with updated path cache")
+                new_path_cache = generate_path_cache(project_id)
+                return download_old_file(project_id, repo, filename, new_path_cache)
+            else:
+                log.warning("File still not available")
+        else:
+            utils.handle_potential_request_error(r, 200)
+            return base64.b64decode(r_json['content'])
+    else:
+        log.info("No old version of file exists")
 
 
 @dataclasses.dataclass
