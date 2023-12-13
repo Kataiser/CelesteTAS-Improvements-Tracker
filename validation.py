@@ -384,8 +384,8 @@ class OptionalArg:
         self.validate_func = validate_func
 
 
-re_chapter_time = re.compile(r'#{0}ChapterTime: [\d+:]*\d+:\d+\.\d+(\d+)')
-re_file_time = re.compile(r'#{0}FileTime: [\d+:]*\d+:\d+\.\d+(\d+)')
+re_chapter_time = re.compile(r'#{0}(Midway)*ChapterTime: [\d+:]*\d+:\d+\.\d+(\d+)')
+re_file_time = re.compile(r'#{0}(Midway)*FileTime: [\d+:]*\d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')

@@ -185,6 +185,7 @@ def sync_test(project: dict):
 
         if tas_parsed.found_finaltime:
             has_filetime = tas_lines[tas_parsed.finaltime_line_num].startswith('FileTime')
+            # intentionaly don't detect MidwayFileTime
 
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
