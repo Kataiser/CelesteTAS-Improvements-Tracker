@@ -201,8 +201,11 @@ def sync_test(project_id: int):
         tas_parsed = validation.parse_tas_file(tas_lines, False, False)
 
         if tas_parsed.found_finaltime:
-            has_filetime = tas_lines[tas_parsed.finaltime_line_num].startswith('FileTime')
-            # intentionaly don't detect MidwayFileTime
+            has_filetime = tas_lines[tas_parsed.finaltime_line_num].lower().startswith('filetime')
+            # intentionally don't detect MidwayFileTime
+
+            if has_filetime or tas_lines[tas_parsed.finaltime_line_num].lower().startswith('midway'):
+                clear_debug_save()
 
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
@@ -272,17 +275,9 @@ def sync_test(project_id: int):
 
         tas_parsed_new = validation.parse_tas_file(tas_updated, False, False)
 
-        # clear debug save, for silvers
-        if has_filetime:
-            try:
-                requests.post('http://localhost:32270/console?command=overworld', timeout=2)
-                time.sleep(5)
-                requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
-                time.sleep(5)
-                log.info("Cleared debug save")
-                time.sleep(5)
-            except (requests.Timeout, requests.ConnectionError):
-                pass
+        # for silvers
+        if has_filetime:  # or tas_lines[tas_parsed.finaltime_line_num].lower().startswith('midway'):
+            clear_debug_save()
 
         if tas_parsed_new.found_finaltime:
             frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
@@ -376,6 +371,17 @@ def sync_test(project_id: int):
         commit_url = ujson.loads(r.content)['commit']['html_url']
         log.info(f"Successfully committed: {commit_url}")
 
+
+def clear_debug_save():
+    try:
+        requests.post('http://localhost:32270/console?command=overworld', timeout=2)
+        time.sleep(5)
+        requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
+        time.sleep(5)
+        log.info("Cleared debug save")
+        time.sleep(5)
+    except (requests.Timeout, requests.ConnectionError):
+        pass
 
 def format_desyncs(desyncs: list) -> str:
     formatted = []
