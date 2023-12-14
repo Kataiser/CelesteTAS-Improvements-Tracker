@@ -258,7 +258,7 @@ def sync_test(project_id: int):
                 return
 
         log.info("TAS has finished")
-        time.sleep(20 if has_filetime or 'SID:  ()' in session_data else 5)
+        time.sleep(15 if has_filetime or 'SID:  ()' in session_data else 5)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
@@ -276,10 +276,11 @@ def sync_test(project_id: int):
         if has_filetime:
             try:
                 requests.post('http://localhost:32270/console?command=overworld', timeout=2)
-                time.sleep(2)
+                time.sleep(5)
                 requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
-                time.sleep(2)
+                time.sleep(5)
                 log.info("Cleared debug save")
+                time.sleep(5)
             except (requests.Timeout, requests.ConnectionError):
                 pass
 
