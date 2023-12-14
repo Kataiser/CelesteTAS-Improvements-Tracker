@@ -31,7 +31,6 @@ def run_syncs():
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
     cli_project = parser.parse_args().project
-    projects = db.projects.dict()
 
     if cli_project:
         if cli_project.isdigit():
@@ -41,18 +40,24 @@ def run_syncs():
             test_project_ids = [int(p['project_id']) for p in db.projects.get_by_name_or_id(cli_project)]
             log.info(f"Running sync test for project ID{plural(test_project_ids)} {test_project_ids} only")
     else:
-        log.info("Running all sync tests")
-        test_project_ids = projects
+        projects = db.projects.dict()
+        test_project_ids = []
+
+        for project_id in sorted(projects, reverse=True):
+            project = projects[project_id]
+
+            if project['do_run_validation'] and db.path_caches.get(project_id):
+                test_project_ids.append(project_id)
+
+        all_sync_tests = {project_id: projects[project_id]['name'] for project_id in test_project_ids}
+        log.info(f"Running all sync tests: {all_sync_tests}")
 
     everest_install = subprocess.run('mons install itch stable', capture_output=True)
     log.info(f"Installed Everest: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
 
     try:
         for project_id in test_project_ids:
-            project = projects[project_id]
-
-            if db.projects.get(project_id)['do_run_validation'] and db.path_caches.get(project_id):
-                sync_test(project)
+            sync_test(project_id)
     except Exception:
         utils.log_error()
         close_game()
@@ -62,17 +67,24 @@ def run_syncs():
     post_cleanup()
 
 
-def sync_test(project: dict):
+def sync_test(project_id: int):
     current_log = io.StringIO()
     stream_handler = logging.StreamHandler(current_log)
     stream_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
     log.addHandler(stream_handler)
+
+    project = db.projects.get(project_id)
+
+    if not project['do_run_validation']:
+        log.info(f"Abandoning sync test for project \"{project['name']}\" due to it now being disabled")
+        return
 
     log.info(f"Running sync test for project: {project['name']}")
     project_id = project['project_id']
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
+    filetimes = project['filetimes']
     desyncs = []
     mods_to_load = set(mods)
     files_timed = 0
@@ -101,6 +113,11 @@ def sync_test(project: dict):
     main.generate_request_headers(project['installation_owner'], 300)
     main.generate_path_cache(project_id)
     path_cache = db.path_caches.get(project_id)
+
+    if not path_cache:
+        log.info(f"Abandoning sync test due to path cache now being empty")
+        close_game()
+        return
 
     # clone repo
     repo_cloned = repo.partition('/')[2]
@@ -291,7 +308,7 @@ def sync_test(project: dict):
                     desyncs.append((tas_filename, time_delta))
             else:
                 log.info(f"Time: {tas_parsed_new.finaltime_trimmed}")
-                project['filetimes'][tas_filename] = tas_parsed_new.finaltime_trimmed
+                filetimes[tas_filename] = tas_parsed_new.finaltime_trimmed
 
                 if not time_synced:
                     new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
@@ -307,6 +324,8 @@ def sync_test(project: dict):
         files_timed += 1
 
     close_game()
+    project = db.projects.get(project_id)  # update this, in case it has changed since starting
+    project['filetimes'] = filetimes
     project['last_run_validation'] = clone_time
     project['desyncs'] = [desync[0] for desync in desyncs]
     time_since_last_commit = clone_time - project['last_commit_time']
