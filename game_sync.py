@@ -91,13 +91,6 @@ def sync_test(project_id: int):
     remove_save_files()
     queued_filetime_commits = []
 
-    try:
-        sid_cache = db.sid_caches.get(project_id, consistent_read=False)
-        log.info(f'Loaded {len(sid_cache)} cached SIDs')
-    except db.DBKeyError:
-        sid_cache = {}
-        log.info("Created SID cache entry")
-
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
 
@@ -138,6 +131,13 @@ def sync_test(project_id: int):
 
     # add asserts for cached SIDs
     asserts_added = {}
+
+    try:
+        sid_cache = db.sid_caches.get(project_id, consistent_read=False)
+        log.info(f'Loaded {len(sid_cache)} cached SIDs')
+    except db.DBKeyError:
+        sid_cache = {}
+        log.info("Created SID cache entry")
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
