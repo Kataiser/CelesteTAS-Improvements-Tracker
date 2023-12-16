@@ -1,8 +1,10 @@
 import argparse
+import subprocess
 import time
 from typing import List
 
 import discord
+import psutil
 
 import commands
 import db
@@ -110,7 +112,6 @@ async def on_ready():
 
     if not main.handle_game_sync_results.is_running():
         main.handle_game_sync_results.start()
-        main.check_for_updates.start()
 
 
 @client.event
@@ -125,6 +126,12 @@ async def on_message(message: discord.Message):
         await main.process_improvement_message(message)
     elif message.author.id in (438978127973318656, 155149108183695360) or message.channel.id == 403698615446536206:
         return
+    elif message.channel.id == 1185382846018359346:
+        updating_text = "New commit found, updating and restarting"
+        log.info(updating_text)
+        await (await client.fetch_user(219955313334288385)).send(updating_text)
+        self_process = psutil.Process()
+        subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
 
     message_lower = message.content.lower()
     substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
