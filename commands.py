@@ -1,6 +1,7 @@
 import base64
 import inspect
 import logging
+import os
 import re
 import subprocess
 import time
@@ -622,6 +623,31 @@ async def command_die(message: discord.Message):
 async def command_run_cmd(message: discord.Message):
     process = subprocess.Popen(message.content.partition(' ')[2], creationflags=0x00000010)
     await message.channel.send(f"`{process.pid}`")
+    raise SystemExit("guess I'll die")
+
+
+@command(kataiser_only=True)
+async def send_file(message: discord.Message):
+    assert message.attachments
+    given_path = message.content.partition(' ')[2].strip('"')
+
+    if given_path:
+        assert os.path.isdir(given_path)
+
+    for file in message.attachments:
+        full_path = os.path.join(given_path, file.filename)
+        await file.save(full_path)
+        await message.channel.send(f"Saved to {full_path}")
+        log.info(f"Saved to {full_path}")
+
+
+@command(kataiser_only=True)
+async def get_file(message: discord.Message):
+    given_path = message.content.partition(' ')[2].strip('"')
+    assert given_path
+    assert os.path.isfile(given_path)
+    await message.channel.send('_ _', file=discord.File(given_path))
+    log.info("Sent file")
 
 
 # verify that the user editing the project is an admin (or Kataiser)
