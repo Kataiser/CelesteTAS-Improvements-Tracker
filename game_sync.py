@@ -27,6 +27,7 @@ from utils import plural
 
 def run_syncs():
     global log
+    start_time = time.time()
     log = main.create_logger('game_sync')
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
@@ -65,9 +66,11 @@ def run_syncs():
         raise
 
     post_cleanup()
+    log.info(f"All sync checks time: {format_elapsed_time(start_time)}")
 
 
 def sync_test(project_id: int):
+    start_time = time.time()
     current_log = io.StringIO()
     stream_handler = logging.StreamHandler(current_log)
     stream_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
@@ -373,6 +376,8 @@ def sync_test(project_id: int):
         commit_url = ujson.loads(r.content)['commit']['html_url']
         log.info(f"Successfully committed: {commit_url}")
 
+    log.info(f"Sync check time: {format_elapsed_time(start_time)}")
+
 
 def clear_debug_save():
     try:
@@ -511,6 +516,12 @@ def mod_versions(mods: set) -> str:
         versions.append(f"{mod} = {get_mod_everest_yaml(mod)['Version'] if everest_yaml else "UNKNOWN"}")
 
     return ", ".join(sorted(versions))
+
+
+def format_elapsed_time(start_time: float) -> str:
+    hours, seconds = divmod(time.time() - start_time, 3600)
+    minutes = seconds / 60
+    return f"{int(hours)}h {int(minutes)}m"
 
 
 @functools.cache
