@@ -201,15 +201,17 @@ def sync_test(project_id: int):
         tas_parsed = validation.parse_tas_file(tas_lines, False, False)
 
         if tas_parsed.found_finaltime:
-            has_filetime = tas_lines[tas_parsed.finaltime_line_num].lower().startswith('filetime')
-            # intentionally don't detect MidwayFileTime
+            finaltime_line_lower = tas_lines[tas_parsed.finaltime_line_num].lower()
+            has_filetime = finaltime_line_lower.startswith('filetime')
+            finaltime_is_midway = finaltime_line_lower.startswith('midway')
+            finaltime_line_blank = f'{tas_lines[tas_parsed.finaltime_line_num].partition(' ')[0]} \n'
 
-            if has_filetime or tas_lines[tas_parsed.finaltime_line_num].lower().startswith('midway'):
+            if has_filetime or finaltime_is_midway:
                 clear_debug_save()
 
             if has_filetime:
                 tas_lines_og = tas_lines.copy()
-                tas_lines[tas_parsed.finaltime_line_num] = 'FileTime: \n'
+                tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
                 has_console_load = [line for line in tas_lines if line.startswith('console load')] != []
 
                 if not has_console_load:
@@ -217,7 +219,7 @@ def sync_test(project_id: int):
                     tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 5\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n',
                                      '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
             else:
-                tas_lines[tas_parsed.finaltime_line_num] = 'ChapterTime: \n'
+                tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
         else:
             log.info(f"{tas_filename} has no final time")
             continue
@@ -313,7 +315,7 @@ def sync_test(project_id: int):
                     queued_filetime_commits.append((file_path_repo, tas_lines_og, commit_message))
                     # don't commit now, since there may be desyncs
         else:
-            log.warning(f"Desynced (no {'FileTime' if has_filetime else 'ChapterTime'})")
+            log.warning(f"Desynced (no {finaltime_line_blank.partition(':')[0]})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append((tas_filename, None))
 
@@ -382,6 +384,7 @@ def clear_debug_save():
         time.sleep(5)
     except (requests.Timeout, requests.ConnectionError):
         pass
+
 
 def format_desyncs(desyncs: list) -> str:
     formatted = []
