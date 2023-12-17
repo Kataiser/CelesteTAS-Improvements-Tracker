@@ -84,7 +84,7 @@ def sync_test(project_id: int):
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
-    filetimes = project['filetimes']
+    filetimes = {}
     desyncs = []
     mods_to_load = set(mods)
     files_timed = 0
