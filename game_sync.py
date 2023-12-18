@@ -53,12 +53,13 @@ def run_syncs():
         all_sync_tests = {project_id: projects[project_id]['name'] for project_id in test_project_ids}
         log.info(f"Running all sync tests: {all_sync_tests}")
 
+    log.info("Installing Everest")
     everest_install = subprocess.run('mons install itch stable', capture_output=True)
-    log.info(f"Installed Everest: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
+    log.info(f"Installed: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
 
     try:
         for project_id in test_project_ids:
-            sync_test(project_id)
+            sync_test(project_id, cli_project)
     except Exception:
         utils.log_error()
         close_game()
@@ -69,7 +70,7 @@ def run_syncs():
     log.info(f"All sync checks time: {format_elapsed_time(start_time)}")
 
 
-def sync_test(project_id: int):
+def sync_test(project_id: int, force: bool):
     start_time = time.time()
     current_log = io.StringIO()
     stream_handler = logging.StreamHandler(current_log)
@@ -78,7 +79,7 @@ def sync_test(project_id: int):
 
     project = db.projects.get(project_id)
 
-    if not project['do_run_validation']:
+    if not project['do_run_validation'] and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to it now being disabled")
         return
 
@@ -101,9 +102,7 @@ def sync_test(project_id: int):
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
     close_game()
-    subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
-    game_loaded = False
-    last_game_loading_notify = time.perf_counter()
+    start_game()
 
     # make sure path cache is correct while the game is launching
     main.generate_request_headers(project['installation_owner'], 300)
@@ -131,10 +130,9 @@ def sync_test(project_id: int):
     subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
-
-    # add asserts for cached SIDs
     asserts_added = {}
 
+    # add asserts for cached SIDs
     try:
         sid_cache = db.sid_caches.get(project_id, consistent_read=False)
         log.info(f'Loaded {len(sid_cache)} cached SIDs')
@@ -163,28 +161,11 @@ def sync_test(project_id: int):
     if asserts_added:
         log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
 
-    # wait for the game to load (handles mods updating as well)
-    while not game_loaded:
-        try:
-            time.sleep(5)
-            requests.get('http://localhost:32270/', timeout=2)
-        except requests.Timeout:
-            current_time = time.perf_counter()
-
-            if current_time - last_game_loading_notify > 60:
-                last_game_loading_notify = current_time
-        else:
-            game_loaded = True
-
+    wait_for_game_load()
     mod_versions_start_time = time.perf_counter()
     log.info(f"Game loaded, mod versions: {mod_versions(mods_to_load)}")
     time.sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
-
-    for process in psutil.process_iter(['name']):
-        if process.name() == 'Celeste.exe':
-            process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-            log.info("Set game process to low priority")
-            break
+    set_game_priority()
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
@@ -245,9 +226,11 @@ def sync_test(project_id: int):
         while not tas_started:
             try:
                 requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
-                tas_started = True
             except (requests.Timeout, requests.ConnectionError):
                 pass
+            else:
+                crash_logs = os.listdir(f'{game_dir()}\\CrashLogs')
+                tas_started = True
 
         while not tas_finished:
             try:
@@ -261,11 +244,8 @@ def sync_test(project_id: int):
                 if not has_filetime:
                     sid = session_data.partition('SID: ')[2].partition(' (')[0]
 
-            if not tas_finished and not process.is_running():
-                utils.log_error("Game crashed, abandoning game sync for project")
-                return
-
         log.info("TAS has finished")
+        files_timed += 1
         time.sleep(15 if has_filetime or 'SID:  ()' in session_data else 5)
         extra_sleeps = 0
 
@@ -273,6 +253,16 @@ def sync_test(project_id: int):
             time.sleep(3 + (extra_sleeps ** 2))
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
+
+        if len(os.listdir(f'{game_dir()}\\CrashLogs')) > len(crash_logs):
+            utils.log_error("Game crashed, restarting and continuing")
+            desyncs.append((tas_filename, "Crashed game"))
+            time.sleep(10)
+            close_game()
+            time.sleep(5)
+            start_game()
+            wait_for_game_load()
+            continue
 
         # determine if it synced or not
         with open(file_path, 'rb') as tas_file:
@@ -321,8 +311,6 @@ def sync_test(project_id: int):
             log.warning(f"Desynced (no {finaltime_line_blank.partition(':')[0]})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append((tas_filename, None))
-
-        files_timed += 1
 
     close_game()
     project = db.projects.get(project_id)  # update this, in case it has changed since starting
@@ -439,6 +427,35 @@ def post_cleanup():
 def del_rw(function, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     os.remove(path)
+
+
+def start_game():
+    subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+
+
+def set_game_priority():
+    for process in psutil.process_iter(['name']):
+        if process.name() == 'Celeste.exe':
+            process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+            log.info("Set game process to low priority")
+            break
+
+
+def wait_for_game_load():
+    game_loaded = False
+    last_game_loading_notify = time.perf_counter()
+
+    while not game_loaded:
+        try:
+            time.sleep(5)
+            requests.get('http://localhost:32270/', timeout=2)
+        except requests.Timeout:
+            current_time = time.perf_counter()
+
+            if current_time - last_game_loading_notify > 60:
+                last_game_loading_notify = current_time
+        else:
+            game_loaded = True
 
 
 def close_game():
