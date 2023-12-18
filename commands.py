@@ -130,7 +130,7 @@ async def command_register_project(message: discord.Message, message_split: List
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
-    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, use_contributors_file, do_run_validation = message_split
+    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, use_contributors_file, do_sync_check = message_split
     improvements_channel_id = int(improvements_channel_id)
     projects = db.projects.dict()
     editing = improvements_channel_id in projects
@@ -191,10 +191,10 @@ async def command_register_project(message: discord.Message, message_split: List
             await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\"")
             return
 
-    # verify not adding run validation to a lobby
-    if do_run_validation.lower() == 'y' and is_lobby.lower() == 'y':
-        await utils.report_error(client, "Can't add run validation to a lobby project")
-        await message.channel.send("Enabling run validation for a lobby project is not allowed")
+    # verify not adding run sync check to a lobby
+    if do_sync_check.lower() == 'y' and is_lobby.lower() == 'y':
+        await utils.report_error(client, "Can't add sync check to a lobby project")
+        await message.channel.send("Enabling sync check for a lobby project is not allowed")
         return
 
     log.info("Verification successful")
@@ -208,8 +208,9 @@ async def command_register_project(message: discord.Message, message_split: List
                           'commit_drafts': commit_drafts.lower() == 'y',
                           'is_lobby': is_lobby.lower() == 'y',
                           'ensure_level': ensure_level.lower() == 'y',
-                          'do_run_validation': do_run_validation.lower() == 'y',
+                          'do_run_validation': do_sync_check.lower() == 'y',
                           'use_contributors_file': use_contributors_file.lower() == 'y',
+                          'contributors_file_path': '',
                           'last_run_validation': None,
                           'pin': None,
                           'subdir': subdir,
@@ -242,7 +243,7 @@ async def command_register_project(message: discord.Message, message_split: List
     if editing:
         await message.channel.send("Successfully verified and edited project.")
     else:
-        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_run_validation.lower() == 'y' else ""
+        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_sync_check.lower() == 'y' else ""
         await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}")
 
