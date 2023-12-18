@@ -250,8 +250,11 @@ def sync_test(project_id: int, force: bool):
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
 
-        if len(os.listdir(f'{game_dir()}\\CrashLogs')) > len(crash_logs):
-            utils.log_error("Game crashed, restarting and continuing")
+        updated_crash_logs = os.listdir(f'{game_dir()}\\CrashLogs')
+
+        if len(updated_crash_logs) > len(crash_logs):
+            new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
+            utils.log_error(f"Game crashed ({new_crash_logs}), restarting and continuing")
             desyncs.append((tas_filename, "Crashed game"))
             time.sleep(10)
             close_game()
