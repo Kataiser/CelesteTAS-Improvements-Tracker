@@ -161,11 +161,7 @@ def sync_test(project_id: int, force: bool):
     if asserts_added:
         log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
 
-    wait_for_game_load()
-    mod_versions_start_time = time.perf_counter()
-    log.info(f"Game loaded, mod versions: {mod_versions(mods_to_load)}")
-    time.sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
-    set_game_priority()
+    wait_for_game_load(mods_to_load)
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
@@ -261,7 +257,7 @@ def sync_test(project_id: int, force: bool):
             close_game()
             time.sleep(5)
             start_game()
-            wait_for_game_load()
+            wait_for_game_load(mods_to_load)
             continue
 
         # determine if it synced or not
@@ -433,15 +429,7 @@ def start_game():
     subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
 
 
-def set_game_priority():
-    for process in psutil.process_iter(['name']):
-        if process.name() == 'Celeste.exe':
-            process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-            log.info("Set game process to low priority")
-            break
-
-
-def wait_for_game_load():
+def wait_for_game_load(mods: set):
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
 
@@ -456,6 +444,16 @@ def wait_for_game_load():
                 last_game_loading_notify = current_time
         else:
             game_loaded = True
+
+    mod_versions_start_time = time.perf_counter()
+    log.info(f"Game loaded, mod versions: {mod_versions(mods)}")
+    time.sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
+
+    for process in psutil.process_iter(['name']):
+        if process.name() == 'Celeste.exe':
+            process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+            log.info("Set game process to low priority")
+            break
 
 
 def close_game():
