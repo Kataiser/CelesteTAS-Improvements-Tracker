@@ -146,7 +146,7 @@ async def command_register_project(message: discord.Message, message_split: List
     # verify improvements channel exists
     improvements_channel = client.get_channel(improvements_channel_id)
     if not improvements_channel:
-        error = f"Channel {improvements_channel_id} doesn't exist"
+        error = f"Channel {improvements_channel_id} doesn't exist."
         await utils.report_error(client, error)
         await message.channel.send(error)
         return
@@ -154,7 +154,7 @@ async def command_register_project(message: discord.Message, message_split: List
     # verify needed permissions in improvements channel
     missing_permissions = utils.missing_channel_permissions(improvements_channel)
     if missing_permissions:
-        error = f"Don't have {missing_permissions[0]} permission for #{improvements_channel.name} ({improvements_channel_id})"
+        error = f"Don't have {missing_permissions[0]} permission for #{improvements_channel.name} ({improvements_channel_id})."
         await utils.report_error(client, error)
         await message.channel.send(error)
         return
@@ -163,7 +163,7 @@ async def command_register_project(message: discord.Message, message_split: List
     r = requests.get(f'https://api.github.com/users/{github_account}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
         await utils.report_error(client, f"GitHub account {github_account} doesn't seem to exist, status code is {r.status_code}")
-        await message.channel.send(f"GitHub account \"{github_account}\" doesn't seem to exist")
+        await message.channel.send(f"GitHub account \"{github_account}\" doesn't seem to exist.")
         return
 
     # verify app is installed
@@ -180,7 +180,7 @@ async def command_register_project(message: discord.Message, message_split: List
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
         await utils.report_error(client, f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")
-        await message.channel.send(f"Repo \"{repo}\" doesn't seem to publically exist")
+        await message.channel.send(f"Repo \"{repo}\" doesn't seem to publically exist.")
         return
 
     # verify subdir exists in repo
@@ -188,7 +188,7 @@ async def command_register_project(message: discord.Message, message_split: List
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}', headers={'Accept': 'application/vnd.github.v3+json'})
         if r.status_code != 200 or 'type' in ujson.loads(r.content):
             await utils.report_error(client, f"Directory {subdir} doesn't seem to exist in repo {repo}, status code is {r.status_code}")
-            await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\"")
+            await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\".")
             return
 
     # verify installation can access repo
@@ -196,13 +196,13 @@ async def command_register_project(message: discord.Message, message_split: List
     accessible_repos = [i['full_name'] for i in ujson.loads(r.content)['repositories']]
     if repo not in accessible_repos:
         await utils.report_error(client, f"Repo {repo} not in accessible to installation: {accessible_repos}")
-        await message.channel.send(f"Github app instllation cannot access the repo")
+        await message.channel.send(f"Github app instllation cannot access the repo.")
         return
 
     # verify not adding run sync check to a lobby
     if do_sync_check.lower() == 'y' and is_lobby.lower() == 'y':
         await utils.report_error(client, "Can't add sync check to a lobby project")
-        await message.channel.send("Enabling sync check for a lobby project is not allowed")
+        await message.channel.send("Enabling sync check for a lobby project is not allowed.")
         return
 
     log.info("Verification successful")
@@ -275,7 +275,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
             break
         elif not project['do_run_validation']:
             log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
-            await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled")
+            await message.channel.send(f"Project \"{project['name']}\" has sync checking disabled.")
             continue
 
         log.info(f"Adding mods for project: {project['name']}")
@@ -299,7 +299,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
             if mod not in installed_mods:
                 mods_missing.add(mod)
 
-        await message.channel.send(f"Project \"{project['name']}\" now has {len(all_project_mods)} mod{plural(all_project_mods)} to load for sync testing")
+        await message.channel.send(f"Project \"{project['name']}\" now has {len(all_project_mods)} mod{plural(all_project_mods)} to load for sync testing.")
 
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
@@ -309,7 +309,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
 
     if not project_mods_added:
         log.warning(f"No projects found matching: {project_search_name}")
-        await message.channel.send("No projects (with sync checking enabled) matching that name or ID found")
+        await message.channel.send("No projects (with sync checking enabled) matching that name or ID found.")
 
 
 @command(re.compile(r'(?i)rename_file .+ .+\.tas .+\.tas'), report_usage=True)
@@ -338,12 +338,12 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
         path_cache = main.generate_path_cache(project['project_id'])
 
         if filename_before not in path_cache:
-            not_found_text = f"{filename_before} not in project {project['name']}"
+            not_found_text = f"{filename_before} not in project {project['name']}."
             log.warning(not_found_text)
             await message.channel.send(not_found_text)
             return
 
-        renaming_text = f"Renaming `{filename_before}` to `{filename_after}` in project \"{project['name']}\""
+        renaming_text = f"Renaming `{filename_before}` to `{filename_after}` in project \"{project['name']}\"."
         log.info(renaming_text)
         await message.channel.send(renaming_text)
         repo = project['repo']
@@ -387,13 +387,13 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
             db.path_caches.add_file(project['project_id'], filename_after, file_path_after)
             db.path_caches.disable_cache()
             log.info("Rename successful")
-            await message.channel.send("Rename successful")
+            await message.channel.send("Rename successful.")
             improvements_channel = client.get_channel(project['project_id'])
             await improvements_channel.send(f"{message.author.mention} renamed `{filename_before}` to `{filename_after}`")
             await main.edit_pin(improvements_channel)
         else:
             await utils.report_error(client, "Rename unsuccessful")
-            await message.channel.send("Rename unsuccessful")
+            await message.channel.send("Rename unsuccessful.")
 
     if not matching_projects:
         log.info("Found no matching projects")
@@ -428,7 +428,7 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
             edited_admin = await client.fetch_user(admin_id)
         except discord.NotFound:
             await utils.report_error(client, f"User {admin_id} not found")
-            await message.channel.send(f"User with ID {admin_id} could not be found")
+            await message.channel.send(f"User with ID {admin_id} could not be found.")
             return
 
         if adding:
@@ -632,7 +632,6 @@ async def command_die(message: discord.Message):
 async def command_run_cmd(message: discord.Message):
     process = subprocess.Popen(message.content.partition(' ')[2], creationflags=0x00000010)
     await message.channel.send(f"`{process.pid}`")
-    raise SystemExit("guess I'll die")
 
 
 @command(kataiser_only=True)
