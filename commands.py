@@ -191,6 +191,14 @@ async def command_register_project(message: discord.Message, message_split: List
             await message.channel.send(f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\"")
             return
 
+    # verify installation can access repo
+    r = requests.get(f'https://api.github.com/installation/repositories', headers=main.headers)
+    accessible_repos = [i['full_name'] for i in ujson.loads(r.content)['repositories']]
+    if repo not in accessible_repos:
+        await utils.report_error(client, f"Repo {repo} not in accessible to installation: {accessible_repos}")
+        await message.channel.send(f"Github app instllation cannot access the repo")
+        return
+
     # verify not adding run sync check to a lobby
     if do_sync_check.lower() == 'y' and is_lobby.lower() == 'y':
         await utils.report_error(client, "Can't add sync check to a lobby project")
