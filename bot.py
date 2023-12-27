@@ -156,11 +156,11 @@ async def on_message(message: discord.Message):
         elif message.reference.cached_message:
             replied_to_kataiser = message.reference.cached_message.author.id == 219955313334288385
 
-        if replied_to_kataiser and not [m for m in message.mentions if m.id == 219955313334288385]:
+        if replied_to_kataiser:
             user_ids.add(219955313334288385)
 
     for user_id in user_ids:
-        if user_id == message.author.id:
+        if user_id in (message.author.id, *[m.id for m in message.mentions]):
             continue
 
         dm = f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990]
