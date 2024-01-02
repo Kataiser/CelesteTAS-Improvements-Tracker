@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import time
+from operator import itemgetter
 from typing import Optional, List
 
 import discord
@@ -527,7 +528,6 @@ async def command_about_project(message: discord.Message, message_split: List[st
       PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will show info for all of them
     """
 
-    # message_split = re_command_split.split(message.content)
     project_search_name = message_split[1].replace('"', '')
     matching_projects = db.projects.get_by_name_or_id(project_search_name)
     text = "Name: **{0}**" \
@@ -537,11 +537,11 @@ async def command_about_project(message: discord.Message, message_split: List[st
            "\nGithub installation owner: {4}" \
            "\nInstall time: <t:{5}>" \
            "\nPin: <{6}>" \
-           "\nCommit drafts: `{7}`" \
+           "\nCommits drafts: `{7}`" \
            "\nIs lobby: `{8}`" \
-           "\nEnsure level name in posts: `{9}`" \
-           "\nDo sync check: `{10}`" \
-           "\nUse contributors file: `{13}`" \
+           "\nEnsures level name in posts: `{9}`" \
+           "\nDoes sync check: `{10}`" \
+           "\nUses contributors file: `{13}`" \
            "{11}"
 
     for project in matching_projects:
@@ -579,6 +579,69 @@ async def command_about_project(message: discord.Message, message_split: List[st
     if not matching_projects:
         log.info("Found no matching projects")
         await message.channel.send(f"Found no projects matching that name or ID.")
+
+
+@command()
+async def command_projects(message: discord.Message):
+    """
+    projects
+
+      Get the basic info and settings of all projects.
+
+      (No parameters)
+    """
+
+    text = "**{0}**" \
+           "\nRepo: <{1}>" \
+           "\nImprovement channel: <#{2}>" \
+           "\nAdmin{12}: {3}" \
+           "\nIs lobby: `{8}`" \
+           "\nDoes sync check: `{10}`" \
+           "{11}"
+
+    projects = sorted(db.projects.get_all(), key=itemgetter('last_commit_time'), reverse=True)
+    project_texts = ["Sorted by most recently improved."]
+    project_texts_length = len(project_texts[0])
+
+    for project in projects:
+        if project['project_id'] in main.inaccessible_projects:
+            continue
+
+        if project['do_run_validation']:
+            last_run = project['last_run_validation']
+
+            if last_run:
+                last_sync_check = f"\nLast sync check: <t:{last_run}>"
+            else:
+                last_sync_check = "\nLast sync check: `Not yet run`"
+        else:
+            last_sync_check = ""
+
+        repo = project['repo']
+        subdir = project['subdir']
+        admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
+        repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
+
+        text = f"Name: **{project['name']}**" \
+               f"\nRepo: <{repo_url}>" \
+               f"\nImprovement channel: <#{project['project_id']}>" \
+               f"\nAdmin{plural(admins)}: {', '.join(admins)}" \
+               f"\nIs lobby: `{project['is_lobby']}`" \
+               f"\nDoes sync check: `{project['do_run_validation']}`" \
+               f"{last_sync_check}"
+
+        if project_texts_length + len(text) > 1900:
+            log.info(f"Sending {len(project_texts)} project texts")
+            await message.channel.send('\n\n'.join(project_texts))
+            project_texts = []
+            project_texts_length = 0
+
+        project_texts.append(text)
+        project_texts_length += len(text)
+
+    if project_texts:
+        log.info(f"Sending {len(project_texts)} remaining project texts")
+        await message.channel.send('\n\n'.join(project_texts))
 
 
 @command()
