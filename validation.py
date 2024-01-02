@@ -1,4 +1,5 @@
 import dataclasses
+import enum
 import logging
 import re
 from typing import List, Optional, Tuple, Callable, Union
@@ -269,6 +270,14 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     return ValidationResult(True, finaltime=tas_parsed.finaltime, timesave=timesave, sj_data=sj_data)
 
 
+class FinalTimeTypes(enum.Enum):
+    Chapter = 0
+    MidwayChapter = 1
+    File = 2
+    MidwayFile = 3
+    Comment = 4
+
+
 @dataclasses.dataclass
 class ParsedTASFile:
     breakpoints: List[str]
@@ -277,6 +286,7 @@ class ParsedTASFile:
     finaltime_trimmed: Optional[str]
     finaltime_line_num: Optional[int]
     finaltime_frames: Optional[int]
+    finaltime_type: FinalTimeTypes
 
 
 # get breakpoints and final time in one pass
@@ -287,7 +297,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     finaltime = None
     finaltime_trimmed = None
     finaltime_frames = None
-    finaltime_is_chaptertime = False
+    finaltime_type = None
     is_comment_time = False
 
     for line in enumerate(tas_lines):
@@ -296,32 +306,36 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             breakpoints.append(str(line[0] + 1))
         else:
             if re_chapter_time.match(line[1]):
-                finaltime_is_chaptertime = True
+                finaltime_type = FinalTimeTypes.Chapter
                 finaltime_line_num = line[0]
             elif re_file_time.match(line[1]):
-                finaltime_is_chaptertime = True
+                finaltime_type = FinalTimeTypes.File
                 finaltime_line_num = line[0]
             elif allow_comment_time and re_comment_time.match(line[1]):
-                finaltime_is_chaptertime = False
+                finaltime_type = FinalTimeTypes.Comment
                 is_comment_time = True
                 finaltime_line_num = line[0]
 
     found_finaltime = finaltime_line_num is not None
+    finaltime_line = tas_lines[finaltime_line_num]
 
     if found_finaltime:
-        if finaltime_is_chaptertime:
-            finaltime_components = tas_lines[finaltime_line_num].partition(' ')[2].partition('(')
+        if finaltime_type in (FinalTimeTypes.Chapter, FinalTimeTypes.File):
+            if finaltime_line.lower().startswith('midway'):
+                finaltime_type += 1
+
+            finaltime_components = finaltime_line.partition(' ')[2].partition('(')
             finaltime = finaltime_components[0]
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
             if is_comment_time:
-                finaltime = tas_lines[finaltime_line_num].strip('#\n ').partition(' ')[0].partition('(')[0].rstrip()
+                finaltime = finaltime_line.strip('#\n ').partition(' ')[0].partition('(')[0].rstrip()
                 finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0')
             else:
-                finaltime_components = tas_lines[finaltime_line_num].lstrip('#0:').partition('(')
+                finaltime_components = finaltime_line.lstrip('#0:').partition('(')
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
-        if not is_comment_time:
+        if is_comment_time:
             try:
                 finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
             except ValueError:
@@ -330,7 +344,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
 
-    return ParsedTASFile(breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line_num, finaltime_frames)
+    return ParsedTASFile(breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line_num, finaltime_frames, finaltime_type)
 
 
 def calculate_time_difference(time_old: Union[str, int], time_new: Union[str, int]) -> int:
