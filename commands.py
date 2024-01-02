@@ -614,7 +614,7 @@ async def command_projects(message: discord.Message):
         admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
         repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
 
-        text = f"Name: **{project['name']}**" \
+        text = f"**{project['name']}**" \
                f"\nRepo: <{repo_url}>" \
                f"\nImprovement channel: <#{project['project_id']}>" \
                f"\nAdmin{plural(admins)}: {', '.join(admins)}" \
@@ -622,11 +622,12 @@ async def command_projects(message: discord.Message):
                f"\nDoes sync check: `{project['do_run_validation']}`" \
                f"{last_sync_check}"
 
-        if project_texts_length + len(text) > 1900:
+        if project_texts_length + len(text) > 1950:
             log.info(f"Sending {len(project_texts)} project texts")
             await message.channel.send('\n\n'.join(project_texts))
             project_texts = []
             project_texts_length = 0
+            time.sleep(1)
 
         project_texts.append(text)
         project_texts_length += len(text)
