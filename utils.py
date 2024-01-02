@@ -5,7 +5,7 @@ import os
 import socket
 import time
 import traceback
-from typing import Any, Optional, Sized, Union, Tuple
+from typing import Optional, Sized, Union, Tuple
 
 import discord
 import requests
