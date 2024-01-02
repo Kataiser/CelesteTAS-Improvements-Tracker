@@ -306,7 +306,8 @@ def update_stats(filename: str, validation_result: validation.ValidationResult, 
     frames = int(tas_lines[chaptertime_line].partition('(')[2].strip(')\n '))
 
     if draft_time:
-        timesave_frames, draft_frames = validation.calculate_time_difference(draft_time, validation_result.finaltime, True)
+        draft_frames = validation.time_to_frames(validation_result.finaltime)
+        timesave_frames = validation.calculate_time_difference(draft_frames, validation_result.finaltime)
         percent_saved = (timesave_frames / draft_frames) * 100
         map_row.time_saved_cell.write(f"{timesave_frames}f ({percent_saved:.1f}%)")
     else:

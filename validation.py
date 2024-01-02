@@ -333,44 +333,28 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     return ParsedTASFile(breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line_num, finaltime_frames)
 
 
-def calculate_time_difference(time_old: str, time_new: str, get_old_frames: bool = False) -> Union[int, tuple]:
+def calculate_time_difference(time_old: Union[str, int], time_new: Union[str, int]) -> int:
+    time_frames_old = time_old if isinstance(time_old, int) else time_to_frames(time_old)
+    time_frames_new = time_new if isinstance(time_new, int) else time_to_frames(time_new)
+
     if time_old == time_new:
         return 0
 
-    old_has_colon = ':' in time_old
-    new_has_colon = ':' in time_new
+    return time_frames_old - time_frames_new
 
-    if not old_has_colon and not new_has_colon:
-        return round((float(time_old) - float(time_new)) / 0.017)
 
-    if old_has_colon:
-        colon_partition_old = time_old.rpartition(':')
-    else:
-        colon_partition_old = ('0', None, time_old)
+def time_to_frames(time: str) -> int:
+    if ':' not in time:
+        return round(float(time) / 0.017)
 
-    if new_has_colon:
-        colon_partition_new = time_new.rpartition(':')
-    else:
-        colon_partition_new = ('0', None, time_new)
-
-    dot_partition_old = colon_partition_old[2].partition('.')
-    dot_partition_new = colon_partition_new[2].partition('.')
-    minutes_old = colon_partition_old[0]
-    minutes_new = colon_partition_new[0]
-    hours_old = minutes_old.partition(':')[0] if ':' in minutes_old else '0'
-    hours_new = minutes_new.partition(':')[0] if ':' in minutes_new else '0'
-    seconds_old = dot_partition_old[0]
-    seconds_new = dot_partition_new[0]
-    ms_old = dot_partition_old[2]
-    ms_new = dot_partition_new[2]
-    time_old_seconds = (int(hours_old) * 3600) + (int(minutes_old[-2:]) * 60) + int(seconds_old) + (int(ms_old) / 1000)
-    time_new_seconds = (int(hours_new) * 3600) + (int(minutes_new[-2:]) * 60) + int(seconds_new) + (int(ms_new) / 1000)
-    time_diff = round((time_old_seconds - time_new_seconds) / 0.017)
-
-    if get_old_frames:
-        return time_diff, round(time_old_seconds / 0.017)
-    else:
-        return time_diff
+    colon_partition = time.rpartition(':')
+    dot_partition = colon_partition[2].partition('.')
+    minutes = colon_partition[0]
+    hours = minutes.partition(':')[0] if ':' in minutes else '0'
+    seconds = dot_partition[0]
+    ms = dot_partition[2]
+    time_seconds = (int(hours) * 3600) + (int(minutes[-2:]) * 60) + int(seconds) + (int(ms) / 1000)
+    return round(time_seconds / 0.017)
 
 
 def as_lines(tas: bytes) -> List[str]:
