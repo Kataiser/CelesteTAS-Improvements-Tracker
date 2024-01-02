@@ -288,9 +288,12 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
         project['mods'] = list(project_mods)
         db.projects.set(project['project_id'], project)
         mods_missing = set()
+        dependencies = set()
 
         for mod_given in mods_given:
-            all_project_mods = project_mods.union(game_sync.get_mod_dependencies(mod_given))
+            mod_dependencies = game_sync.get_mod_dependencies(mod_given)
+            dependencies = dependencies.union(mod_dependencies)
+            all_project_mods = project_mods.union(dependencies)
 
         log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")
         installed_mods = [item.stem for item in game_sync.mods_dir().iterdir() if item.suffix == '.zip']
@@ -299,7 +302,8 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
             if mod not in installed_mods:
                 mods_missing.add(mod)
 
-        await message.channel.send(f"Project \"{project['name']}\" now has {len(all_project_mods)} mod{plural(all_project_mods)} to load for sync testing.")
+        dependency_text = 'dependency' if len(dependencies) == 1 else 'dependencies'
+        await message.channel.send(f"Project \"{project['name']}\" now has {len(mods_given)} mod{plural(mods_given)} (plus {dependencies} {dependency_text}) to load for sync testing.")
 
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
