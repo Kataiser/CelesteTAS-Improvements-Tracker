@@ -591,14 +591,6 @@ async def command_projects(message: discord.Message):
       (No parameters)
     """
 
-    text = "**{0}**" \
-           "\nRepo: <{1}>" \
-           "\nImprovement channel: <#{2}>" \
-           "\nAdmin{12}: {3}" \
-           "\nIs lobby: `{8}`" \
-           "\nDoes sync check: `{10}`" \
-           "{11}"
-
     projects = sorted(db.projects.get_all(), key=itemgetter('last_commit_time'), reverse=True)
     project_texts = ["Sorted by most recently improved."]
     project_texts_length = len(project_texts[0])
