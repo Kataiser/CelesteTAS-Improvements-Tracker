@@ -10,6 +10,7 @@ from typing import Optional, List
 
 import discord
 import requests
+import strip_markdown
 import ujson
 
 import db
@@ -152,6 +153,13 @@ async def command_register_project(message: discord.Message, message_split: List
         await message.channel.send(error)
         return
 
+    # safeguard for celestecord
+    if improvements_channel.guild.id == 403698615446536203 and (message.author.id not in projects[1074148268407275520]['admins'] or improvements_channel_id != 1074148268407275520):
+        no = "no"
+        await utils.report_error(client, no)
+        await message.channel.send(no)
+        return
+
     # verify needed permissions in improvements channel
     missing_permissions = utils.missing_channel_permissions(improvements_channel)
     if missing_permissions:
@@ -209,7 +217,7 @@ async def command_register_project(message: discord.Message, message_split: List
     log.info("Verification successful")
 
     current_time = int(time.time())
-    registered_project = {'name': name.replace('"', ''),
+    registered_project = {'name': strip_markdown.strip_markdown(name.replace('"', '')),
                           'repo': repo,
                           'installation_owner': github_account,
                           'admins': (message.author.id,),
