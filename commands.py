@@ -96,7 +96,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
         await message.channel.send(command_functions_public[message_split[1]].help)
     else:
         add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
-        commands_available = '\n'.join(command_functions_public)
+        commands_available = '\n'.join([f"`{c}`: {command_functions_public[c].help.partition('\n\n  ')[2].partition('\n')[0]}" for c in command_functions_public])
 
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                    "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
@@ -105,7 +105,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
                    "\n3. Run the `register_project` command, see `help register_project` for parameters. You can also use this to edit existing projects." \
                    "\n4. (Optional) Add other admins with `edit_admins`, and add mod(s) for sync testing with `add_mods`." \
                    "\n\nAvailable commands:" \
-                   f"\n```\n{commands_available}```"
+                   f"\n{commands_available}"
 
         await message.channel.send(response)
 
