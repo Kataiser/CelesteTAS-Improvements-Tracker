@@ -277,6 +277,15 @@ class FinalTimeTypes(enum.Enum):
     MidwayFile = 3
     Comment = 4
 
+    def make_midway(self):
+        match self:
+            case self.Chapter:
+                return self.MidwayChapter
+            case self.File:
+                return self.MidwayFile
+            case _:
+                return self
+
 
 @dataclasses.dataclass
 class ParsedTASFile:
@@ -291,7 +300,7 @@ class ParsedTASFile:
 
 # get breakpoints and final time in one pass
 # this is easily the worst code in this bot
-def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True) -> ParsedTASFile:
+def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: bool = True, required_finaltime_type: Optional[FinalTimeTypes] = None) -> ParsedTASFile:
     breakpoints = []
     finaltime_line_num = None
     finaltime = None
@@ -300,18 +309,27 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     finaltime_type = None
     is_comment_time = False
 
+    def is_allowed_finaltime_type(line_, type_) -> bool:
+        if required_finaltime_type:
+            if line_.lower().startswith('midway'):
+                return type_.make_midway() == required_finaltime_type
+            else:
+                return type_ == required_finaltime_type
+        else:
+            return True
+
     for line in enumerate(tas_lines):
         if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
             log.info(f"Found breakpoint at line {line[0] + 1}")
             breakpoints.append(str(line[0] + 1))
         else:
-            if re_chapter_time.match(line[1]):
+            if re_chapter_time.match(line[1]) and is_allowed_finaltime_type(line[1], FinalTimeTypes.Chapter):
                 finaltime_type = FinalTimeTypes.Chapter
                 finaltime_line_num = line[0]
-            elif re_file_time.match(line[1]):
+            elif re_file_time.match(line[1]) and is_allowed_finaltime_type(line[1], FinalTimeTypes.File):
                 finaltime_type = FinalTimeTypes.File
                 finaltime_line_num = line[0]
-            elif allow_comment_time and re_comment_time.match(line[1]):
+            elif allow_comment_time and re_comment_time.match(line[1]) and is_allowed_finaltime_type(line[1], FinalTimeTypes.Comment):
                 finaltime_type = FinalTimeTypes.Comment
                 is_comment_time = True
                 finaltime_line_num = line[0]
@@ -322,7 +340,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     if found_finaltime:
         if finaltime_type in (FinalTimeTypes.Chapter, FinalTimeTypes.File):
             if finaltime_line.lower().startswith('midway'):
-                finaltime_type += 1
+                finaltime_type.make_midway()
 
             finaltime_components = finaltime_line.partition(' ')[2].partition('(')
             finaltime = finaltime_components[0]

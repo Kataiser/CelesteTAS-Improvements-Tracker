@@ -267,7 +267,7 @@ def sync_test(project_id: int, force: bool):
         with open(file_path, 'rb') as tas_file:
             tas_updated = validation.as_lines(tas_file.read())
 
-        tas_parsed_new = validation.parse_tas_file(tas_updated, False, False)
+        tas_parsed_new = validation.parse_tas_file(tas_updated, False, False, tas_parsed.finaltime_type)
 
         # for silvers
         if has_filetime:  # or tas_lines[tas_parsed.finaltime_line_num].lower().startswith('midway'):
