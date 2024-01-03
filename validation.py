@@ -335,9 +335,10 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
                 finaltime_line_num = line[0]
 
     found_finaltime = finaltime_line_num is not None
-    finaltime_line = tas_lines[finaltime_line_num]
 
     if found_finaltime:
+        finaltime_line = tas_lines[finaltime_line_num]
+
         if finaltime_type in (FinalTimeTypes.Chapter, FinalTimeTypes.File):
             if finaltime_line.lower().startswith('midway'):
                 finaltime_type.make_midway()
