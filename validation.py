@@ -277,7 +277,7 @@ class FinalTimeTypes(enum.Enum):
     MidwayFile = 3
     Comment = 4
 
-    def make_midway(self):
+    def as_midway(self):
         match self:
             case self.Chapter:
                 return self.MidwayChapter
@@ -312,7 +312,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     def is_allowed_finaltime_type(line_, type_) -> bool:
         if required_finaltime_type:
             if line_.lower().startswith('midway'):
-                return type_.make_midway() == required_finaltime_type
+                return type_.as_midway() == required_finaltime_type
             else:
                 return type_ == required_finaltime_type
         else:
@@ -341,7 +341,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
 
         if finaltime_type in (FinalTimeTypes.Chapter, FinalTimeTypes.File):
             if finaltime_line.lower().startswith('midway'):
-                finaltime_type.make_midway()
+                finaltime_type = finaltime_type.as_midway()
 
             finaltime_components = finaltime_line.partition(' ')[2].partition('(')
             finaltime = finaltime_components[0]
