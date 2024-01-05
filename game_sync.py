@@ -94,6 +94,8 @@ def sync_test(project_id: int, force: bool):
     files_timed = 0
     remove_save_files()
     queued_filetime_commits = []
+    crash_logs_data = {}
+    crash_logs_dir = f'{game_dir()}\\CrashLogs'
 
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
@@ -225,7 +227,7 @@ def sync_test(project_id: int, force: bool):
             except (requests.Timeout, requests.ConnectionError):
                 pass
             else:
-                crash_logs = os.listdir(f'{game_dir()}\\CrashLogs')
+                crash_logs = os.listdir(crash_logs_dir)
                 tas_started = True
 
         while not tas_finished:
@@ -250,7 +252,7 @@ def sync_test(project_id: int, force: bool):
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
 
-        updated_crash_logs = os.listdir(f'{game_dir()}\\CrashLogs')
+        updated_crash_logs = os.listdir(crash_logs_dir)
 
         if len(updated_crash_logs) > len(crash_logs):
             new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
@@ -260,6 +262,11 @@ def sync_test(project_id: int, force: bool):
             close_game()
             time.sleep(5)
             start_game()
+
+            for new_crash_log_name in new_crash_logs:
+                with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'r', encoding='UTF8', errors='replace') as new_crash_log:
+                    crash_logs_data[new_crash_log_name] = new_crash_log.read()
+
             wait_for_game_load(mods_to_load)
             continue
 
@@ -339,7 +346,7 @@ def sync_test(project_id: int, force: bool):
                        "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
 
     db.projects.set(project_id, project)
-    db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log})
+    db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log, 'crash_logs': crash_logs_data})
     log.info("Wrote sync result to DB")
 
     # commit updated fullgame files
