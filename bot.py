@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 import time
-from typing import List
+from typing import List, Optional
 
 import discord
 import psutil
@@ -207,6 +207,10 @@ async def on_guild_join(guild: discord.Guild):
     log.info(join_message)
     await (await client.fetch_user(219955313334288385)).send(join_message)
 
+    if guild.id == 1039054819626848276:
+        await guild.leave()
+        log.info("LEFT THAT ONE jeez")
+
 
 @client.event
 async def on_guild_remove(guild: discord.Guild):
@@ -275,7 +279,7 @@ commands.client = client
 spreadsheet.client = client
 main.client = client
 main.safe_mode = safe_mode
-projects_startup = None
+projects_startup = Optional[dict]
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
 substrings_1984_hydro = ('shatter', 'shong')
