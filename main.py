@@ -126,7 +126,10 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.add_reaction('🤘')
 
             if validation_result.sj_data:
-                spreadsheet.update_stats(attachment.filename, validation_result)
+                try:
+                    spreadsheet.update_stats(attachment.filename, validation_result)
+                except spreadsheet.SheetReadError:  # this just happens sometimes, whatever
+                    pass
 
             if project['sync_check_timed_out']:
                 project['sync_check_timed_out'] = False

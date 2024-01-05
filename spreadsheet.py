@@ -380,10 +380,15 @@ def read_sheet(cell_range: str, multiple_rows=False):
             return result.get('values', [])[0]
     except (HttpError, SSLEOFError):
         utils.log_error()
+        raise SheetReadError
 
 
 def update_last_command_used():
     db.misc.set('last_command_used', f"{int(time.time())} ({datetime.datetime.now().strftime('%c')})")
+
+
+class SheetReadError(Exception):
+    pass
 
 
 client: Optional[discord.Client] = None
