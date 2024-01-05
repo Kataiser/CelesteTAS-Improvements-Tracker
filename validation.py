@@ -354,7 +354,7 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
                 finaltime_components = finaltime_line.lstrip('#0:').partition('(')
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
-        if is_comment_time:
+        if not is_comment_time:
             try:
                 finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
             except ValueError:
