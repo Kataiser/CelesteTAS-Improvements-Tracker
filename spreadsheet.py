@@ -303,11 +303,11 @@ def update_stats(filename: str, validation_result: validation.ValidationResult, 
     map_row.current_time_cell.write(validation_result.finaltime)
     map_row.improvement_date_cell.write(date if date else datetime.datetime.now().strftime('%Y-%m-%d'))
     draft_time = map_row.draft_time_cell.value()
-    frames = int(tas_lines[chaptertime_line].partition('(')[2].strip(')\n '))
+    new_frames = validation.time_to_frames(validation_result.finaltime)
 
     if draft_time:
-        draft_frames = validation.time_to_frames(validation_result.finaltime)
-        timesave_frames = validation.calculate_time_difference(draft_frames, validation_result.finaltime)
+        draft_frames = validation.time_to_frames(draft_time)
+        timesave_frames = validation.calculate_time_difference(draft_frames, new_frames)
         percent_saved = (timesave_frames / draft_frames) * 100
         map_row.time_saved_cell.write(f"{timesave_frames}f ({percent_saved:.1f}%)")
     else:
@@ -320,7 +320,7 @@ def update_stats(filename: str, validation_result: validation.ValidationResult, 
 
     if recordcount:
         map_row.records_cell.write(recordcount)
-        map_row.rpf_cell.write(f"{recordcount / frames:.3f}")
+        map_row.rpf_cell.write(f"{recordcount / new_frames:.3f}")
     else:
         log.warning("Couldn't calculate RPF (no record count)")
 
