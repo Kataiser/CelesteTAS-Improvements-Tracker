@@ -551,7 +551,10 @@ def format_elapsed_time(start_time: float) -> str:
 
 @functools.cache
 def mods_dir() -> Path:
-    mod_paths = (Path('G:/celeste/Mods'), Path('C:/Users/Administrator/Desktop/mods'), Path('C:/Users/Bob/Documents/Celeste Itch/Mods'))
+    mod_paths = (Path('G:/celeste/Mods'),
+                 Path('C:/Users/Administrator/Desktop/mods'),
+                 Path('C:/Users/Bob/Documents/Celeste Itch/Mods'),
+                 Path('C:/Users/Vamp/Documents/celeste/Mods'))
 
     for mod_path in mod_paths:
         if mod_path.is_dir():
@@ -562,11 +565,15 @@ def mods_dir() -> Path:
 
 @functools.cache
 def game_dir() -> Path:
-    game_dirs = (Path('G:/celeste'), Path('C:/Users/Bob/Documents/Celeste Itch'), Path('C:/Users/Vamp/Documents/celeste'))
+    game_dirs = (Path('G:/celeste'),
+                 Path('C:/Users/Bob/Documents/Celeste Itch'),
+                 Path('C:/Users/Vamp/Documents/celeste'))
 
     for possible_game_dir in game_dirs:
         if possible_game_dir.is_dir():
             return possible_game_dir
+
+    raise FileNotFoundError("ok where'd the game go")
 
 
 log: Optional[logging.Logger] = None
