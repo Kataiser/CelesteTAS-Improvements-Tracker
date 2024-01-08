@@ -562,7 +562,7 @@ def mods_dir() -> Path:
 
 @functools.cache
 def game_dir() -> Path:
-    game_dirs = (Path('G:/celeste'), Path('C:/Users/Bob/Documents/Celeste Itch'))
+    game_dirs = (Path('G:/celeste'), Path('C:/Users/Bob/Documents/Celeste Itch'), Path('C:/Users/Vamp/Documents/celeste'))
 
     for possible_game_dir in game_dirs:
         if possible_game_dir.is_dir():
