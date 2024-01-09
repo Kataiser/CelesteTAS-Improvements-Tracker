@@ -232,7 +232,7 @@ def sync_test(project_id: int, force: bool):
 
         while not tas_finished:
             try:
-                time.sleep(20 if has_filetime else 5)
+                scaled_sleep(20 if has_filetime else 5)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
             except (requests.Timeout, requests.ConnectionError):
                 pass
@@ -244,7 +244,7 @@ def sync_test(project_id: int, force: bool):
 
         log.info("TAS has finished")
         files_timed += 1
-        time.sleep(15 if has_filetime or 'SID:  ()' in session_data else 5)
+        scaled_sleep(15 if has_filetime or 'SID:  ()' in session_data else 5)
         extra_sleeps = 0
 
         while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
@@ -258,9 +258,9 @@ def sync_test(project_id: int, force: bool):
             new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
             utils.log_error(f"Game crashed ({new_crash_logs}), restarting and continuing")
             desyncs.append((tas_filename, "Crashed game"))
-            time.sleep(10)
+            scaled_sleep(10)
             close_game()
-            time.sleep(5)
+            scaled_sleep(5)
             start_game()
 
             for new_crash_log_name in new_crash_logs:
@@ -376,11 +376,11 @@ def sync_test(project_id: int, force: bool):
 def clear_debug_save():
     try:
         requests.post('http://localhost:32270/console?command=overworld', timeout=2)
-        time.sleep(5)
+        scaled_sleep(5)
         requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
-        time.sleep(5)
+        scaled_sleep(5)
         log.info("Cleared debug save")
-        time.sleep(5)
+        scaled_sleep(5)
     except (requests.Timeout, requests.ConnectionError):
         pass
 
@@ -445,7 +445,7 @@ def wait_for_game_load(mods: set):
 
     while not game_loaded:
         try:
-            time.sleep(5)
+            scaled_sleep(5)
             requests.get('http://localhost:32270/', timeout=2)
         except requests.Timeout:
             current_time = time.perf_counter()
@@ -457,7 +457,7 @@ def wait_for_game_load(mods: set):
 
     mod_versions_start_time = time.perf_counter()
     log.info(f"Game loaded, mod versions: {mod_versions(mods)}")
-    time.sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
+    scaled_sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
 
     for process in psutil.process_iter(['name']):
         if process.name() == 'Celeste.exe':
@@ -574,6 +574,10 @@ def game_dir() -> Path:
             return possible_game_dir
 
     raise FileNotFoundError("ok where'd the game go")
+
+
+def scaled_sleep(seconds: float):
+    time.sleep(seconds * 0.75)
 
 
 log: Optional[logging.Logger] = None
