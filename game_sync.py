@@ -13,6 +13,7 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
+import dateutil.parser
 import psutil
 import requests
 import ujson
@@ -88,6 +89,7 @@ def sync_test(project_id: int, force: bool):
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
+    prev_environment_state = project['sync_environment_state']
     filetimes = {}
     desyncs = []
     mods_to_load = set(mods)
@@ -100,6 +102,13 @@ def sync_test(project_id: int, force: bool):
     for mod in mods:
         mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
 
+    main.generate_request_headers(project['installation_owner'], 300)
+    environment_state = generate_environment_state(project, mods_to_load)
+
+    if environment_state == prev_environment_state:
+        log.info(f"Abandoning sync test for project \"{project['name']}\" due to environment state matching previous run")
+        return
+
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
@@ -107,7 +116,6 @@ def sync_test(project_id: int, force: bool):
     start_game()
 
     # make sure path cache is correct while the game is launching
-    main.generate_request_headers(project['installation_owner'], 300)
     main.generate_path_cache(project_id)
     path_cache = db.path_caches.get(project_id)
 
@@ -320,6 +328,7 @@ def sync_test(project_id: int, force: bool):
 
     close_game()
     project = db.projects.get(project_id)  # update this, in case it has changed since starting
+    project['sync_environment_state'] = environment_state
     project['filetimes'] = filetimes
     project['last_run_validation'] = clone_time
     project['desyncs'] = [desync[0] for desync in desyncs]
@@ -541,6 +550,32 @@ def mod_versions(mods: set) -> str:
         versions.append(f"{mod} = {get_mod_everest_yaml(mod)['Version'] if everest_yaml else "UNKNOWN"}")
 
     return ", ".join(sorted(versions))
+
+
+def generate_environment_state(project: dict, mods: set) -> dict:
+    log.info("Generating environment state")
+    state = {'host': utils.host(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}}
+
+    r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1})
+    utils.handle_potential_request_error(r_commits, 200)
+    commit = ujson.loads(r_commits.content)
+    state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
+
+    azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
+    r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params)
+    utils.handle_potential_request_error(r_everest, 200)
+    state['everest_version'] = ujson.loads(r_everest.content)['value'][0]['id'] + 700
+
+    r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml')
+    utils.handle_potential_request_error(r_mods, 200)
+    gb_mods = yaml.safe_load(r_mods.content)
+
+    for mod in mods:
+        state['mod_versions'][mod] = gb_mods[mod]['Version']
+
+    log.info(f"Done: {state}")
+    assert len(state['mod_versions']) == len(mods)
+    return state
 
 
 def format_elapsed_time(start_time: float) -> str:

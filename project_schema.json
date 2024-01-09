@@ -90,6 +90,9 @@
         },
         "contributors_file_path": {
             "type": "string"
+        },
+        "sync_environment_state": {
+            "type": "object"
         }
     }
 }
