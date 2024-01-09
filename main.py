@@ -35,7 +35,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     if not skip_validation and not is_processable_message(message, project):
         return False
 
-    log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']}) at {message.jump_url}")
+    log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']})\n{message.jump_url}\n{message.content}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
     zip_attachments = [a for a in message.attachments if a.filename.endswith('.zip')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
@@ -188,7 +188,7 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
         data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
         log.info(f"Set commit author to {data['author']}")
 
-    log.info(f"Set commit message to \"{data['message']}\"")
+    log.info(f"Set commit message to \"{data['message'].partition('\n')[0]}\" (truncated)")
     r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=ujson.dumps(data))
     utils.handle_potential_request_error(r, 201 if draft else 200)
     commit_url = ujson.loads(r.content)['commit']['html_url']
