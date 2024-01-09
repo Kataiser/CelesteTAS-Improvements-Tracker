@@ -178,7 +178,6 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
             if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
                 await message.delete()
                 log.info(f"Deleted bot reply message in project: {db.projects.get(payload.channel_id)['name']}")
-                break
 
 
 @client.event
