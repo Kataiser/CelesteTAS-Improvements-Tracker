@@ -556,18 +556,24 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
     state = {'host': utils.host(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}}
 
-    r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1})
-    utils.handle_potential_request_error(r_commits, 200)
+    try:
+        r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
+        utils.handle_potential_request_error(r_commits, 200)
+
+        azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
+        r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params, timeout=10)
+        utils.handle_potential_request_error(r_everest, 200)
+
+        r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=10)
+        utils.handle_potential_request_error(r_mods, 200)
+    except requests.RequestException:
+        utils.log_error()
+        return project['sync_environment_state']
+
     commit = ujson.loads(r_commits.content)
     state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
-
-    azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
-    r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params)
-    utils.handle_potential_request_error(r_everest, 200)
-    state['everest_version'] = ujson.loads(r_everest.content)['value'][0]['id'] + 700
-
-    r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml')
-    utils.handle_potential_request_error(r_mods, 200)
+    everest_builds = ujson.loads(r_everest.content)
+    state['everest_version'] = everest_builds['value'][0]['id'] + 700
     gb_mods = yaml.safe_load(r_mods.content)
 
     for mod in mods:
