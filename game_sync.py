@@ -105,7 +105,7 @@ def sync_test(project_id: int, force: bool):
     main.generate_request_headers(project['installation_owner'], 300)
     environment_state = generate_environment_state(project, mods_to_load)
 
-    if environment_state == prev_environment_state:
+    if environment_state == prev_environment_state and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to environment state matching previous run")
         return
 
@@ -119,7 +119,7 @@ def sync_test(project_id: int, force: bool):
     main.generate_path_cache(project_id)
     path_cache = db.path_caches.get(project_id)
 
-    if not path_cache:
+    if not path_cache and not force:
         log.info(f"Abandoning sync test due to path cache now being empty")
         close_game()
         return
