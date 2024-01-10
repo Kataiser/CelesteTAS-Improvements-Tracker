@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import shutil
+import socket
 import stat
 import subprocess
 import time
@@ -554,7 +555,7 @@ def mod_versions(mods: set) -> str:
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': utils.host(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}}
+    state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}}
 
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
