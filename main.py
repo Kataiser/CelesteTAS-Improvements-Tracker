@@ -543,11 +543,11 @@ def generate_request_headers(installation_owner: str, min_time: int = 30):
     headers = {'Authorization': f'token {gen_token.access_token(installation_owner, min_time)}', 'Accept': 'application/vnd.github.v3+json'}
 
 
-def create_logger(name: str) -> logging.Logger:
+def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
     filename = f'{name}.log'
 
     # backup old logs
-    if os.path.isfile(filename):
+    if os.path.isfile(filename) and use_file_handler:
         with open(filename, 'rb') as old_log:
             old_log_data = old_log.read()
 
@@ -556,10 +556,13 @@ def create_logger(name: str) -> logging.Logger:
 
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(filename=filename, encoding='UTF8', mode='w')
     log_formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
-    file_handler.setFormatter(log_formatter)
-    logger.addHandler(file_handler)
+
+    if use_file_handler:
+        file_handler = logging.FileHandler(filename=filename, encoding='UTF8', mode='w')
+        file_handler.setFormatter(log_formatter)
+        logger.addHandler(file_handler)
+
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
     logger.addHandler(stdout_handler)
