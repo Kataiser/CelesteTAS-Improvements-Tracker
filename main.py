@@ -425,6 +425,7 @@ async def handle_game_sync_results():
         project_name = project['name']
         log.info(f"Handling game sync result for project {project_name}")
         report_text = sync_result['report_text']
+        disabled_text = sync_result['disabled_text']
         improvements_channel = client.get_channel(project_id)
         await edit_pin(improvements_channel)
 
@@ -440,6 +441,9 @@ async def handle_game_sync_results():
                 await improvements_channel.send(report_text, files=files)
             else:
                 await improvements_channel.send(report_text)
+
+        if disabled_text:
+            await improvements_channel.send(disabled_text)
 
         db.sync_results.delete_item(project_id)
 

@@ -12,7 +12,7 @@ import subprocess
 import time
 import zipfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import dateutil.parser
 import psutil
@@ -83,6 +83,7 @@ def sync_test(project_id: int, force: bool):
 
     if not project['do_run_validation'] and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to it now being disabled")
+        consider_disabling_after_inactivity(project, time.time(), True)
         return
 
     log.info(f"Running sync test for project: {project['name']}")
@@ -108,6 +109,7 @@ def sync_test(project_id: int, force: bool):
 
     if environment_state == prev_environment_state and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to environment state matching previous run")
+        consider_disabling_after_inactivity(project, time.time(), True)
         return
 
     get_mod_everest_yaml.cache_clear()
@@ -122,6 +124,7 @@ def sync_test(project_id: int, force: bool):
 
     if not path_cache and not force:
         log.info(f"Abandoning sync test due to path cache now being empty")
+        consider_disabling_after_inactivity(project, time.time(), True)
         close_game()
         return
 
@@ -135,9 +138,9 @@ def sync_test(project_id: int, force: bool):
         shutil.rmtree(repo_path, onexc=del_rw)
 
     time.sleep(0.1)
-    clone_time = int(time.time())
     cwd = os.getcwd()
     os.chdir(f'{game_dir()}\\repos')
+    clone_time = time.time()
     subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
@@ -331,9 +334,8 @@ def sync_test(project_id: int, force: bool):
     project = db.projects.get(project_id)  # update this, in case it has changed since starting
     project['sync_environment_state'] = environment_state
     project['filetimes'] = filetimes
-    project['last_run_validation'] = clone_time
+    project['last_run_validation'] = int(clone_time)
     project['desyncs'] = [desync[0] for desync in desyncs]
-    time_since_last_commit = clone_time - project['last_commit_time']
     new_desyncs = [d for d in desyncs if d[0] not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")
@@ -348,15 +350,9 @@ def sync_test(project_id: int, force: bool):
         stream_handler.flush()
         report_log = re_redact_token.sub("'token': [REDACTED]", current_log.getvalue())
 
-    if time_since_last_commit > 1209600 and project['do_run_validation']:
-        project['do_run_validation'] = False
-        project['sync_check_timed_out'] = True
-        log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
-        report_text = ("Disabled sync checking after two weeks of no improvements. If you would like to reenable it, rerun the `register_project` command. "
-                       "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
-
+    disabled_text = consider_disabling_after_inactivity(project, clone_time, False)
     db.projects.set(project_id, project)
-    db.sync_results.set(project_id, {'report_text': report_text, 'log': report_log, 'crash_logs': crash_logs_data})
+    db.sync_results.set(project_id, {'report_text': report_text, 'disabled_text': disabled_text, 'log': report_log, 'crash_logs': crash_logs_data})
     log.info("Wrote sync result to DB")
 
     # commit updated fullgame files
@@ -578,11 +574,29 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     gb_mods = yaml.safe_load(r_mods.content)
 
     for mod in mods:
-        state['mod_versions'][mod] = gb_mods[mod]['Version']
+        state['mod_versions'][mod] = gb_mods[mod.replace('_', ' ')]['Version']
 
     log.info(f"Done: {state}")
     assert len(state['mod_versions']) == len(mods)
     return state
+
+
+def consider_disabling_after_inactivity(project: dict, reference_time: Union[int, float], from_abandoned: bool) -> Optional[str]:
+    time_since_last_commit = int(reference_time) - int(project['last_commit_time'])
+    disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, rerun the `register_project` command. "
+                     "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
+
+    if time_since_last_commit > 2629800 and project['do_run_validation']:
+        project['do_run_validation'] = False
+        project['sync_check_timed_out'] = True
+        log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
+
+        if from_abandoned:
+            db.projects.set(project['project_id'], project)
+            db.sync_results.set(project['project_id'], {'report_text': None, 'disabled_text': disabled_text})
+        else:
+            # don't need to return projects since it's mutable
+            return disabled_text
 
 
 def format_elapsed_time(start_time: float) -> str:
