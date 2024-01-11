@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 import db
+import gen_token
 import main
 import utils
 import validation
@@ -13,6 +14,50 @@ import validation
 @pytest.fixture
 def setup_log():
     main.create_logger('tests', False)
+
+
+# MAIN
+
+def test_generate_path_cache(setup_log):
+    path_cache = main.generate_path_cache(970380662907482142)
+    assert path_cache['0oi71n.tas'] == '0oi71n.tas'
+    assert path_cache['6AC.tas'] == '6AC.tas'
+    assert path_cache['abby-cookie.tas'] == 'lobby/abby-cookie.tas'
+    assert path_cache['1k_Kataiser.tas'] == 'subproject/1k_Kataiser.tas'
+    assert path_cache['The_Mines_Kataiser.tas'] == 'a_folder_yes/Lobby/The_Mines_Kataiser.tas'
+    assert path_cache['glitchy.tas'] == 'sync_testing/glitchy.tas'
+    assert path_cache['royal_gardens_renamed.tas'] == 'subproject/royal_gardens_renamed.tas'
+    assert 'abby-cookie2.tas' not in path_cache
+
+
+def test_get_sha(setup_log):
+    assert main.get_sha('Kataiser/improvements-bot-testing', 'journey.tas') == '7e0291c78555e7fa856f8f2cb9ec4483df6a10be'
+    assert main.get_sha('Kataiser/improvements-bot-testing', 'subproject/glitchy_-_Copy.tas') == 'd3a5291ad1119f376cd0a77bd9cf9bcfb112ed7b'
+
+
+def test_get_file_repo_path():
+    assert main.get_file_repo_path(970380662907482142, 'deskilln-deathkontrol.tas') == 'lobby/deskilln-deathkontrol.tas'
+    assert main.get_file_repo_path(970380662907482142, 'Prologue.tas') == 'Prologue.tas'
+    assert main.get_file_repo_path(970380662907482142, '1k_Kataiser.tas') == 'subproject/1k_Kataiser.tas'
+
+
+# GEN TOKEN
+
+def test_generate_jwt(setup_log):
+    jwt = gen_token.generate_jwt(1)
+    assert jwt
+    jwt2 = gen_token.generate_jwt(1)
+    assert jwt == jwt2
+
+
+def test_access_token():
+    token = gen_token.access_token('Kataiser', 1)
+    assert token.startswith('ghs_')
+    assert gen_token.tokens['_jwt']
+    assert gen_token.tokens['Kataiser'][0] == token
+    assert isinstance(gen_token.tokens['Kataiser'][1], float)
+    token2 = gen_token.access_token('Kataiser', 1)
+    assert token == token2
 
 
 # VALIDATION
