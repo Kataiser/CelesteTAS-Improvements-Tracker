@@ -1,12 +1,15 @@
+import dataclasses
 import time
 from decimal import Decimal
 from pathlib import Path
 
+import discord
 import pytest
 
 import db
 import gen_token
 import main
+import spreadsheet
 import utils
 import validation
 
@@ -14,6 +17,18 @@ import validation
 @pytest.fixture
 def setup_log():
     main.create_logger('tests', False)
+
+
+@pytest.fixture
+def fast_db():
+    db.always_inconsistent_read = True
+
+
+@dataclasses.dataclass
+class MockUser:
+    id: int
+    global_name: str
+    name: str
 
 
 # MAIN
@@ -39,6 +54,21 @@ def test_get_file_repo_path():
     assert main.get_file_repo_path(970380662907482142, 'deskilln-deathkontrol.tas') == 'lobby/deskilln-deathkontrol.tas'
     assert main.get_file_repo_path(970380662907482142, 'Prologue.tas') == 'Prologue.tas'
     assert main.get_file_repo_path(970380662907482142, '1k_Kataiser.tas') == 'subproject/1k_Kataiser.tas'
+
+
+def test_download_old_file(setup_log):
+    assert len(main.download_old_file(970380662907482142, 'Kataiser/improvements-bot-testing', 'chaos_assembly_lol_lmao.tas')) == 4824
+
+
+def test_convert_line_endings(setup_log):
+    tas_crlf = Path('test_tases\\line endings\\raindrops_on_roses_crlf.tas').read_bytes()
+    tas_lf = Path('test_tases\\line endings\\raindrops_on_roses_lf.tas').read_bytes()
+    assert main.convert_line_endings(tas_crlf, tas_crlf) == tas_crlf
+    assert main.convert_line_endings(tas_lf, tas_lf) == tas_lf
+    assert main.convert_line_endings(tas_lf, tas_crlf) == tas_crlf
+    assert main.convert_line_endings(tas_crlf, tas_lf) == tas_lf
+    assert main.convert_line_endings(tas_crlf, None) == tas_crlf
+    assert main.convert_line_endings(tas_lf, None) == tas_crlf
 
 
 # GEN TOKEN
@@ -192,10 +222,42 @@ def test_as_lines(setup_log):
     assert validation.as_lines(Path('test_tases\\abby-cookie.tas').read_bytes()) == lines
 
 
+# SPREADSHEET
+
+
+def test_read_sheet():
+    read = spreadsheet.read_sheet('Intermediate!A2:I20', multiple_rows=True)
+    assert read[9][0] == 'Pointless Machines'
+    assert read[9][1] == 'pointless_machines.tas'
+    assert read[9][2] == 'ImDart'
+    assert read[9][3]  # current time
+    assert read[9][4] == '1:00.146'
+    assert read[9][5]  # time saved
+    assert int(read[9][6]) >= 5955
+    assert float(read[9][7]) >= 2.063
+    assert read[9][8].count('/') == 2
+
+
+def test_sj_fuzzy_match():
+    assert spreadsheet.sj_fuzzy_match('') == []
+    assert spreadsheet.sj_fuzzy_match('lab') == ['The Lab', 'Lethal Laser Laboratory']
+    assert spreadsheet.sj_fuzzy_match('summit') == ['summit', 'Summit Down-Side']
+    assert spreadsheet.sj_fuzzy_match('heart') == ['Beginner Heartside', 'Intermediate Heartside', 'Advanced Heartside', 'Expert Heartside', 'Grandmaster Heartside']
+    assert spreadsheet.sj_fuzzy_match('Storm Runner') == ['Storm Runner']
+
+
+def test_correct_map_case():
+    assert spreadsheet.correct_map_case('world abyss') == 'World Abyss'
+    assert spreadsheet.correct_map_case('WORLD ABYSS') == 'World Abyss'
+    assert spreadsheet.correct_map_case('Eat Girl') == 'EAT GIRL'
+    assert spreadsheet.correct_map_case('Paint') == 'paint'
+    assert spreadsheet.correct_map_case('not a map') == 'not a map'
+
+
 # DB
 
-def test_project_get():
-    test_project = db.projects.get(970380662907482142, consistent_read=False)
+def test_project_get(fast_db):
+    test_project = db.projects.get(970380662907482142)
     assert test_project['admins'] == [Decimal('219955313334288385'), Decimal('234520815658336258')]
     assert test_project['commit_drafts']
     assert test_project['contributors_file_path'] == ''
@@ -220,9 +282,9 @@ def test_project_get():
     assert test_project['use_contributors_file']
 
 
-def test_project_get_all():
-    projects_all = db.projects.get_all(consistent_read=False)
-    projects_dict = db.projects.dict(consistent_read=False)
+def test_project_get_all(fast_db):
+    projects_all = db.projects.get_all()
+    projects_dict = db.projects.dict()
     assert len(projects_all) == 39
     assert len(projects_all) == len(projects_dict)
     assert isinstance(projects_all, list)
@@ -230,9 +292,47 @@ def test_project_get_all():
     assert 970380662907482142 in projects_dict
 
 
-def test_project_get_by_name_or_id():
-    assert db.projects.get_by_name_or_id('Improvements bot testing', consistent_read=False)[0]['project_id'] == Decimal('970380662907482142')
-    assert db.projects.get_by_name_or_id(970380662907482142, consistent_read=False)[0]['name'] == 'Improvements bot testing'
+def test_project_get_by_name_or_id(fast_db):
+    assert db.projects.get_by_name_or_id('Improvements bot testing')[0]['project_id'] == Decimal('970380662907482142')
+    assert db.projects.get_by_name_or_id(970380662907482142)[0]['name'] == 'Improvements bot testing'
+
+
+def test_various_gets(fast_db):
+    contributions = db.contributors.get(1074148268407275520)['219955313334288385']
+    assert contributions['count'] >= 185
+    assert contributions['name'] == "Kataiser"
+    assert db.githubs.get(219955313334288385) == ['Kataiser', 'mecharon1.gm@gmail.com']
+    history_log = db.history_log.get('2023-08-07 10:25:52,547')
+    assert history_log == ("('skun (skun, 344974874969636865)', 1074148268407275520, 'Strawberry Jam', '-24f intermediate_heartside.tas (4:15.374) from skun', "
+                           "'https://github.com/VampireFlower/StrawberryJamTAS/commit/796a366da367504b3caed4913d23c3f65b4b7141', "
+                           "'https://cdn.discordapp.com/attachments/1074148268407275520/1138130893865766962/intermediate_heartside.tas')")
+    assert eval(history_log) == ('skun (skun, 344974874969636865)', 1074148268407275520, 'Strawberry Jam', '-24f intermediate_heartside.tas (4:15.374) from skun',
+                                 'https://github.com/VampireFlower/StrawberryJamTAS/commit/796a366da367504b3caed4913d23c3f65b4b7141',
+                                 'https://cdn.discordapp.com/attachments/1074148268407275520/1138130893865766962/intermediate_heartside.tas')
+    assert 20000000 < db.installations.get('Kataiser') < 30000000
+    assert "last processed post from" in db.misc.get('status')
+    assert db.path_caches.get(970380662907482142)['glitchy_-_Copy.tas'] == 'sync_testing/glitchy_-_Copy.tas'
+    project_log = db.project_logs.get(970380662907482142)
+    assert 1184274417929433098 in project_log
+    assert 1178067958975705088 not in project_log
+    assert db.sheet_writes.get('2023-10-12 15:49:00,087') == {'log': '(\'The Lab\', \'Advanced!A22:J22\', "(\'current_time\', \'1:28.757\') (\'improvement_date\', \'2023-10-12\') '
+                                                                     '(\'time_saved\', \'924f (15.0%)\') (\'records\', \'7810\') (\'rpf\', \'1.496\')")',
+                                                              'status': 'INFO', 'timestamp': '2023-10-12 15:49:00,087'}
+    assert db.sid_caches.get(1074148268407275520)['1_Beginner/azure_caverns.tas'] == 'StrawberryJam2021/1-Beginner/cellularAutomaton'
+    assert db.sync_results.metadata()['Table']['TableId'] == '30be9a9f-b134-45ec-90e6-863a13fef99c'
+
+
+def test_set_delete_and_size():
+    current_time = int(time.time())
+    size = db.misc.size()
+    db.misc.set('TEST', current_time)
+    time.sleep(0.5)
+    assert db.misc.get('TEST') == current_time
+    assert db.misc.size() == size + 1
+    db.misc.delete_item('TEST')
+    time.sleep(0.5)
+    assert 'TEST' not in [item['key'] for item in db.misc.get_all()]
+    assert db.misc.size() == size
 
 
 # UTILS
@@ -255,10 +355,10 @@ def test_load_sj_data():
 
 
 def test_log_timestamp(monkeypatch):
-    def mockreturn():
+    def mock_return():
         return 1704954712.2238538
 
-    monkeypatch.setattr(time, 'time', mockreturn)
+    monkeypatch.setattr(time, 'time', mock_return)
     assert utils.log_timestamp() == '2024-01-11 00:31:52,224'
 
 
@@ -268,3 +368,21 @@ def test_host():
 
 def test_get_user_github_account():
     assert utils.get_user_github_account(219955313334288385) == ['Kataiser', 'mecharon1.gm@gmail.com']
+
+
+def test_nicknames(monkeypatch):
+    def mock_user(*args, **kwargs):
+        return MockUser(*args, **kwargs)
+
+    monkeypatch.setattr(discord, 'User', mock_user)
+    assert utils.nickname(discord.User(587491655129759744, "έλλατάς", "ellatas")) == "Ella"
+    assert utils.nickname(discord.User(219955313334288385, "Kataiser", "kataiser")) == "Kataiser"
+
+
+def test_detailed_user(monkeypatch):
+    def mock_user(*args, **kwargs):
+        return MockUser(*args, **kwargs)
+
+    monkeypatch.setattr(discord, 'User', mock_user)
+    assert utils.detailed_user(user=discord.User(587491655129759744, "έλλατάς", "ellatas")) == "έλλατάς (ellatas, 587491655129759744)"
+    assert utils.detailed_user(user=discord.User(219955313334288385, "Kataiser", "kataiser")) == "Kataiser (kataiser, 219955313334288385)"

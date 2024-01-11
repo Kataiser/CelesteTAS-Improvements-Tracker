@@ -22,7 +22,8 @@ class Table:
             return self.cache[key]
 
         key_type = 'S' if isinstance(key, str) else 'N'
-        item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}}, ConsistentRead=consistent_read)
+        actual_consistent_read = False if always_inconsistent_read else consistent_read
+        item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}}, ConsistentRead=actual_consistent_read)
 
         if 'Item' in item:
             item_deserialized = deserializer.deserialize({'M': item['Item']})
@@ -68,7 +69,8 @@ class Table:
                 return prev_values
 
     def get_all(self, consistent_read: bool = True) -> list:
-        items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=consistent_read)
+        actual_consistent_read = False if always_inconsistent_read else consistent_read
+        items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=actual_consistent_read)
         return [deserializer.deserialize({'M': item}) for item in items['Items']]
 
     def dict(self, consistent_read: bool = True) -> dict:
@@ -191,6 +193,7 @@ client = boto3.client('dynamodb')
 atexit.register(client.close)
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
+always_inconsistent_read = False
 
 if __name__ == '__main__':
     print(projects.metadata())
