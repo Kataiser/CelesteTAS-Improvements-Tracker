@@ -55,9 +55,7 @@ def run_syncs():
         all_sync_tests = {project_id: projects[project_id]['name'] for project_id in test_project_ids}
         log.info(f"Running all sync tests: {all_sync_tests}")
 
-    log.info("Installing Everest")
-    everest_install = subprocess.run('mons install itch stable', capture_output=True)
-    log.info(f"Installed: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
+    update_everest()
 
     try:
         for project_id in test_project_ids:
@@ -557,10 +555,6 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
         utils.handle_potential_request_error(r_commits, 200)
 
-        azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
-        r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params, timeout=10)
-        utils.handle_potential_request_error(r_everest, 200)
-
         r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=10)
         utils.handle_potential_request_error(r_mods, 200)
     except requests.RequestException:
@@ -569,8 +563,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
 
     commit = ujson.loads(r_commits.content)
     state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
-    everest_builds = ujson.loads(r_everest.content)
-    state['everest_version'] = everest_builds['value'][0]['id'] + 700
+    state['everest_version'] = latest_everest_stable_version()
     gb_mods = yaml.safe_load(r_mods.content)
 
     for mod in mods:
@@ -579,6 +572,22 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     log.info(f"Done: {state}")
     assert len(state['mod_versions']) == len(mods)
     return state
+
+
+def update_everest():
+    latest_everest = latest_everest_stable_version()
+    last_everests = db.misc.get('sync_check_everest_versions')
+    host_name = socket.gethostname()
+    last_everest = last_everests[host_name] if host_name in last_everests else None
+
+    if last_everest != latest_everest:
+        log.info(f"Updating Everest from {last_everest} to {latest_everest}")
+        everest_install = subprocess.run('mons install itch stable', capture_output=True)
+        log.info(f"Installed: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
+        last_everests[host_name] = latest_everest
+        db.misc.set('sync_check_everest_versions', last_everests)
+    else:
+        log.info(f"Everest version: {latest_everest}")
 
 
 def consider_disabling_after_inactivity(project: dict, reference_time: Union[int, float], from_abandoned: bool) -> Optional[str]:
@@ -603,6 +612,20 @@ def format_elapsed_time(start_time: float) -> str:
     hours, seconds = divmod(time.time() - start_time, 3600)
     minutes = seconds / 60
     return f"{int(hours)}h {int(minutes)}m"
+
+
+@functools.cache
+def latest_everest_stable_version() -> Optional[int]:
+    try:
+        azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
+        r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params, timeout=10)
+        utils.handle_potential_request_error(r_everest, 200)
+    except requests.RequestException:
+        utils.log_error()
+        return None
+
+    everest_builds = ujson.loads(r_everest.content)
+    return everest_builds['value'][0]['id'] + 700
 
 
 @functools.cache
