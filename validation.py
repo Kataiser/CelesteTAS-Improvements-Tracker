@@ -295,7 +295,7 @@ class ParsedTASFile:
     finaltime_trimmed: Optional[str]
     finaltime_line_num: Optional[int]
     finaltime_frames: Optional[int]
-    finaltime_type: FinalTimeTypes
+    finaltime_type: Optional[FinalTimeTypes]
 
 
 # get breakpoints and final time in one pass
@@ -307,7 +307,6 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
     finaltime_trimmed = None
     finaltime_frames = None
     finaltime_type = None
-    is_comment_time = False
 
     def is_allowed_finaltime_type(line_, type_) -> bool:
         if required_finaltime_type:
@@ -318,27 +317,29 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
         else:
             return True
 
-    for line in enumerate(tas_lines):
-        if find_breakpoints and '***' in line[1] and not line[1].startswith('#'):
-            log.info(f"Found breakpoint at line {line[0] + 1}")
-            breakpoints.append(str(line[0] + 1))
+    for line_enum in enumerate(tas_lines):
+        line_num, line = line_enum[0], line_enum[1].strip()
+
+        if find_breakpoints and '***' in line and not line.startswith('#'):
+            log.info(f"Found breakpoint at line {line_num + 1}")
+            breakpoints.append(str(line_num + 1))
         else:
-            if re_chapter_time.match(line[1]) and is_allowed_finaltime_type(line[1], FinalTimeTypes.Chapter):
+            if re_chapter_time.match(line) and is_allowed_finaltime_type(line, FinalTimeTypes.Chapter):
                 finaltime_type = FinalTimeTypes.Chapter
-                finaltime_line_num = line[0]
-            elif re_file_time.match(line[1]) and is_allowed_finaltime_type(line[1], FinalTimeTypes.File):
+                finaltime_line_num = line_num
+                finaltime_line = line
+            elif re_file_time.match(line) and is_allowed_finaltime_type(line, FinalTimeTypes.File):
                 finaltime_type = FinalTimeTypes.File
-                finaltime_line_num = line[0]
-            elif allow_comment_time and re_comment_time.match(line[1]) and is_allowed_finaltime_type(line[1], FinalTimeTypes.Comment):
+                finaltime_line_num = line_num
+                finaltime_line = line
+            elif allow_comment_time and re_comment_time.match(line) and is_allowed_finaltime_type(line, FinalTimeTypes.Comment):
                 finaltime_type = FinalTimeTypes.Comment
-                is_comment_time = True
-                finaltime_line_num = line[0]
+                finaltime_line_num = line_num
+                finaltime_line = line
 
     found_finaltime = finaltime_line_num is not None
 
     if found_finaltime:
-        finaltime_line = tas_lines[finaltime_line_num]
-
         if finaltime_type in (FinalTimeTypes.Chapter, FinalTimeTypes.File):
             if finaltime_line.lower().startswith('midway'):
                 finaltime_type = finaltime_type.as_midway()
@@ -347,14 +348,15 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             finaltime = finaltime_components[0]
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
-            if is_comment_time:
+            if finaltime_type == FinalTimeTypes.Comment:
                 finaltime = finaltime_line.strip('#\n ').partition(' ')[0].partition('(')[0].rstrip()
                 finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0')
             else:
+                # this seems unreachable. why does this exist
                 finaltime_components = finaltime_line.lstrip('#0:').partition('(')
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
-        if not is_comment_time:
+        if finaltime_type != FinalTimeTypes.Comment:
             try:
                 finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
             except ValueError:
