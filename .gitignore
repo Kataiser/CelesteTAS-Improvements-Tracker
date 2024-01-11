@@ -1,6 +1,5 @@
 .idea/
 __pycache__/
-test_tases/
 log_history/
 *.pem
 bot_token

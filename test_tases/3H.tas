@@ -1,0 +1,466 @@
+RecordCount: 692
+
+console load 3
+   1
+
+Set ExtendedVariantMode.EveryJumpIsUltra true
+
+# NOTE: There are several strat which differ from maingame
+
+#Start
+Read,3A,Start,3H1
+
+#lvl_09-b (0)
+#3H1
+   4,R,C
+   1,R,J
+   1,J
+  11,R,J
+   2,L,K,G
+   3,R,K,G
+   1,K
+   1
+   1,J,G
+  10,R
+  15,R,D
+   9,L,D
+  12,R,D,X
+   1,R,J
+   2
+  10,J,G
+   1
+  14,R,U,X
+   8,L,J
+   7,L
+  10,L,Z
+   1,R,J
+   4,R
+   8,R,U,X
+   1,J,G
+   7
+  40
+
+#lvl_11-b (0)
+   8
+  15,R,Z
+  22,L,D
+   4,L
+   2
+  11,L,Z
+   1,R,J
+   6,R
+  11,R,J
+   1,L,K,G
+   1,S
+   1,D,J
+  34
+   5,R,K
+  14,R,U,X
+   5,R,J,G
+   1,R
+  40
+
+#lvl_12-b (0)
+   1
+   6,R
+   8,R,J
+  14,R,X
+   1,R,J,G
+  40
+
+#lvl_13-b (0)
+   2,L,J
+   1,L,K,G
+   8,L
+  15,D,X
+  14,L,D
+   4,L,Z
+   8,L,J
+   6,L
+   2
+   1,L,J
+   4,J
+  16,L,D,X
+  40
+
+#lvl_13-a (0)
+  15
+  15,L,D,X
+  20,D
+   2,R,D
+   9,R
+   4,R,Z
+   9,R,J
+   5,J
+   4,K,G
+   9
+   1,K
+   1,K
+   4
+   1,R,J
+   2,J
+   1,R,J
+   2,J
+   9,U,X
+   6,L,J
+  12,R,J
+   6,R,K,G
+   7,R
+   4,R,Z
+   3,R,J
+  10,R
+  15,D,X
+   6,R,D
+   9,D
+   9,L,D
+  40
+
+#lvl_13-x
+   2,D
+  15,L,D,X
+   7,D
+   2,R,D
+   2,R
+   1
+   1,J
+   5,R
+   1,R,J
+   1,R
+   1,R,J
+  15,R,D
+   1,D
+   4,L,D
+   1,D
+   2,L,J
+   5,L
+  18,L,Z
+  12,L,J
+   2,L,K,G
+   1,K
+   1,L,K
+   6,R,K
+   1,L,J,G
+   5,J
+   1,L,J
+   1,L,K,G
+   7,L
+   4,L,Z
+   5,L,J
+   9,L
+   2,L,K
+   1,L,J
+   2,L
+  15,L,D,X
+  22,L,D
+   4,L,Z
+   3,L,J
+  40,J
+
+#lvl_12-x
+   3,L,J
+   1,R,K,G
+   6,K
+  10,L,U,X
+   4,J,G
+   7
+  17,D,X
+   1,S
+   1,D,J
+  69,O
+  13,U,X
+  17,L,J
+   1,K
+   1,R,K
+   1,K
+   1,K
+   4,K
+   2,L,K
+   1,R,J,G
+   7,R
+   4,R,D,J
+  14,U,Z
+   3,R,J
+   1,R,K,G
+   1,J
+  40
+
+#lvl_11-a
+   1,J,G
+   1,R
+   6,J,G
+  40
+
+#lvl_13-a (1)
+   3,J
+  15,U,X
+   4,R,J
+   1,R,K,G
+   7,R
+   1,L,J
+   1,L,K,G
+   2,J
+  15,U,X
+   5,R,J
+  14,R
+   4,X
+   9,R,J
+   1,R,K,G
+   1,J
+  40
+
+#lvl_13-b (1)
+   3,R,J,G
+  15,R,K,G
+  15,U,X
+# Wait for dust bunny
+   1,L,J,G
+   6
+  12,L,K,G
+   5
+   1,J
+   4
+   2,L
+  12,L,D,X
+   1,L,J
+   2,L
+   6,L,D,X
+   1,L,J,G
+   5
+   7,L
+   1,L,J
+   8,L,D,X
+   3,R,J,G
+   1,L,J
+  40
+
+#lvl_12-b (1)
+   2,J
+   1,L,J
+  11,L,D,X
+   1,R,J,G
+  11,L,J
+  40
+
+#lvl_11-b (1)
+   4,L,J
+   4,L
+  10,U,X
+   1,R,J
+   1,R
+   1,R,K,G
+   8,R
+   1,R,K
+   1,R
+   1,R,J
+   6,J
+  10,U,X
+   1,L,K
+   1,L,J,G
+   1,K
+  40
+
+#lvl_11-c (0)
+  11,L,K,G
+   4,L
+   7,L,D,X
+   1,J,G
+   4,L,J
+   1,R,J
+   2
+  29,L,D,X
+   1,L,J
+  15,L
+   1
+  16,L,J
+   7,L,K,G
+   4,L
+   1,R,J,G
+   6,L
+  59,L,D,X
+MidwayChapterTime: 1:26.717(5101)
+  59
+   1,O
+  30
+   5,L,D,X
+  40
+
+#lvl_11-b (2)
+   6,U,X
+  40
+
+#lvl_11-c (1)
+   1,S
+   1,D,J
+  69,O
+  10,L,Z
+   6,R,J
+   3,R
+  15,R,D,X
+  16,R,J
+  14,R,U,X
+   3,R,J,G
+  40
+
+#lvl_12-c
+   2,R,J
+  11,U,X
+  40
+
+#lvl_12-d
+Read,3A,lvl_12-d,lvl_11-d
+
+#lvl_11-d
+   9,L
+  10,D
+   1,R,D
+   3,D
+   4,R,D
+   1,D
+   1,R,D
+   4,D
+   5,L,D
+   6,L,J,G
+   1,J
+   1,L,J
+   1,J
+   1,R,J
+   6,U,X
+   4,J
+   3,L,K
+   5,L
+  15,L,Z
+  17,L
+  12,L,D
+   4,L,Z
+   1,L,J
+   7,L
+   3,J
+  40
+
+#lvl_10-d
+   8,J
+  12,L,K
+   5,L,Z
+   1,L,J
+   7,L
+   2,L,J
+  18,L,D,X
+   1,S
+   1,D,J
+  69,O
+Read,3A,3H2,3H3
+
+#lvl_09-b (1)
+#3H3
+   2,R,J
+  15,L,D,X
+  15,D,C
+  15,R,D,X
+   6,D
+   2,R,D
+   1,R
+   2,R,D
+   4,D,X
+   1,R,K
+  12,R
+   5,R,D
+   8,D
+  24,R,D
+  15,R,D,X
+   2,R,D
+   2,L,D
+  40
+
+#lvl_10-x (0)
+Read,3A,lvl_10-x (0),3H4
+
+#lvl_11-x
+#3H4
+   1,J
+   3,L
+  15,L,D,X
+   3,D
+   9,L,D
+   4,R,D
+   2,R
+  40
+
+#lvl_11-y
+Read,3A,lvl_11-y,lvl_11-z
+
+#lvl_11-z
+   1,R,D
+  15,R,D,X
+  11
+  11,L,D
+   1,D
+   5,L,D
+  18,L,X
+   1,L
+  11,L,U,C
+   1,L,J,G
+  13,L,D
+  15,L,D,X
+  10,L,D
+   8,L,J
+   9,L,U,Z
+  40
+
+#lvl_10-z
+   6,L,U,Z
+   1,K
+   1,R,J,G
+  11,J
+  15,U,X
+   2,R
+   5,R,J,G
+   1,R
+   1,R,J,G
+   7,R
+   3,J
+   2,R,J
+  15,U,X
+  40
+
+#lvl_10-y
+Read,3A,lvl_10-y,lvl_09-b (1)
+
+#lvl_09-b (2)
+   1,R
+  10,J
+  15,U,X
+   1,L,J,G
+   3,R,J
+   3,L,J
+   1,L
+   1,L,J,G
+   8,L
+   3,R
+   2
+  15,U,X
+   1,L,J,G
+   1,K,G
+   6,L
+   3,R
+   2
+   5,L,X
+   1,L,J,G
+   9,J
+   2,L,J
+   8,L
+   2,R,J
+  10,L,J
+  14,L,U,X
+   2,L,J,G
+   7,L
+  12,U,X
+   3,U,X
+  16,L
+   4,L,J,G
+# Adjust for key cycle
+  64,L
+Read,3A,3H5,SpinnerCycle [roof06]
+   2
+Read,3A,EndSpinnerCycle [roof06]
+
+ChapterTime: 2:53.519(10207)
