@@ -140,15 +140,15 @@ class Projects(Table):
 
         return projects_list
 
-    def get_by_name_or_id(self, name: str, consistent_read: bool = True) -> list:
-        if name.isdigit():
+    def get_by_name_or_id(self, name_or_id: Union[str, int], consistent_read: bool = True) -> list:
+        if isinstance(name_or_id, int) or name_or_id.isdigit():
             try:
-                return [self.get(int(name), consistent_read)]
+                return [self.get(int(name_or_id), consistent_read)]
             except DBKeyError:
                 return []
 
         all_projects = self.get_all(consistent_read)
-        name_lower = name.lower()
+        name_lower = name_or_id.lower()
         projects_selected = []
 
         for project in all_projects:
