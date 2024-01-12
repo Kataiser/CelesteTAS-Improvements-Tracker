@@ -1633,6 +1633,7 @@ AnalogMode Ignore
    1,R
    1,L
    6,R,U,Z
+***S
   40
 
 #lvl_c05_kaerra
@@ -1651,12 +1652,15 @@ AnalogMode Ignore
    1
    5,R
    3
+***
   15,R,Z
    2
   10,R,D,X
    1,R,J
   29,R
+***
    2
+***
   15,R,D,X
    2,D
    4,R,Z

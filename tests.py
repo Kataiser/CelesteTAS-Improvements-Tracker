@@ -2,6 +2,7 @@ import dataclasses
 import time
 from decimal import Decimal
 from pathlib import Path
+from typing import Optional
 
 import discord
 import pytest
@@ -29,6 +30,18 @@ class MockUser:
     id: int
     global_name: str
     name: str
+
+
+@dataclasses.dataclass
+class MockChannel:
+    id: Optional[int] = None
+
+
+@dataclasses.dataclass
+class MockMessage:
+    content: str
+    channel: MockChannel
+    author: MockUser
 
 
 # MAIN
@@ -92,6 +105,125 @@ def test_access_token():
 
 # VALIDATION
 
+def test_validate(setup_log, monkeypatch):
+    def mock_message(*args, **kwargs):
+        return MockMessage(*args, **kwargs)
+
+    test_project = {'is_lobby': False, 'excluded_items': (), 'ensure_level': True}
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    ehs_valid = Path('test_tases\\expert_heartside.tas').read_bytes()
+    ehs_old = Path('test_tases\\expert_heartside_old.tas').read_bytes()
+    mock_kataiser = MockUser(219955313334288385, "Kataiser", "kataiser")
+    message = mock_message("-229f Expert Heartside (7:54.929)", MockChannel(970380662907482142), mock_kataiser)
+
+    result_valid = validation.ValidationResult(valid_tas=True, finaltime='7:54.929', timesave='-229f')
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message, ehs_old, test_project, False) == result_valid
+
+    message_draft = mock_message("Expert Heartside draft in 7:54.929", MockChannel(970380662907482142), mock_kataiser)
+    result_valid_draft = validation.ValidationResult(valid_tas=True, finaltime='7:54.929')
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message_draft, None, test_project, False) == result_valid_draft
+
+    result_too_big = validation.ValidationResult(valid_tas=False, warning_text="This TAS file is very large (265.5 KB). For safety, it won't be processed.",
+                                                 log_text="expert_heartside.tas being too long (271883 bytes)")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_too_big.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_too_big
+
+    test_project['excluded_items'] = ('expert_heartside.tas',)
+    result_excluded = validation.ValidationResult(valid_tas=False, warning_text="This filename is excluded from the project.",
+                                                  log_text="file expert_heartside.tas is excluded from project (in ('expert_heartside.tas',))")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message, None, test_project, False) == result_excluded
+    test_project['excluded_items'] = ()
+
+    result_identical = validation.ValidationResult(valid_tas=False, warning_text="This file is identical to what's already in the repo.",
+                                                   log_text="file expert_heartside.tas is unchanged from repo")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message, ehs_valid, test_project, False) == result_identical
+
+    result_breakpoints = validation.ValidationResult(valid_tas=False, warning_text="Breakpoints found on lines: 1636, 1655, 1661, 1663, please remove them (Ctrl+P in Studio) "
+                                                                                   "and post again.", log_text="4 breakpoints in expert_heartside.tas")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_breakpoints.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_breakpoints
+
+    result_no_chaptertime = validation.ValidationResult(valid_tas=False, warning_text="No ChapterTime found in file, please add one and post again.",
+                                                        log_text="no ChapterTime in expert_heartside.tas")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_no_chaptertime.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_no_chaptertime
+
+    result_duplicate_room_label = validation.ValidationResult(valid_tas=False, warning_text="Duplicate room label `#lvl_start-01-Radley` found on line 225, please index revisited rooms "
+                                                                                            "starting from zero and post again.",
+                                                              log_text="Duplicate room label #lvl_start-01-Radley on line 225 in the_lab.tas")
+    assert validation.validate(Path('test_tases\\room indexes\\the_lab not indexed.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_duplicate_room_label
+
+    result_missing_room_label = validation.ValidationResult(valid_tas=False, warning_text="Missing room label index `#lvl_hub` found on line 521, please index revisited rooms starting "
+                                                                                          "from zero and post again.", log_text="Missing room label #lvl_hub on line 521 in the_lab.tas")
+    assert validation.validate(Path('test_tases\\room indexes\\the_lab unfinished index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_missing_room_label
+
+    result_disordered_room_label = validation.ValidationResult(valid_tas=False, warning_text="Out of order room label index `#lvl_hub (2)` found on line 521, please index revisited rooms "
+                                                                                             "starting from zero and post again.",
+                                                               log_text="Out of order room label #lvl_hub (2) on line 521 in the_lab.tas")
+    assert validation.validate(Path('test_tases\\room indexes\\the_lab disordered index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_disordered_room_label
+
+    result_inconsistent_room_label = validation.ValidationResult(valid_tas=False, warning_text="Incorrect initial room label index `#lvl_start-04-Radley (1)` found on line 80, please index "
+                                                                                               "revisited rooms starting from zero and post again.",
+                                                                 log_text="Incorrect initial room label #lvl_start-04-Radley (1) on line 80 in the_lab.tas")
+    assert (validation.validate(Path('test_tases\\room indexes\\the_lab inconsistent index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) ==
+            result_inconsistent_room_label)
+
+    result_disallowed_command = validation.ValidationResult(valid_tas=False, warning_text="Incorrect `ExitGame` command usage on line 3575: ExitGame command is not allowed.",
+                                                            log_text="incorrect command argument in expert_heartside.tas: ExitGame, ExitGame command is not allowed")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_exitgame.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_disallowed_command
+
+    result_wrong_command_args = validation.ValidationResult(valid_tas=False, warning_text="Incorrect number of arguments to `Read` command on line 3452: is 4, should be 1-3.",
+                                                            log_text="incorrect command arguments count in expert_heartside.tas: Read, 4 vs 1-3")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_bad_read.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_wrong_command_args
+
+    result_bad_command_usage = validation.ValidationResult(valid_tas=False, warning_text="Incorrect `RecordCount:` command usage on line 1: records must be a number, you have \"yes\".",
+                                                           log_text="incorrect command argument in expert_heartside.tas: RecordCount:, records must be a number, you have \"yes\"")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_bad_recordcount.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_bad_command_usage
+
+    result_wrong_analogmode = validation.ValidationResult(valid_tas=False, warning_text="Incorrect last AnalogMode, is Square but should be Ignore so as to not possibly desync later TASes.",
+                                                          log_text="last analogmode in expert_heartside.tas is square")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_wrong_analogmode.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_wrong_analogmode
+
+    message_no_chaptertime = mock_message("-229f Expert Heartside", MockChannel(), mock_kataiser)
+    result_no_message_chaptertime = validation.ValidationResult(valid_tas=False, warning_text="The file's ChapterTime (7:54.929) is missing in your message, please add it and post again.",
+                                                                log_text="ChapterTime (7:54.929) missing in message content")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_chaptertime, None, test_project, False) == result_no_message_chaptertime
+
+    test_project['is_lobby'] = True
+
+    result_no_message_chaptertime_lobby = validation.ValidationResult(valid_tas=False, warning_text="The file's final time (7:54.929) is missing in your message, please add it and "
+                                                                                                    "post again.", log_text="final time (7:54.929) missing in message content")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_chaptertime, None, test_project, False) == result_no_message_chaptertime_lobby
+
+    result_no_start = validation.ValidationResult(valid_tas=False, warning_text="No `#Start` found in file, please add one between the console load frame and the intro frames (or first "
+                                                                                "room label if none) and post again.", log_text="no #Start in file")
+    assert validation.validate(Path('test_tases\\invalids\\ehs_no_start.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_no_start
+
+    message_no_timesave = mock_message("Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
+    result_no_timesave = validation.ValidationResult(valid_tas=False, warning_text="Please mention how many frames were saved or lost, with the text \"-229f\" (if that's correct), "
+                                                                                   "and post again.", log_text="no timesave in message (should be -229f)")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_timesave, ehs_old, test_project, False) == result_no_timesave
+
+    message_wrong_timesave = mock_message("-666f Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
+    result_wrong_timesave = validation.ValidationResult(valid_tas=False, warning_text="Frames saved is incorrect (you said \"-666f\", but it seems to be \"-229f\"), please fix and "
+                                                                                      "post again. Make sure you improved the latest version of the file.",
+                                                        log_text="incorrect time saved in message (is \"-666f\", should be \"-229f\")")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message_wrong_timesave, ehs_old, test_project, False) == result_wrong_timesave
+
+    result_wrong_timesave_options = validation.ValidationResult(valid_tas=False, warning_text="Frames saved is incorrect (you said \"-229f\", but it seems to be \"-0f\" or \"+0f\"), please "
+                                                                                              "fix and post again. Make sure you improved the latest version of the file.",
+                                                                log_text="incorrect time saved in message (is \"-229f\", should be \"-0f\" or \"+0f\")")
+    assert (validation.validate(Path('test_tases\\invalids\\ehs_slightly_different.tas').read_bytes(), 'expert_heartside.tas', message, ehs_valid, test_project, False) ==
+            result_wrong_timesave_options)
+
+    result_no_draft = validation.ValidationResult(valid_tas=False, warning_text="Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere "
+                                                                                "reasonable) and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in "
+                                                                                "the repo (did you mean `grandmaster_heartside.tas`?).", log_text="no \"draft\" text in message")
+    assert validation.validate(ehs_valid, 'grandmaster_heartside2.tas', message, None, test_project, False) == result_no_draft
+
+    message_no_levelname = mock_message("-229f (7:54.929)", MockChannel(), mock_kataiser)
+    result_no_levelname = validation.ValidationResult(valid_tas=False, warning_text="The level name is missing in your message, please add it and post again.",
+                                                      log_text="level name (expertheartside) missing in message content")
+    assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_levelname, ehs_old, test_project, False) == result_no_levelname
+
+
 def test_parse_tas_file(setup_log):
     test_tases = [('0_-_All_C_Sides.tas', 71,
                    validation.ParsedTASFile(breakpoints=[], found_finaltime=True, finaltime='2:43.659', finaltime_trimmed='2:43.659',
@@ -114,9 +246,9 @@ def test_parse_tas_file(setup_log):
                   ('abby-cookie.tas', 28,
                    validation.ParsedTASFile(breakpoints=[], found_finaltime=True, finaltime='2.108', finaltime_trimmed='2.108',
                                             finaltime_line_num=27, finaltime_frames=None, finaltime_type=validation.FinalTimeTypes.Comment)),
-                  ('expert_heartside.tas', 3382,
-                   validation.ParsedTASFile(breakpoints=[], found_finaltime=True, finaltime='7:58.822', finaltime_trimmed='7:58.822',
-                                            finaltime_line_num=3381, finaltime_frames=28166, finaltime_type=validation.FinalTimeTypes.Chapter)),
+                  ('expert_heartside.tas', 3576,
+                   validation.ParsedTASFile(breakpoints=[], found_finaltime=True, finaltime='7:54.929', finaltime_trimmed='7:54.929',
+                                            finaltime_line_num=3575, finaltime_frames=27937, finaltime_type=validation.FinalTimeTypes.Chapter)),
                   ('deskilln-deathkontrol.tas', 158,
                    validation.ParsedTASFile(breakpoints=[], found_finaltime=True, finaltime='12.699', finaltime_trimmed='12.699',
                                             finaltime_line_num=157, finaltime_frames=None, finaltime_type=validation.FinalTimeTypes.Comment)),

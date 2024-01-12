@@ -3449,6 +3449,7 @@ EndRepeat
   11,R,J,G
    7,R
    4,R,Z
+Read,1_Beginner_Lobby/beg_0-1,Start,extra1,extra2
 
 #lvl_f07_syrenyx
    8,R,J

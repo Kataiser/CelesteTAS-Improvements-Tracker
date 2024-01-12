@@ -1253,7 +1253,6 @@ AnalogMode Square
   20,F,345
    8,F,0
    6,F,26.5
-AnalogMode Ignore
   14,R,Z
    2,R,J,G
    6,R
