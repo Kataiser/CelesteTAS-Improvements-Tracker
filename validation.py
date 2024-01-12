@@ -10,21 +10,21 @@ from fuzzywuzzy import process as fuzzy_process
 import db
 
 
+@dataclasses.dataclass
 class ValidationResult:
-    def __init__(self, valid_tas: bool, warning_text: Optional[str] = None, log_text: Optional[str] = None, finaltime: Optional[str] = None, timesave: Optional[str] = None,
-                 wip: bool = False, sj_data: Optional[tuple] = None):
-        self.valid_tas = valid_tas
-        self.warning_text = warning_text
-        self.log_text = log_text
-        self.timesave = timesave
-        self.finaltime = finaltime
-        self.wip = wip
-        self.sj_data = sj_data
+    valid_tas: bool
+    warning_text: Optional[str] = None
+    log_text: Optional[str] = None
+    finaltime: Optional[str] = None
+    timesave: Optional[str] = None
+    wip: bool = False
+    sj_data: Optional[tuple] = None
 
-        if valid_tas:
+    def __post_init__(self):
+        if self.valid_tas:
             log.info("TAS file and improvement post have been validated")
 
-            if not finaltime:
+            if not self.finaltime:
                 log.warning("Valid tas result has no finaltime")
 
 
@@ -33,7 +33,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate length
     if not skip_validation and len(tas) > 204800:  # 200 kb
-        return ValidationResult(False, f"This TAS file is very large ({len(tas) / 2048} KB). For safety, it won't be processed.", f"{filename} being too long ({len(tas)} bytes)")
+        return ValidationResult(False, f"This TAS file is very large ({len(tas) / 1024:.1f} KB). For safety, it won't be processed.", f"{filename} being too long ({len(tas)} bytes)")
 
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
@@ -73,10 +73,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     if filename in project['excluded_items']:
         return ValidationResult(False, "This filename is excluded from the project.", f"file {filename} is excluded from project (in {project['excluded_items']})")
 
-    # validate breakpoint doesn't exist and chaptertime does
+    # validate file has been updated
     if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
         return ValidationResult(False, "This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
 
+    # validate breakpoint doesn't exist and chaptertime does
     if len(tas_parsed.breakpoints) == 1:
         return ValidationResult(False, f"Breakpoint found on line {tas_parsed.breakpoints[0]}, please remove it (Ctrl+P in Studio) and post again.", f"breakpoint in {filename}")
     elif len(tas_parsed.breakpoints) > 1:
