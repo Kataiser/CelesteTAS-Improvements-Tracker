@@ -468,10 +468,11 @@ async def test_command_about(setup_log, monkeypatch):
     assert sent_messages_split[1] == "Projects (improvement channels): 0"
     assert sent_messages_split[2] == "Servers: 0"
     assert sent_messages_split[3].startswith("Github installations: ")
-    assert sent_messages_split[4] == "Current uptime: 0.0 hours"
-    assert sent_messages_split[5].startswith("Current host: ")
-    assert sent_messages_split[6].startswith("Sync checks: ")
-    assert sent_messages_split[7].startswith("Improvements/drafts processed and committed: ")
+    assert sent_messages_split[4] == "Bot uptime: 0.0 hours"
+    assert sent_messages_split[5].startswith("Host uptime: ")
+    assert sent_messages_split[6].startswith("Current host: ")
+    assert sent_messages_split[7].startswith("Sync checks: ")
+    assert sent_messages_split[8].startswith("Improvements/drafts processed and committed: ")
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,5 @@
 import base64
+import ctypes
 import inspect
 import logging
 import os
@@ -495,13 +496,15 @@ async def command_about(message: discord.Message):
            "\nProjects (improvement channels): {0}" \
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
-           "\nCurrent uptime: {3} hours" \
+           "\nBot uptime: {3} hours" \
+           "\nHost uptime: {8} days" \
            "\nCurrent host: {7}" \
            "\nSync checks: {4} project{6}" \
            "\nImprovements/drafts processed and committed: {5}"
 
     sync_checks = 0
     installations = set()
+    host_uptime = round(ctypes.windll.kernel32.GetTickCount64() / 86400000, 1)
 
     for project in db.projects.get_all(consistent_read=False):
         installations.add(project['installation_owner'])
@@ -510,18 +513,19 @@ async def command_about(message: discord.Message):
             sync_checks += 1
 
     if main.login_time:
-        uptime = round((time.time() - main.login_time) / 3600, 1)
+        bot_uptime = round((time.time() - main.login_time) / 3600, 1)
     else:
-        uptime = 0.0
+        bot_uptime = 0.0
 
     text_out = text.format(main.projects_count(),
                            len(client.guilds),
                            len(installations),
-                           uptime,
+                           bot_uptime,
                            sync_checks,
                            db.history_log.size(),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks),
-                           utils.host())
+                           utils.host(),
+                           host_uptime)
 
     log.info(text_out)
     await message.channel.send(text_out)
