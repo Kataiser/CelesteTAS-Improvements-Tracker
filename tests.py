@@ -39,6 +39,10 @@ class MockUser:
     id: int = 219955313334288385
     global_name: str = "Kataiser"
     name: str = "kataiser"
+    sent_messages = []
+
+    async def send(self, content: str):
+        self.sent_messages.append(content)
 
 
 @dataclasses.dataclass
