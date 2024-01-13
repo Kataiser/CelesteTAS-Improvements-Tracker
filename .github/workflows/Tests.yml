@@ -17,7 +17,7 @@ jobs:
     if: "!contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install Python
       uses: actions/setup-python@v2
       with:
@@ -33,6 +33,11 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::074157333288:role/Improvement-Tracker-CI
         aws-region: us-east-2
+    - name: Set up Google Cloud credentials
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      run: |
+        echo "GOOGLE_CREDENTIALS" > service.json
     - name: Run tests
       run: |
         coverage run tests.py
