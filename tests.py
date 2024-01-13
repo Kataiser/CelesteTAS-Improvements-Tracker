@@ -97,10 +97,6 @@ def mock_channel():
     return channel
 
 
-def mock_get_mod_dependencies(*args) -> List:
-    return []
-
-
 # MAIN
 
 def test_generate_path_cache(setup_log):
@@ -525,7 +521,14 @@ async def test_command_add_mods(setup_log, monkeypatch):
     try:
         game_sync.mods_dir()
     except FileNotFoundError:
+        def mock_get_mod_dependencies(*args) -> List:
+            return []
+
+        def mock_mods_dir() -> Path:
+            return Path('mods')
+
         monkeypatch.setattr(game_sync, 'get_mod_dependencies', mock_get_mod_dependencies)
+        monkeypatch.setattr(game_sync, 'mods_dir', mock_mods_dir)
 
     channel = discord.TextChannel()
     assert db.projects.get(976903244863381564)['mods'] == ['Glitchy_Platformer']
