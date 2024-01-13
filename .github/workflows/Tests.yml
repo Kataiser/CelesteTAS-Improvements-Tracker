@@ -36,8 +36,9 @@ jobs:
     - name: Configure Google Cloud credentials
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      shell: bash
       run: |
-        echo %GOOGLE_CREDENTIALS% | certutil -decode > service.json
+        echo $GOOGLE_CREDENTIALS | base64 --decode > service.json
     - name: Run tests
       run: |
         coverage run tests.py
