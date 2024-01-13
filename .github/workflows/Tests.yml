@@ -31,7 +31,7 @@ jobs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::074157333288:oidc-provider/token.actions.githubusercontent.com
+        role-to-assume: arn:aws:iam::074157333288:role/Improvement-Tracker-CI
         aws-region: us-east-2
     - name: Run tests
       run: |
