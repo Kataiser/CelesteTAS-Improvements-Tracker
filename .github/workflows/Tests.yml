@@ -33,14 +33,18 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::074157333288:role/Improvement-Tracker-CI
         aws-region: us-east-2
-    - name: Configure Google Cloud credentials
+    - name: Save misc credentials
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        GH_APP_CREDENTIALS: ${{ secrets.GH_APP_CREDENTIALS }}
       shell: bash
       run: |
         echo $GOOGLE_CREDENTIALS | base64 --decode > service.json
+        echo GH_APP_CREDENTIALS | base64 --decode > celestetas-improvements-tracker.2022-05-01.private-key.pem
     - name: Run tests
       run: |
+        echo "GitHub Actions runner" > host
+        mkdir mods
         coverage run -m pytest tests.py
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3

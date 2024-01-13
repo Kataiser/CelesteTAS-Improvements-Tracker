@@ -2,7 +2,7 @@ import dataclasses
 import time
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import discord
 import pytest
@@ -10,6 +10,7 @@ import pytest
 import bot
 import commands
 import db
+import game_sync
 import gen_token
 import main
 import spreadsheet
@@ -19,7 +20,8 @@ import validation
 
 @pytest.fixture
 def setup_log():
-    main.create_logger('tests', False)
+    if not main.log:
+        main.create_logger('tests', False)
 
 
 @pytest.fixture
@@ -93,6 +95,10 @@ def mock_channel():
     channel = MockChannel()
     channel.sent_messages = []
     return channel
+
+
+def mock_get_mod_dependencies(*args) -> List:
+    return []
 
 
 # MAIN
@@ -516,6 +522,11 @@ async def test_command_add_mods(setup_log, monkeypatch):
     sync_project['mods'] = ['Glitchy_Platformer']
     db.projects.set(976903244863381564, sync_project)
 
+    try:
+        game_sync.mods_dir()
+    except FileNotFoundError:
+        monkeypatch.setattr(game_sync, 'get_mod_dependencies', mock_get_mod_dependencies)
+
     channel = discord.TextChannel()
     assert db.projects.get(976903244863381564)['mods'] == ['Glitchy_Platformer']
     await commands.handle(discord.Message("add_mods 970380662907482142 RandomStuffHelper", channel, MockUser()))
@@ -664,7 +675,7 @@ def test_log_timestamp(monkeypatch):
         return 1704954712.2238538
 
     monkeypatch.setattr(time, 'time', mock_time)
-    assert utils.log_timestamp() == '2024-01-11 00:31:52,224'
+    assert utils.log_timestamp() in ('2024-01-11 00:31:52,224', '2024-01-11 06:31:52,224')
 
 
 def test_host():
