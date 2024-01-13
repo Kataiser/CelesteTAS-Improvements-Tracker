@@ -34,8 +34,10 @@ jobs:
         role-to-assume: arn:aws:iam::074157333288:role/Improvement-Tracker-CI
         aws-region: us-east-2
     - name: Configure Google Cloud credentials
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       run: |
-        echo "${{ secrets.GOOGLE_CREDENTIALS }}" > service.json
+        echo %GOOGLE_CREDENTIALS% | certutil -decode > service.json
     - name: Run tests
       run: |
         coverage run tests.py
