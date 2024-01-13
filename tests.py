@@ -515,24 +515,29 @@ async def test_command_projects_admined(setup_log, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_command_add_mods(setup_log, monkeypatch):
+    @dataclasses.dataclass
+    class MockItem:
+        stem: str
+        suffix: str
+
+    class MockModsPath:
+        def iterdir(self):
+            return MockItem('RandomStuffHelper', '.zip'), MockItem('Glitchy_Platformer', '.zip')
+
+    def mock_mods_dir() -> MockModsPath:
+        return MockModsPath()
+
+    def mock_get_mod_dependencies(*args) -> List:
+        return []
+
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    monkeypatch.setattr(game_sync, 'mods_dir', mock_mods_dir)
+    monkeypatch.setattr(game_sync, 'get_mod_dependencies', mock_get_mod_dependencies)
     sync_project = db.projects.get(976903244863381564)
     sync_project['do_run_validation'] = True
     sync_project['mods'] = ['Glitchy_Platformer']
     db.projects.set(976903244863381564, sync_project)
-
-    try:
-        game_sync.mods_dir()
-    except FileNotFoundError:
-        def mock_get_mod_dependencies(*args) -> List:
-            return []
-
-        def mock_mods_dir() -> Path:
-            return Path('mods')
-
-        monkeypatch.setattr(game_sync, 'get_mod_dependencies', mock_get_mod_dependencies)
-        monkeypatch.setattr(game_sync, 'mods_dir', mock_mods_dir)
 
     channel = discord.TextChannel()
     assert db.projects.get(976903244863381564)['mods'] == ['Glitchy_Platformer']
