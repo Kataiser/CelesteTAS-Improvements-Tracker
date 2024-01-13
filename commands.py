@@ -313,7 +313,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
                 mods_missing.add(mod)
 
         dependency_text = 'dependency' if len(dependencies) == 1 else 'dependencies'
-        await message.channel.send(f"Project \"{project['name']}\" now has {len(mods_given)} mod{plural(mods_given)} (plus {dependencies} {dependency_text}) to load for sync testing.")
+        await message.channel.send(f"Project \"{project['name']}\" now has {len(mods_given)} mod{plural(mods_given)} (plus {len(dependencies)} {dependency_text}) to load for sync testing.")
 
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
@@ -662,6 +662,7 @@ async def command_projects_admined(message: discord.Message):
         if message.author.id in project['admins']:
             projects_admined_names.append(project['name'])
 
+    projects_admined_names.sort()
     log.debug(f"Projects admined: {projects_admined_names}")
 
     if projects_admined_names:

@@ -7,6 +7,8 @@ from typing import Optional
 import discord
 import pytest
 
+import bot
+import commands
 import db
 import gen_token
 import main
@@ -21,20 +23,33 @@ def setup_log():
 
 
 @pytest.fixture
+def setup_client():
+    bot.share_client(MockClient())
+
+
+@pytest.fixture
 def fast_db():
     db.always_inconsistent_read = True
 
 
 @dataclasses.dataclass
 class MockUser:
-    id: int
-    global_name: str
-    name: str
+    id: int = 219955313334288385
+    global_name: str = "Kataiser"
+    name: str = "kataiser"
 
 
 @dataclasses.dataclass
 class MockChannel:
     id: Optional[int] = None
+    sent_messages = []
+
+    async def send(self, content: str):
+        self.sent_messages.append(content)
+
+    def get_partial_message(self, id: int):
+        mock_messages = {973344238261657650: MockMessage('', self, MockUser(), 973344238261657650)}
+        return mock_messages[id]
 
 
 @dataclasses.dataclass
@@ -42,6 +57,42 @@ class MockMessage:
     content: str
     channel: MockChannel
     author: MockUser
+    id: Optional[int] = None
+    jump_url: Optional[str] = None
+
+    def __post_init__(self):
+        if self.id:
+            mock_jump_urls = {973344238261657650: 'https://discord.com/channels/970379400887558204/970380662907482142/973344238261657650'}
+            self.jump_url = mock_jump_urls[self.id]
+
+
+class MockClient:
+    async def fetch_user(self, id_: int) -> MockUser:
+        mock_users = {219955313334288385: MockUser(),
+                      234520815658336258: MockUser(234520815658336258, 'Vamp', 'vampire_flower')}
+
+        return mock_users[id_]
+
+    def get_channel(self, id_: int) -> MockChannel:
+        return MockChannel(id_)
+
+
+def mock_message(*args, **kwargs):
+    return MockMessage(*args, **kwargs)
+
+
+def mock_user(*args, **kwargs):
+    return MockUser(*args, **kwargs)
+
+
+def mock_client():
+    return MockClient()
+
+
+def mock_channel():
+    channel = MockChannel()
+    channel.sent_messages = []
+    return channel
 
 
 # MAIN
@@ -106,20 +157,17 @@ def test_access_token():
 # VALIDATION
 
 def test_validate(setup_log, monkeypatch):
-    def mock_message(*args, **kwargs):
-        return MockMessage(*args, **kwargs)
-
     test_project = {'is_lobby': False, 'excluded_items': (), 'ensure_level': True}
     monkeypatch.setattr(discord, 'Message', mock_message)
     ehs_valid = Path('test_tases\\expert_heartside.tas').read_bytes()
     ehs_old = Path('test_tases\\expert_heartside_old.tas').read_bytes()
     mock_kataiser = MockUser(219955313334288385, "Kataiser", "kataiser")
-    message = mock_message("-229f Expert Heartside (7:54.929)", MockChannel(970380662907482142), mock_kataiser)
+    message = discord.Message("-229f Expert Heartside (7:54.929)", MockChannel(970380662907482142), mock_kataiser)
 
     result_valid = validation.ValidationResult(valid_tas=True, finaltime='7:54.929', timesave='-229f')
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message, ehs_old, test_project, False) == result_valid
 
-    message_draft = mock_message("Expert Heartside draft in 7:54.929", MockChannel(970380662907482142), mock_kataiser)
+    message_draft = discord.Message("Expert Heartside draft in 7:54.929", MockChannel(970380662907482142), mock_kataiser)
     result_valid_draft = validation.ValidationResult(valid_tas=True, finaltime='7:54.929')
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_draft, None, test_project, False) == result_valid_draft
 
@@ -181,7 +229,7 @@ def test_validate(setup_log, monkeypatch):
                                                           log_text="last analogmode in expert_heartside.tas is square")
     assert validation.validate(Path('test_tases\\invalids\\ehs_wrong_analogmode.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_wrong_analogmode
 
-    message_no_chaptertime = mock_message("-229f Expert Heartside", MockChannel(), mock_kataiser)
+    message_no_chaptertime = discord.Message("-229f Expert Heartside", MockChannel(), mock_kataiser)
     result_no_message_chaptertime = validation.ValidationResult(valid_tas=False, warning_text="The file's ChapterTime (7:54.929) is missing in your message, please add it and post again.",
                                                                 log_text="ChapterTime (7:54.929) missing in message content")
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_chaptertime, None, test_project, False) == result_no_message_chaptertime
@@ -196,12 +244,12 @@ def test_validate(setup_log, monkeypatch):
                                                                                 "room label if none) and post again.", log_text="no #Start in file")
     assert validation.validate(Path('test_tases\\invalids\\ehs_no_start.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_no_start
 
-    message_no_timesave = mock_message("Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
+    message_no_timesave = discord.Message("Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
     result_no_timesave = validation.ValidationResult(valid_tas=False, warning_text="Please mention how many frames were saved or lost, with the text \"-229f\" (if that's correct), "
                                                                                    "and post again.", log_text="no timesave in message (should be -229f)")
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_timesave, ehs_old, test_project, False) == result_no_timesave
 
-    message_wrong_timesave = mock_message("-666f Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
+    message_wrong_timesave = discord.Message("-666f Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
     result_wrong_timesave = validation.ValidationResult(valid_tas=False, warning_text="Frames saved is incorrect (you said \"-666f\", but it seems to be \"-229f\"), please fix and "
                                                                                       "post again. Make sure you improved the latest version of the file.",
                                                         log_text="incorrect time saved in message (is \"-666f\", should be \"-229f\")")
@@ -218,7 +266,7 @@ def test_validate(setup_log, monkeypatch):
                                                                                 "the repo (did you mean `grandmaster_heartside.tas`?).", log_text="no \"draft\" text in message")
     assert validation.validate(ehs_valid, 'grandmaster_heartside2.tas', message, None, test_project, False) == result_no_draft
 
-    message_no_levelname = mock_message("-229f (7:54.929)", MockChannel(), mock_kataiser)
+    message_no_levelname = discord.Message("-229f (7:54.929)", MockChannel(), mock_kataiser)
     result_no_levelname = validation.ValidationResult(valid_tas=False, warning_text="The level name is missing in your message, please add it and post again.",
                                                       log_text="level name (expertheartside) missing in message content")
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_levelname, ehs_old, test_project, False) == result_no_levelname
@@ -354,8 +402,133 @@ def test_as_lines(setup_log):
     assert validation.as_lines(Path('test_tases\\abby-cookie.tas').read_bytes()) == lines
 
 
-# SPREADSHEET
+# COMMANDS
 
+@pytest.mark.asyncio
+async def test_is_admin(setup_log, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    channel = discord.TextChannel()
+    assert await commands.is_admin(discord.Message('', channel, MockUser()), {'admins': ()})
+    assert await commands.is_admin(discord.Message('', channel, MockUser(id=651190712288935939)), {'admins': (403759119758131211, 651190712288935939)})
+    assert not channel.sent_messages
+    assert not await commands.is_admin(discord.Message('', channel, MockUser(id=651190712288935939)), {'admins': ()})
+    assert channel.sent_messages == ["Not allowed, you are not a project admin."]
+
+
+@pytest.mark.asyncio
+async def test_dm_echo(setup_log, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    channel = discord.TextChannel()
+    await commands.handle(discord.Message("ok", channel, MockUser()))
+    await commands.handle(discord.Message("hello", channel, MockUser()))
+    assert channel.sent_messages == ["ok", "hello"]
+
+
+@pytest.mark.asyncio
+async def test_command_help(setup_log, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    channel = discord.TextChannel()
+    await commands.handle(discord.Message("help", channel, MockUser()))
+    assert channel.sent_messages == ["Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:\n\n"
+                                     "1. Register GitHub app with your account and repo (you likely need to be the repo owner): <https://github.com/apps/celestetas-improvements-tracker>\n"
+                                     "2. Add bot to your server: <https://discord.com/oauth2/authorize?client_id=970375635027525652&scope=bot&permissions=2147560512>\n"
+                                     "3. Run the `register_project` command, see `help register_project` for parameters. You can also use this to edit existing projects.\n"
+                                     "4. (Optional) Add other admins with `edit_admins`, and add mod(s) for sync testing with `add_mods`.\n\n"
+                                     "Available commands:\n"
+                                     "`help`: Get bot installation instructions, or the info for a command.\n"
+                                     "`register_project`: Add or edit a project (improvements channel).\n"
+                                     "`add_mods`: Set the game mods a sync check needs to load.\n"
+                                     "`rename_file`: Rename a file in the repo of a project. Recommended over "
+                                     "manually committing.\n"
+                                     "`edit_admin`: Add or remove admins from a project.\n"
+                                     "`about`: Get bot info and status.\n"
+                                     "`about_project`: Get the info and settings of a project.\n"
+                                     "`projects`: Get the basic info and settings of all projects.\n"
+                                     "`projects_admined`: List projects you're an admin of."]
+
+
+@pytest.mark.asyncio
+async def test_command_about(setup_log, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    channel = discord.TextChannel()
+    await commands.handle(discord.Message("about", channel, MockUser()))
+    sent_messages_split = channel.sent_messages[0].splitlines()
+
+    assert sent_messages_split[0] == "Source: <https://github.com/Kataiser/CelesteTAS-Improvements-Tracker>"
+    assert sent_messages_split[1] == "Projects (improvement channels): 0"
+    assert sent_messages_split[2] == "Servers: 0"
+    assert sent_messages_split[3].startswith("Github installations: ")
+    assert sent_messages_split[4] == "Current uptime: 0.0 hours"
+    assert sent_messages_split[5].startswith("Current host: ")
+    assert sent_messages_split[6].startswith("Sync checks: ")
+    assert sent_messages_split[7].startswith("Improvements/drafts processed and committed: ")
+
+
+@pytest.mark.asyncio
+async def test_command_about_project(setup_log, setup_client, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    monkeypatch.setattr(discord, 'Client', mock_client)
+    channel = discord.TextChannel()
+    await commands.handle(discord.Message("about_project \"Improvements bot testing\"", channel, MockUser()))
+    assert channel.sent_messages == ["Name: **Improvements bot testing**\n"
+                                     "Repo: <https://github.com/Kataiser/improvements-bot-testing>\n"
+                                     "Improvement channel: <#970380662907482142>\n"
+                                     "Admins: Kataiser (kataiser, 219955313334288385), Vamp (vampire_flower, 234520815658336258)\n"
+                                     "Github installation owner: Kataiser\n"
+                                     "Install time: <t:1652133751>\n"
+                                     "Pin: <https://discord.com/channels/970379400887558204/970380662907482142/973344238261657650>\n"
+                                     "Commits drafts: `True`\n"
+                                     "Is lobby: `False`\n"
+                                     "Ensures level name in posts: `True`\n"
+                                     "Does sync check: `False`\n"
+                                     "Uses contributors file: `True`"]
+
+
+@pytest.mark.asyncio
+async def test_command_projects_admined(setup_log, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    channel = discord.TextChannel()
+    await commands.handle(discord.Message("projects_admined", channel, MockUser()))
+    assert channel.sent_messages == ["FLCC\n"
+                                     "FLCC Lobby\n"
+                                     "Improvements bot directory testing\n"
+                                     "Improvements bot lobby testing\n"
+                                     "Improvements bot sync testing\n"
+                                     "Improvements bot testing\n"
+                                     "Improvements bot thread testing\n"
+                                     "Midway Contest\n"
+                                     "Midway Contest Lobby\n"
+                                     "Strawberry Jam"]
+
+
+@pytest.mark.asyncio
+async def test_command_add_mods(setup_log, monkeypatch):
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    sync_project = db.projects.get(976903244863381564)
+    sync_project['do_run_validation'] = True
+    sync_project['mods'] = ['Glitchy_Platformer']
+    db.projects.set(976903244863381564, sync_project)
+
+    channel = discord.TextChannel()
+    assert db.projects.get(976903244863381564)['mods'] == ['Glitchy_Platformer']
+    await commands.handle(discord.Message("add_mods 970380662907482142 RandomStuffHelper", channel, MockUser()))
+    assert channel.sent_messages == ["Project \"Improvements bot testing\" has sync checking disabled.", "No projects (with sync checking enabled) matching that name or ID found."]
+    await commands.handle(discord.Message("add_mods 976903244863381564 RandomStuffHelper", channel, MockUser()))
+    assert channel.sent_messages[2:] == ["Project \"Improvements bot sync testing\" now has 1 mod (plus 0 dependencies) to load for sync testing."]
+    assert db.projects.get(976903244863381564)['mods'] == ['Glitchy_Platformer', 'RandomStuffHelper']
+
+    sync_project['do_run_validation'] = False
+    db.projects.set(976903244863381564, sync_project)
+
+
+# SPREADSHEET
 
 def test_read_sheet():
     read = spreadsheet.read_sheet('Intermediate!A2:I20', multiple_rows=True)
@@ -487,10 +660,10 @@ def test_load_sj_data():
 
 
 def test_log_timestamp(monkeypatch):
-    def mock_return():
+    def mock_time():
         return 1704954712.2238538
 
-    monkeypatch.setattr(time, 'time', mock_return)
+    monkeypatch.setattr(time, 'time', mock_time)
     assert utils.log_timestamp() == '2024-01-11 00:31:52,224'
 
 
@@ -503,18 +676,12 @@ def test_get_user_github_account():
 
 
 def test_nicknames(monkeypatch):
-    def mock_user(*args, **kwargs):
-        return MockUser(*args, **kwargs)
-
     monkeypatch.setattr(discord, 'User', mock_user)
     assert utils.nickname(discord.User(587491655129759744, "έλλατάς", "ellatas")) == "Ella"
     assert utils.nickname(discord.User(219955313334288385, "Kataiser", "kataiser")) == "Kataiser"
 
 
 def test_detailed_user(monkeypatch):
-    def mock_user(*args, **kwargs):
-        return MockUser(*args, **kwargs)
-
     monkeypatch.setattr(discord, 'User', mock_user)
     assert utils.detailed_user(user=discord.User(587491655129759744, "έλλατάς", "ellatas")) == "έλλατάς (ellatas, 587491655129759744)"
     assert utils.detailed_user(user=discord.User(219955313334288385, "Kataiser", "kataiser")) == "Kataiser (kataiser, 219955313334288385)"

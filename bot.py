@@ -273,10 +273,14 @@ async def map_autocomplete(interaction: discord.Interaction, current: str) -> Li
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
 
+def share_client(client_: discord.Client):
+    commands.client = client_
+    spreadsheet.client = client_
+    main.client = client_
+
+
 log = main.create_logger('bot')
-commands.client = client
-spreadsheet.client = client
-main.client = client
+share_client(client)
 main.safe_mode = safe_mode
 projects_startup = Optional[dict]
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
