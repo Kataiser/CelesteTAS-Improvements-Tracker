@@ -40,7 +40,7 @@ jobs:
       shell: bash
       run: |
         echo $GOOGLE_CREDENTIALS | base64 --decode > service.json
-        echo GH_APP_CREDENTIALS | base64 --decode > celestetas-improvements-tracker.2022-05-01.private-key.pem
+        echo $GH_APP_CREDENTIALS | base64 --decode > celestetas-improvements-tracker.2022-05-01.private-key.pem
     - name: Run tests
       run: |
         echo "GitHub Actions runner" > host
