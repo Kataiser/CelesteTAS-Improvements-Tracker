@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      id-token: write
+      contents: read
     if: "!contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
 
     steps:
@@ -25,6 +28,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install coverage
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::074157333288:oidc-provider/token.actions.githubusercontent.com
+        aws-region: us-east-2
     - name: Run tests
       run: |
         coverage run tests.py
