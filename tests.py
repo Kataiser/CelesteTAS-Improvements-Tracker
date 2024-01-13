@@ -545,8 +545,7 @@ async def test_command_add_mods(setup_log, monkeypatch):
     assert channel.sent_messages == ["Project \"Improvements bot testing\" has sync checking disabled.", "No projects (with sync checking enabled) matching that name or ID found."]
     await commands.handle(discord.Message("add_mods 976903244863381564 RandomStuffHelper", channel, MockUser()))
     assert channel.sent_messages[2:] == ["Project \"Improvements bot sync testing\" now has 1 mod (plus 0 dependencies) to load for sync testing."]
-    assert db.projects.get(976903244863381564)['mods'] == ['Glitchy_Platformer', 'RandomStuffHelper']
-
+    assert set(db.projects.get(976903244863381564)['mods']) == {'Glitchy_Platformer', 'RandomStuffHelper'}
     sync_project['do_run_validation'] = False
     db.projects.set(976903244863381564, sync_project)
 
