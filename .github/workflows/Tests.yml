@@ -41,7 +41,7 @@ jobs:
         echo $GOOGLE_CREDENTIALS | base64 --decode > service.json
     - name: Run tests
       run: |
-        coverage run tests.py
+        coverage run -m pytest tests.py
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
