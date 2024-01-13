@@ -566,7 +566,6 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
     logger.addHandler(stdout_handler)
-    logger.info(f"Log created, host = {utils.host()}")
 
     global log
     log = logger
@@ -576,6 +575,7 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
     commands.log = logger
     spreadsheet.log = logger
 
+    logger.info(f"Log created, host = {utils.host()}")
     return logger
 
 
