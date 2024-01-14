@@ -86,12 +86,12 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
         repo = project['repo']
 
-        if isinstance(attachment, discord.Attachment):
+        if isinstance(attachment, AttachmentFromZip):
+            file_content = attachment.content
+        else:
             r = requests.get(attachment.url)
             utils.handle_potential_request_error(r, 200)
             file_content = r.content
-        else:  # zip attachment
-            file_content = attachment.content
 
         filename, filename_no_underscores = attachment.filename, attachment.filename.replace('_', ' ')
         db.path_caches.enable_cache()
@@ -265,7 +265,7 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message, project: dict) -> bool:
-    if message.id in db.project_logs.get(message.channel.id) or message.author.id == 970375635027525652 or (safe_mode and message.channel.id not in safe_projects):
+    if message.id in db.project_logs.get(message.channel.id) or message.author == client.user or (safe_mode and message.channel.id not in safe_projects):
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that

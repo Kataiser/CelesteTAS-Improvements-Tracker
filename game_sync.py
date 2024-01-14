@@ -516,8 +516,9 @@ def get_mod_dependencies(mod: str) -> list:
 
 
 @functools.cache
-def get_mod_everest_yaml(mod: str) -> Optional[dict]:
-    zip_path = mods_dir().joinpath(f'{mod}.zip')
+def get_mod_everest_yaml(mod: str, zip_path: Optional[Path] = None) -> Optional[dict]:
+    if not zip_path:
+        zip_path = mods_dir().joinpath(f'{mod}.zip')
 
     if not zip_path.is_file():
         return None

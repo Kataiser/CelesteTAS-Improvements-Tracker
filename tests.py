@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import time
 from decimal import Decimal
 from pathlib import Path
@@ -54,7 +55,7 @@ class MockChannel:
         self.sent_messages.append(content)
 
     def get_partial_message(self, id: int):
-        mock_messages = {973344238261657650: MockMessage('', self, MockUser(), 973344238261657650)}
+        mock_messages = {973344238261657650: MockMessage('', self, MockUser(), id=973344238261657650)}
         return mock_messages[id]
 
 
@@ -63,13 +64,37 @@ class MockMessage:
     content: str
     channel: MockChannel
     author: MockUser
+    created_at: datetime.datetime = datetime.datetime.now()
     id: Optional[int] = None
     jump_url: Optional[str] = None
+    attachments: Optional[list] = None
+    replies: Optional[list] = None
+    reactions = set()
+    guild = None
 
     def __post_init__(self):
-        if self.id:
-            mock_jump_urls = {973344238261657650: 'https://discord.com/channels/970379400887558204/970380662907482142/973344238261657650'}
-            self.jump_url = mock_jump_urls[self.id]
+        self.replies = []
+        guilds = {970380662907482142: MockGuild("Improvements bot testing")}
+        jump_urls = {973344238261657650: 'https://discord.com/channels/970379400887558204/970380662907482142/973344238261657650'}
+
+        if self.channel.id in guilds:
+            self.guild = guilds[self.channel.id]
+
+        if self.id and self.id in jump_urls:
+            self.jump_url = jump_urls[self.id]
+
+    async def add_reaction(self, emoji: str):
+        self.reactions.add(emoji)
+
+    async def clear_reaction(self, emoji: str):
+        if emoji in self.reactions:
+            self.reactions.remove(emoji)
+
+    async def reply(self, content: str):
+        self.replies.append(content)
+
+    async def edit(self, content: str):
+        self.content = content
 
 
 class MockClient:
@@ -81,6 +106,11 @@ class MockClient:
 
     def get_channel(self, id_: int) -> MockChannel:
         return MockChannel(id_)
+
+
+@dataclasses.dataclass
+class MockGuild:
+    name: str
 
 
 def mock_message(*args, **kwargs):
@@ -101,7 +131,45 @@ def mock_channel():
     return channel
 
 
+def mock_passthrough(*args, **kwargs):
+    pass
+
+
+async def mock_passthrough_async(*args, **kwargs):
+    pass
+
+
 # MAIN
+
+@pytest.mark.asyncio
+async def test_process_improvement_message(setup_log, monkeypatch):
+    @dataclasses.dataclass
+    class MockAttachment:
+        filename: str
+        url: str
+
+    def mock_commit(*args) -> tuple:
+        return "-0f 0oi71n.tas (1:08.748) from Kataiser", 'https://github.com/Kataiser/improvements-bot-testing/commit/8cffb3495b8b8423a8762834cc1b1a329bf86a47'
+
+    monkeypatch.setattr(main, 'commit', mock_commit)
+    monkeypatch.setattr(main, 'add_project_log', mock_passthrough)
+    monkeypatch.setattr(db.history_log, 'set', mock_passthrough)
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord.Client, 'change_presence', mock_passthrough_async)
+    tas_file = MockAttachment('0oi71n.tas', 'https://cdn.discordapp.com/attachments/444284857372114944/1195865779695009912/0oi71n.tas')
+
+    message = discord.Message('-0f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
+    assert await main.process_improvement_message(message)
+    assert message.reactions == {'📝'}
+    assert message.replies == []
+
+    message = discord.Message('-1f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
+    message.reactions = set()
+    assert await main.process_improvement_message(message)
+    assert message.reactions == {'⏭', '❌'}
+    assert message.replies == ["Frames saved is incorrect (you said \"-1f\", but it seems to be \"-0f\" or \"+0f\"), please fix and post again. "
+                               "Make sure you improved the latest version of the file."]
+
 
 def test_generate_path_cache(setup_log):
     path_cache = main.generate_path_cache(970380662907482142)
@@ -549,6 +617,15 @@ async def test_command_add_mods(setup_log, monkeypatch):
     assert set(db.projects.get(976903244863381564)['mods']) == {'Glitchy_Platformer', 'RandomStuffHelper'}
     sync_project['do_run_validation'] = False
     db.projects.set(976903244863381564, sync_project)
+
+
+# GAME SYNC
+
+def test_get_mod_everest_yaml(monkeypatch):
+    assert game_sync.get_mod_everest_yaml('', Path('test_tases\\PuzzleHelper.zip')) == {'DLL': 'PuzzleHelper.dll', 'Dependencies': [{'Name': 'Everest', 'Version': '1.3366.0'}],
+                                                                                        'Name': 'PuzzleHelper', 'Version': '1.1.0'}
+    assert game_sync.get_mod_everest_yaml('', Path('test_tases\\TASides.zip')) == {'Dependencies': [{'Name': 'Everest', 'Version': '1.796.0'}],
+                                                                                   'Name': 'TASides', 'Version': '0.2.0'}
 
 
 # SPREADSHEET
