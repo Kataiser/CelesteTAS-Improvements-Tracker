@@ -105,9 +105,9 @@ def sync_test(project_id: int, force: bool):
     main.generate_request_headers(project['installation_owner'], 300)
     environment_state = generate_environment_state(project, mods_to_load)
 
-    if environment_state['last_commit_time'] > mods['last_commit_time']:
-        log.info(f"Last repo commit time is later than improvement channel post ({environment_state['last_commit_time']} > {int(mods['last_commit_time'])}), updating project")
-        mods['last_commit_time'] = environment_state['last_commit_time']
+    if environment_state['last_commit_time'] > project['last_commit_time']:
+        log.info(f"Last repo commit time is later than improvement channel post ({environment_state['last_commit_time']} > {int(project['last_commit_time'])}), updating project")
+        project['last_commit_time'] = environment_state['last_commit_time']
         db.projects.set(project_id, project)
 
     if environment_state == prev_environment_state and not force:
