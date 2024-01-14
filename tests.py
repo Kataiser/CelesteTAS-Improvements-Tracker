@@ -49,7 +49,14 @@ class MockUser:
 @dataclasses.dataclass
 class MockChannel:
     id: Optional[int] = None
+    guild: Optional = None
     sent_messages = []
+
+    def __post_init__(self):
+        guilds = {970380662907482142: MockGuild("Improvements bot testing")}
+
+        if self.id and self.id in guilds:
+            self.guild = guilds[self.id]
 
     async def send(self, content: str):
         self.sent_messages.append(content)
@@ -111,6 +118,7 @@ class MockClient:
 @dataclasses.dataclass
 class MockGuild:
     name: str
+    id: Optional[int] = None
 
 
 def mock_message(*args, **kwargs):
@@ -596,7 +604,7 @@ async def test_command_add_mods(setup_log, monkeypatch):
     def mock_mods_dir() -> MockModsPath:
         return MockModsPath()
 
-    def mock_get_mod_dependencies(*args) -> List:
+    def mock_get_mod_dependencies(*args) -> list:
         return []
 
     monkeypatch.setattr(discord, 'Message', mock_message)
@@ -617,6 +625,22 @@ async def test_command_add_mods(setup_log, monkeypatch):
     assert set(db.projects.get(976903244863381564)['mods']) == {'Glitchy_Platformer', 'RandomStuffHelper'}
     sync_project['do_run_validation'] = False
     db.projects.set(976903244863381564, sync_project)
+
+
+@pytest.mark.asyncio
+async def test_command_register_project_editing(setup_log, setup_client, monkeypatch):
+    def mock_missing_channel_permissions(*args) -> list:
+        return []
+
+    monkeypatch.setattr(utils, 'missing_channel_permissions', mock_missing_channel_permissions)
+    monkeypatch.setattr(discord, 'Message', mock_message)
+    monkeypatch.setattr(discord, 'TextChannel', mock_channel)
+    monkeypatch.setattr(discord, 'Client', mock_client)
+    project_before = db.projects.get(970380662907482142)
+    channel = discord.TextChannel()
+    await commands.handle(discord.Message("register_project \"Improvements bot testing\" 970380662907482142 Kataiser/improvements-bot-testing Kataiser Y N Y Y N", channel, MockUser()))
+    assert channel.sent_messages == ['Verifying...', 'Successfully verified and edited project.']
+    assert db.projects.get(970380662907482142) == project_before
 
 
 # GAME SYNC

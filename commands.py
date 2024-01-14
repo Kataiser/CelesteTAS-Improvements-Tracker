@@ -143,7 +143,7 @@ async def command_register_project(message: discord.Message, message_split: List
             return
 
         log.info("This project already exists, preserving some keys")
-        preserved_keys = ('install_time', 'pin', 'mods', 'last_run_validation', 'admins', 'desyncs', 'filetimes')
+        preserved_keys = ('install_time', 'pin', 'mods', 'last_run_validation', 'admins', 'desyncs', 'filetimes', 'last_commit_time')
         previous = {key: projects[improvements_channel_id][key] for key in preserved_keys}
 
     # verify improvements channel exists
