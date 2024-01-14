@@ -153,9 +153,9 @@ async def test_process_improvement_message(setup_log, monkeypatch):
 
     monkeypatch.setattr(main, 'commit', mock_commit)
     monkeypatch.setattr(main, 'add_project_log', mock_passthrough)
+    monkeypatch.setattr(main, 'set_status', mock_passthrough_async)
     monkeypatch.setattr(db.history_log, 'set', mock_passthrough)
     monkeypatch.setattr(discord, 'Message', mock_message)
-    monkeypatch.setattr(discord.Client, 'change_presence', mock_passthrough_async)
     tas_file = MockAttachment('0oi71n.tas', 'https://cdn.discordapp.com/attachments/444284857372114944/1195865779695009912/0oi71n.tas')
 
     message = discord.Message('-0f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
