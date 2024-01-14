@@ -116,7 +116,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
 @command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN] [YN]'), report_usage=True)
 async def command_register_project(message: discord.Message, message_split: List[str]):
     """
-    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL DO_SYNC_CHECK
+    register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL USE_CONTRIBUTORS_FILE DO_SYNC_CHECK
 
       Add or edit a project (improvements channel).
 
