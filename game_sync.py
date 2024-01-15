@@ -667,7 +667,7 @@ def scaled_sleep(seconds: float):
 
 def log_error(message: Optional[str] = None):
     error = utils.log_error(message)
-    db.sync_results.set(int(time.time()), {'reported_error': True, 'error': error[-1990:]})
+    db.sync_results.set(int(time.time()), {'reported_error': True, 'error': error[-1950:]})
 
 
 log: Optional[logging.Logger] = None
