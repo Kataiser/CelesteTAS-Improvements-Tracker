@@ -61,7 +61,7 @@ def run_syncs():
         for project_id in test_project_ids:
             sync_test(project_id, cli_project)
     except Exception:
-        utils.log_error()
+        log_error()
         close_game()
         post_cleanup()
         raise
@@ -271,7 +271,7 @@ def sync_test(project_id: int, force: bool):
 
         if len(updated_crash_logs) > len(crash_logs):
             new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
-            utils.log_error(f"Game crashed ({new_crash_logs}), restarting and continuing")
+            log_error(f"Game crashed ({new_crash_logs}), restarting and continuing")
             desyncs.append((tas_filename, "Crashed game"))
             scaled_sleep(10)
             close_game()
@@ -301,7 +301,7 @@ def sync_test(project_id: int, force: bool):
 
             if not has_filetime:
                 if not tas_parsed_new.finaltime_frames:
-                    utils.log_error(f"Couldn't parse FileTime frames for {file_path_repo}")
+                    log_error(f"Couldn't parse FileTime frames for {file_path_repo}")
                     continue
 
                 log_command = log.info if time_synced else log.warning
@@ -483,7 +483,7 @@ def close_game():
         processes = str(subprocess.check_output('tasklist /fi "STATUS eq running"')).split(r'\r\n')
     except subprocess.CalledProcessError:
         processes = []
-        utils.log_error()
+        log_error()
 
     for process_line in processes:
         if '.exe' not in process_line:
@@ -498,13 +498,13 @@ def close_game():
                 log.info("Closed Celeste")
                 closed = True
             except psutil.NoSuchProcess:
-                utils.log_error()
+                log_error()
         elif 'studio' in process_name.lower() and 'celeste' in process_name.lower():
             try:
                 psutil.Process(process_pid).kill()
                 log.info("Closed Studio")
             except psutil.NoSuchProcess:
-                utils.log_error()
+                log_error()
 
     if not closed:
         log.info("No running game to close")
@@ -564,7 +564,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=10)
         utils.handle_potential_request_error(r_mods, 200)
     except requests.RequestException:
-        utils.log_error()
+        log_error()
         return project['sync_environment_state']
 
     commit = ujson.loads(r_commits.content)
@@ -627,7 +627,7 @@ def latest_everest_stable_version() -> Optional[int]:
         r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params, timeout=10)
         utils.handle_potential_request_error(r_everest, 200)
     except requests.RequestException:
-        utils.log_error()
+        log_error()
         return None
 
     everest_builds = ujson.loads(r_everest.content)
@@ -663,6 +663,11 @@ def game_dir() -> Path:
 
 def scaled_sleep(seconds: float):
     time.sleep(seconds * 0.75)
+
+
+def log_error(message: Optional[str] = None):
+    error = utils.log_error(message)
+    db.sync_results.set(int(time.time()), {'reported_error': True, 'error': error[-1990:]})
 
 
 log: Optional[logging.Logger] = None

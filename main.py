@@ -421,7 +421,16 @@ async def handle_game_sync_results():
 
     for sync_result in sync_results_found:
         project_id = int(sync_result['project_id'])
-        project = db.projects.get(project_id)
+
+        try:
+            project = db.projects.get(project_id)
+        except db.DBKeyError:
+            log.info(f"Reporting sync check error: {sync_result}")
+            assert sync_result['reported_error']
+            await (await client.fetch_user(219955313334288385)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
+            db.sync_results.delete_item(project_id)
+            continue
+
         project_name = project['name']
         log.info(f"Handling game sync result for project {project_name}")
         report_text = sync_result['report_text']
