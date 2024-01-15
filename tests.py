@@ -220,6 +220,8 @@ def test_convert_line_endings(setup_log):
 # GEN TOKEN
 
 def test_generate_jwt(setup_log):
+    db.tokens.delete_item('_jwt')
+    time.sleep(1)
     jwt = gen_token.generate_jwt(1)
     assert jwt
     jwt2 = gen_token.generate_jwt(1)
@@ -227,11 +229,14 @@ def test_generate_jwt(setup_log):
 
 
 def test_access_token():
+    db.tokens.delete_item('_jwt')
+    db.tokens.delete_item('Kataiser')
+    time.sleep(1)
     token = gen_token.access_token('Kataiser', 1)
     assert token.startswith('ghs_')
     assert gen_token.tokens_local['_jwt']
     assert gen_token.tokens_local['Kataiser'][0] == token
-    assert isinstance(gen_token.tokens_local['Kataiser'][1], float)
+    assert isinstance(gen_token.tokens_local['Kataiser'][1], int)
     token2 = gen_token.access_token('Kataiser', 1)
     assert token == token2
 

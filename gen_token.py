@@ -1,7 +1,7 @@
 import datetime
 import logging
 import time
-from typing import Optional
+from typing import Optional, Union
 
 import jwt
 import requests
@@ -32,7 +32,7 @@ def generate_jwt(min_time: int) -> str:
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
     log.info("Generated JWT")
-    set_token_cache('_jwt', (generated_jwt, payload['exp']))
+    set_token_cache('_jwt', [generated_jwt, payload['exp']])
     return generated_jwt
 
 
@@ -85,7 +85,7 @@ def access_token(installation_owner: str, min_time: int):
     return token[0]
 
 
-def get_token_cache(key: str) -> Optional[tuple]:
+def get_token_cache(key: str) -> Optional[list]:
     if key in tokens_local:
         return tokens_local[key]
 
@@ -98,9 +98,11 @@ def get_token_cache(key: str) -> Optional[tuple]:
         return
 
 
-def set_token_cache(key: str, token: tuple):
+def set_token_cache(key: str, token: Union[tuple, list]):
+    token = list(token)
+    token[1] = round(token[1])
     tokens_local[key] = token
-    db.tokens.set(key, (token[0], round(token[1])))
+    db.tokens.set(key, token)
 
 
 class InstallationOwnerMissingError(Exception):
