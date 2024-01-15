@@ -186,6 +186,7 @@ sync_results = Table('sync_results', 'project_id')
 misc = Table('misc', 'key')
 contributors = Table('contributors', 'project_id')
 sid_caches = Table('sid_caches', 'project_id')
+tokens = Table('tokens', 'installation_owner')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 

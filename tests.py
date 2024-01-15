@@ -229,9 +229,9 @@ def test_generate_jwt(setup_log):
 def test_access_token():
     token = gen_token.access_token('Kataiser', 1)
     assert token.startswith('ghs_')
-    assert gen_token.tokens['_jwt']
-    assert gen_token.tokens['Kataiser'][0] == token
-    assert isinstance(gen_token.tokens['Kataiser'][1], float)
+    assert gen_token.tokens_local['_jwt']
+    assert gen_token.tokens_local['Kataiser'][0] == token
+    assert isinstance(gen_token.tokens_local['Kataiser'][1], float)
     token2 = gen_token.access_token('Kataiser', 1)
     assert token == token2
 

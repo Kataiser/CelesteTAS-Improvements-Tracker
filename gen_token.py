@@ -14,13 +14,14 @@ from utils import plural
 
 def generate_jwt(min_time: int) -> str:
     current_time = time.time()
+    cached_jwt = get_token_cache('_jwt')
 
-    if '_jwt' in tokens:
-        time_remaining = tokens['_jwt'][1] - current_time
+    if cached_jwt:
+        time_remaining = cached_jwt[1] - current_time
 
         if time_remaining > min_time:
             log.info(f"Reused JWT with {round(time_remaining / 60, 1)} mins remaining")
-            return tokens['_jwt'][0]
+            return cached_jwt[0]
 
     with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
         private = pem_file.read()
@@ -31,7 +32,7 @@ def generate_jwt(min_time: int) -> str:
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
     log.info("Generated JWT")
-    tokens['_jwt'] = (generated_jwt, payload['exp'])
+    set_token_cache('_jwt', (generated_jwt, payload['exp']))
     return generated_jwt
 
 
@@ -67,24 +68,46 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
 
 
 def access_token(installation_owner: str, min_time: int):
-    if installation_owner not in tokens:
-        tokens[installation_owner] = generate_access_token(installation_owner, min_time)
+    token = get_token_cache(installation_owner)
+
+    if not token:
+        token = generate_access_token(installation_owner, min_time)
+        set_token_cache(installation_owner, token)
     else:
-        time_remaining = tokens[installation_owner][1] - time.time()
+        time_remaining = token[1] - time.time()
 
         if time_remaining > min_time:
             log.info(f"Reusing {installation_owner} access token with {round(time_remaining / 60, 1)} mins remaining")
         else:
-            tokens[installation_owner] = generate_access_token(installation_owner, min_time)
+            token = generate_access_token(installation_owner, min_time)
+            set_token_cache(installation_owner, token)
 
-    return tokens[installation_owner][0]
+    return token[0]
+
+
+def get_token_cache(key: str) -> Optional[tuple]:
+    if key in tokens_local:
+        return tokens_local[key]
+
+    try:
+        token = db.tokens.get(key, consistent_read=False)
+        token[1] = int(token[1])
+        tokens_local[key] = token
+        return token
+    except db.DBKeyError:
+        return
+
+
+def set_token_cache(key: str, token: tuple):
+    tokens_local[key] = token
+    db.tokens.set(key, (token[0], round(token[1])))
 
 
 class InstallationOwnerMissingError(Exception):
     pass
 
 
-tokens = {}
+tokens_local = {}
 log: Optional[logging.Logger] = None
 
 
