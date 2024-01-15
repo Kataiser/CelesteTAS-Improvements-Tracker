@@ -462,6 +462,7 @@ command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_mode
                  'skip': lambda frames: True if frames.isdigit() else f"frame count must be a number, you used \"{frames}\"",
                  'exitgame': "ExitGame command is not allowed",
                  'startrecording': "StartRecording command is not allowed",
-                 'stoprecording': "StopRecording command is not allowed"}
+                 'stoprecording': "StopRecording command is not allowed",
+                 'saveandquitreenter': ()}
 command_rules['analoguemode'] = command_rules['analogmode']
 command_rules['stunpausemode'] = command_rules['stunpause']
