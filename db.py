@@ -104,8 +104,8 @@ class Table:
 
 
 class PathCaches(Table):
-    def get(self, key: int, consistent_read: bool = True) -> dict:
-        result = super().get(key, consistent_read)
+    def get(self, *args, **kwargs) -> dict:
+        result = super().get(*args, **kwargs)
 
         if 'project_id' in result:
             del result['project_id']

@@ -1,9 +1,10 @@
+import ast
 import dataclasses
 import datetime
 import time
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
 import discord
 import pytest
@@ -740,9 +741,9 @@ def test_various_gets(fast_db):
     assert history_log == ("('skun (skun, 344974874969636865)', 1074148268407275520, 'Strawberry Jam', '-24f intermediate_heartside.tas (4:15.374) from skun', "
                            "'https://github.com/VampireFlower/StrawberryJamTAS/commit/796a366da367504b3caed4913d23c3f65b4b7141', "
                            "'https://cdn.discordapp.com/attachments/1074148268407275520/1138130893865766962/intermediate_heartside.tas')")
-    assert eval(history_log) == ('skun (skun, 344974874969636865)', 1074148268407275520, 'Strawberry Jam', '-24f intermediate_heartside.tas (4:15.374) from skun',
-                                 'https://github.com/VampireFlower/StrawberryJamTAS/commit/796a366da367504b3caed4913d23c3f65b4b7141',
-                                 'https://cdn.discordapp.com/attachments/1074148268407275520/1138130893865766962/intermediate_heartside.tas')
+    assert ast.literal_eval(history_log) == ('skun (skun, 344974874969636865)', 1074148268407275520, 'Strawberry Jam', '-24f intermediate_heartside.tas (4:15.374) from skun',
+                                             'https://github.com/VampireFlower/StrawberryJamTAS/commit/796a366da367504b3caed4913d23c3f65b4b7141',
+                                             'https://cdn.discordapp.com/attachments/1074148268407275520/1138130893865766962/intermediate_heartside.tas')
     assert 20000000 < db.installations.get('Kataiser') < 30000000
     assert "last processed post from" in db.misc.get('status')
     assert db.path_caches.get(970380662907482142)['glitchy_-_Copy.tas'] == 'sync_testing/glitchy_-_Copy.tas'

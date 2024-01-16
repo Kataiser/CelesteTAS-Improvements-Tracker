@@ -28,7 +28,7 @@ safe_mode = False
 
 
 def start():
-    global debug, autostarted, projects_startup
+    global debug, projects_startup
     log.info("Bot starting")
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
@@ -71,7 +71,7 @@ def start():
 
 @client.event
 async def on_ready():
-    global safe_mode, projects_startup
+    global projects_startup
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     [await command_tree.sync(guild=server) for server in slash_command_servers]
