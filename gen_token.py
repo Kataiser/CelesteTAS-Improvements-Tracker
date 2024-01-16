@@ -14,14 +14,11 @@ from utils import plural
 
 def generate_jwt(min_time: int) -> str:
     current_time = time.time()
-    cached_jwt = get_token_cache('_jwt')
+    cached_jwt, time_remaining = get_cached_token('_jwt', min_time)
 
     if cached_jwt:
-        time_remaining = cached_jwt[1] - current_time
-
-        if time_remaining > min_time:
-            log.info(f"Reused JWT with {round(time_remaining / 60, 1)} mins remaining")
-            return cached_jwt[0]
+        log.info(f"Reused JWT with {round(time_remaining / 60, 1)} mins remaining")
+        return cached_jwt[0]
 
     with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
         private = pem_file.read()
@@ -68,34 +65,36 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
 
 
 def access_token(installation_owner: str, min_time: int):
-    token = get_token_cache(installation_owner)
+    token, time_remaining = get_cached_token(installation_owner, min_time)
 
     if not token:
         token = generate_access_token(installation_owner, min_time)
         set_token_cache(installation_owner, token)
     else:
-        time_remaining = token[1] - time.time()
-
-        if time_remaining > min_time:
-            log.info(f"Reusing {installation_owner} access token with {round(time_remaining / 60, 1)} mins remaining")
-        else:
-            token = generate_access_token(installation_owner, min_time)
-            set_token_cache(installation_owner, token)
+        log.info(f"Reusing {installation_owner} access token with {round(time_remaining / 60, 1)} mins remaining")
 
     return token[0]
 
 
-def get_token_cache(key: str) -> Optional[list]:
+def get_cached_token(key: str, min_time: int) -> tuple[list, int]:
     if key in tokens_local:
-        return tokens_local[key]
+        time_remaining = tokens_local[key][1] - time.time()
+
+        if time_remaining > min_time:
+            return tokens_local[key], time_remaining
 
     try:
         token = db.tokens.get(key, consistent_read=False)
         token[1] = int(token[1])
-        tokens_local[key] = token
-        return token
+        time_remaining = token[1] - time.time()
+
+        if time_remaining > min_time:
+            tokens_local[key] = token
+            return token, time_remaining
     except db.DBKeyError:
-        return
+        pass
+
+    return [], 0
 
 
 def set_token_cache(key: str, token: Union[tuple, list]):
