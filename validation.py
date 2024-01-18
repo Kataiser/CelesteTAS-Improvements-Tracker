@@ -5,7 +5,6 @@ import re
 from typing import List, Optional, Tuple, Callable, Union
 
 import discord
-from fuzzywuzzy import process as fuzzy_process
 
 import db
 
@@ -241,6 +240,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             path_cache = db.path_caches.get(message.channel.id)
 
             if path_cache:
+                from fuzzywuzzy import process as fuzzy_process
                 fuzzes = fuzzy_process.extract(filename, path_cache.keys())
                 possible_filename = fuzzes[0][0] if fuzzes[0][1] >= 90 else None
                 did_you_mean_text = f" (did you mean `{possible_filename}`?)" if possible_filename else ""

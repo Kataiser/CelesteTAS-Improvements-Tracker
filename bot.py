@@ -4,7 +4,6 @@ import time
 from typing import List, Optional
 
 import discord
-import psutil
 
 import commands
 import db
@@ -71,7 +70,6 @@ def start():
 
 @client.event
 async def on_ready():
-    global projects_startup
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
     [await command_tree.sync(guild=server) for server in slash_command_servers]
@@ -130,6 +128,7 @@ async def on_message(message: discord.Message):
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await client.fetch_user(219955313334288385)).send(updating_text)
+        import psutil
         self_process = psutil.Process()
         subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
 

@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Optional, Union
 
 import dateutil.parser
-import psutil
 import requests
 import ujson
 import yaml
@@ -449,6 +448,7 @@ def start_game():
 
 
 def wait_for_game_load(mods: set):
+    import psutil
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
 
@@ -476,6 +476,7 @@ def wait_for_game_load(mods: set):
 
 
 def close_game():
+    import psutil
     closed = False
 
     try:

@@ -7,7 +7,6 @@ from ssl import SSLEOFError
 from typing import List, Optional, Any
 
 import discord
-from fuzzywuzzy import process as fuzzy_process
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -344,6 +343,8 @@ async def sj_command_allowed(interaction: discord.Interaction) -> bool:
 
 @functools.lru_cache(maxsize=512)
 def sj_fuzzy_match(search: str) -> List[str]:
+    from fuzzywuzzy import process as fuzzy_process
+
     if search:
         fuzzes = fuzzy_process.extract(search, sj_data.keys())
         return [sj_map[0] for sj_map in fuzzes[:25] if sj_map[1] >= 65]
