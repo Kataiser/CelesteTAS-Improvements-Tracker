@@ -17,7 +17,6 @@ from typing import Optional, Union
 import dateutil.parser
 import requests
 import ujson
-import yaml
 
 import db
 import main
@@ -539,6 +538,7 @@ def get_mod_everest_yaml(mod: str, zip_path: Optional[Path] = None) -> Optional[
 
         if yaml_name:
             with mod_zip.open(yaml_name) as everest_yaml:
+                import yaml
                 return yaml.safe_load(everest_yaml)[0]
         else:
             return None
@@ -571,6 +571,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     commit = ujson.loads(r_commits.content)
     state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
     state['everest_version'] = latest_everest_stable_version()
+    import yaml
     gb_mods = yaml.safe_load(r_mods.content)
 
     for mod in mods:
