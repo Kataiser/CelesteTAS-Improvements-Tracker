@@ -561,9 +561,6 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
         utils.handle_potential_request_error(r_commits, 200)
-
-        r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=10)
-        utils.handle_potential_request_error(r_mods, 200)
     except requests.RequestException:
         log_error()
         return project['sync_environment_state']
@@ -571,8 +568,10 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     commit = ujson.loads(r_commits.content)
     state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
     state['everest_version'] = latest_everest_stable_version()
-    import yaml
-    gb_mods = yaml.safe_load(r_mods.content)
+    gb_mods = gb_mod_versions()
+
+    if not gb_mods:
+        gb_mod_versions.cache_clear()
 
     for mod in mods:
         state['mod_versions'][mod] = gb_mods[mod.replace('_', ' ')]['Version']
@@ -634,6 +633,19 @@ def latest_everest_stable_version() -> Optional[int]:
 
     everest_builds = ujson.loads(r_everest.content)
     return everest_builds['value'][0]['id'] + 700
+
+
+@functools.cache
+def gb_mod_versions() -> Optional[dict]:
+    try:
+        r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=60)
+        utils.handle_potential_request_error(r_mods, 200)
+    except requests.RequestException:
+        log_error()
+        return None
+
+    import yaml
+    return yaml.safe_load(r_mods.content)
 
 
 @functools.cache
