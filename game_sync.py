@@ -269,7 +269,7 @@ def sync_test(project_id: int, force: bool):
 
         if len(updated_crash_logs) > len(crash_logs):
             new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
-            log_error(f"Game crashed ({new_crash_logs}), restarting and continuing")
+            log.warning(f"Game crashed ({new_crash_logs}), restarting and continuing")
             desyncs.append((tas_filename, "Crashed game"))
             scaled_sleep(10)
             close_game()
