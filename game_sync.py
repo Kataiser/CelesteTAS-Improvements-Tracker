@@ -176,7 +176,7 @@ def sync_test(project_id: int, force: bool):
     if asserts_added:
         log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
 
-    wait_for_game_load(mods_to_load)
+    game_process = wait_for_game_load(mods_to_load)
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
@@ -233,22 +233,25 @@ def sync_test(project_id: int, force: bool):
         tas_started = False
         tas_finished = False
         sid = None
+        game_crashed = False
 
-        while not tas_started:
+        while not tas_started and not game_crashed:
             try:
                 requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
-            except (requests.Timeout, requests.ConnectionError):
-                pass
+            except requests.RequestException:
+                if not game_process.is_running():
+                    game_crashed = True
             else:
                 crash_logs = os.listdir(crash_logs_dir)
                 tas_started = True
 
-        while not tas_finished:
+        while not tas_finished and not game_crashed:
             try:
                 scaled_sleep(20 if has_filetime else 5)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
-            except (requests.Timeout, requests.ConnectionError):
-                pass
+            except requests.RequestException:
+                if not game_process.is_running():
+                    game_crashed = True
             else:
                 tas_finished = 'Running: False' in session_data
 
@@ -260,14 +263,14 @@ def sync_test(project_id: int, force: bool):
         scaled_sleep(15 if has_filetime or 'SID:  ()' in session_data else 5)
         extra_sleeps = 0
 
-        while os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
+        while not game_crashed and os.path.getmtime(file_path) == initial_mtime and extra_sleeps < 5:
             time.sleep(3 + (extra_sleeps ** 2))
             extra_sleeps += 1
             log.info(f"Extra sleeps: {extra_sleeps}")
 
         updated_crash_logs = os.listdir(crash_logs_dir)
 
-        if len(updated_crash_logs) > len(crash_logs):
+        if game_crashed or len(updated_crash_logs) > len(crash_logs):
             new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
             log.warning(f"Game crashed ({new_crash_logs}), restarting and continuing")
             desyncs.append((tas_filename, "Crashed game"))
@@ -280,7 +283,7 @@ def sync_test(project_id: int, force: bool):
                 with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'r', encoding='UTF8', errors='replace') as new_crash_log:
                     crash_logs_data[new_crash_log_name] = new_crash_log.read()
 
-            wait_for_game_load(mods_to_load)
+            game_process = wait_for_game_load(mods_to_load)
             continue
 
         # determine if it synced or not
@@ -471,7 +474,7 @@ def wait_for_game_load(mods: set):
         if process.name() == 'Celeste.exe':
             process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
             log.info("Set game process to low priority")
-            break
+            return process
 
 
 def close_game():
