@@ -142,7 +142,7 @@ def sync_test(project_id: int, force: bool):
     cwd = os.getcwd()
     os.chdir(f'{game_dir()}\\repos')
     clone_time = time.time()
-    subprocess.run(f'git clone https://github.com/{repo} --recursive', capture_output=True)
+    subprocess.run(f'git clone --depth=1 --recursive https://github.com/{repo}', capture_output=True)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
     asserts_added = {}
