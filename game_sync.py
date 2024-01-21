@@ -579,8 +579,10 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     for mod in mods:
         state['mod_versions'][mod] = gb_mods[mod.replace('_', ' ')]['Version']
 
+    state['mod_versions']['CelesteTAS'] = gb_mods['CelesteTAS']['Version']
+    state['mod_versions']['SpeedrunTool'] = gb_mods['SpeedrunTool']['Version']
     log.info(f"Done: {state}")
-    assert len(state['mod_versions']) == len(mods)
+    assert len(state['mod_versions']) == len(mods) + 2
     return state
 
 
