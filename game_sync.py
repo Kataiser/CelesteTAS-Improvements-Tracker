@@ -562,15 +562,18 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}}
 
     try:
-        r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
-        utils.handle_potential_request_error(r_commits, 200)
+        r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 10}, timeout=10)
     except requests.RequestException:
         log_error()
         return project['sync_environment_state']
 
-    commit = ujson.loads(r_commits.content)
-    state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
-    state['everest_version'] = latest_everest_stable_version()
+    utils.handle_potential_request_error(r_commits, 200)
+    commits = ujson.loads(r_commits.content)
+
+    for commit in commits:
+        if commit['author']['id'] != 104732884:  # ignore bot commits
+            state['last_commit_time'] = int(dateutil.parser.parse(commit['commit']['author']['date']).timestamp())
+
     gb_mods = gb_mod_versions()
 
     if not gb_mods:
@@ -581,6 +584,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
 
     state['mod_versions']['CelesteTAS'] = gb_mods['CelesteTAS']['Version']
     state['mod_versions']['SpeedrunTool'] = gb_mods['SpeedrunTool']['Version']
+    state['everest_version'] = latest_everest_stable_version()
     log.info(f"Done: {state}")
     assert len(state['mod_versions']) == len(mods) + 2
     return state
