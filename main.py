@@ -441,11 +441,11 @@ async def handle_game_sync_results():
         if report_text:
             if sync_result['log']:
                 sync_check_time = project['last_run_validation']
-                files = [discord.File(io.BytesIO(sync_result['log'].encode('UTF8')), filename=f'game_sync_{project_name}_{sync_check_time}.log')]
+                files = [discord.File(io.BytesIO(sync_result['log']), filename=f'game_sync_{project_name}_{sync_check_time}.log.gz')]
 
                 for crash_log_name in sync_result['crash_logs']:
                     crash_log_data = sync_result['crash_logs'][crash_log_name]
-                    files.append(discord.File(io.BytesIO(crash_log_data.encode('UTF8')), filename=crash_log_name))
+                    files.append(discord.File(io.BytesIO(crash_log_data), filename=crash_log_name))
 
                 await improvements_channel.send(report_text, files=files)
             else:

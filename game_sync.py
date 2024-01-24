@@ -1,6 +1,7 @@
 import argparse
 import base64
 import functools
+import gzip
 import io
 import logging
 import os
@@ -280,8 +281,8 @@ def sync_test(project_id: int, force: bool):
             start_game()
 
             for new_crash_log_name in new_crash_logs:
-                with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'r', encoding='UTF8', errors='replace') as new_crash_log:
-                    crash_logs_data[new_crash_log_name] = new_crash_log.read()
+                with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'rb') as new_crash_log:
+                    crash_logs_data[f'{new_crash_log_name}.gz'] = gzip.compress(new_crash_log.read())
 
             game_process = wait_for_game_load(mods_to_load)
             continue
@@ -352,7 +353,7 @@ def sync_test(project_id: int, force: bool):
         report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
                       f"\n```\n{new_desyncs_formatted}```{desyncs_block}"[:1900]
         stream_handler.flush()
-        report_log = re_redact_token.sub("'token': [REDACTED]", current_log.getvalue())
+        report_log = gzip.compress(re_redact_token.sub("'token': [REDACTED]", current_log.getvalue()).encode('UTF8'))
 
     disabled_text = consider_disabling_after_inactivity(project, clone_time, False)
     db.projects.set(project_id, project)
