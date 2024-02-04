@@ -285,7 +285,6 @@ projects_startup = Optional[dict]
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
 substrings_1984_hydro = ('shatter', 'shong')
-autostarted = False
 
 if __name__ == '__main__':
     start()

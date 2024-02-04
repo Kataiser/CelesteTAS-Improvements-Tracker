@@ -32,6 +32,9 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     if not project:
         project = db.projects.get(message.channel.id)
 
+    if message.channel.id == 1202709072718200842:
+        skip_validation = True
+
     if not skip_validation and not is_processable_message(message, project):
         return False
 
