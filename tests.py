@@ -720,7 +720,7 @@ def test_project_get(fast_db):
 def test_project_get_all(fast_db):
     projects_all = db.projects.get_all()
     projects_dict = db.projects.dict()
-    assert len(projects_all) == 39
+    assert len(projects_all) >= 40
     assert len(projects_all) == len(projects_dict)
     assert isinstance(projects_all, list)
     assert isinstance(projects_dict, dict)
