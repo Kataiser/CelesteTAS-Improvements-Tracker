@@ -578,7 +578,12 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         gb_mod_versions.cache_clear()
 
     for mod in mods:
-        state['mod_versions'][mod] = gb_mods[mod.replace('_', ' ')]['Version']
+        if mod in gb_mods:
+            mod_gb = gb_mods[mod]
+        else:
+            mod_gb = gb_mods[mod.replace('_', ' ')]
+
+        state['mod_versions'][mod] = mod_gb['Version']
 
     state['mod_versions']['CelesteTAS'] = gb_mods['CelesteTAS']['Version']
     state['mod_versions']['SpeedrunTool'] = gb_mods['SpeedrunTool']['Version']
