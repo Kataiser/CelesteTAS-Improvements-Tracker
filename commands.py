@@ -301,10 +301,10 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
         db.projects.set(project['project_id'], project)
         mods_missing = set()
         dependencies = set()
+        game_sync.get_mod_dependencies.cache_clear()
 
         for mod_given in mods_given:
-            mod_dependencies = game_sync.get_mod_dependencies(mod_given)
-            dependencies = dependencies.union(mod_dependencies)
+            dependencies |= game_sync.get_mod_dependencies(mod_given)
             all_project_mods = project_mods.union(dependencies)
 
         log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")

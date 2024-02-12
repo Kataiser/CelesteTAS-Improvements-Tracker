@@ -97,9 +97,10 @@ def sync_test(project_id: int, force: bool):
     queued_filetime_commits = []
     crash_logs_data = {}
     crash_logs_dir = f'{game_dir()}\\CrashLogs'
+    get_mod_dependencies.cache_clear()
 
     for mod in mods:
-        mods_to_load = mods_to_load.union(get_mod_dependencies(mod))
+        mods_to_load |= get_mod_dependencies(mod)
 
     main.generate_request_headers(project['installation_owner'], 300)
     environment_state = generate_environment_state(project, mods_to_load)
@@ -515,13 +516,20 @@ def close_game():
 
 
 # TODO: make recursive (if necessary)
-def get_mod_dependencies(mod: str) -> list:
+@functools.cache
+def get_mod_dependencies(mod: str) -> set:
     everest_yaml = get_mod_everest_yaml(mod)
+    dependencies = set()
 
-    if everest_yaml is None:
-        return []
-    else:
-        return [d['Name'] for d in everest_yaml['Dependencies'] if d['Name'] != 'Everest']
+    if everest_yaml and 'Dependencies' in everest_yaml:
+        for dependency in everest_yaml['Dependencies']:
+            if dependency['Name'] in ('Everest', 'EverestCore', 'Celeste'):
+                continue
+
+            dependencies.add(dependency['Name'])
+            dependencies |= get_mod_dependencies(dependency['Name'])
+
+    return dependencies
 
 
 @functools.cache
