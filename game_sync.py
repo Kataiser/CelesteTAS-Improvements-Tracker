@@ -167,7 +167,7 @@ def sync_test(project_id: int, force: bool):
 
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
-                        assert_line = f'Assert,Equal,{sid},{{Session.Area.SID}}\n'
+                        assert_line = f'Assert,Equal,{sid},{{Level.Session.Area.SID}}\n'
                         assert_line_num = tas_line[0] + 3
                         tas_lines.insert(assert_line_num, assert_line)
                         tas_file.seek(0)
