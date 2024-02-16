@@ -15,7 +15,7 @@
    aws configure
    ```
    with the created access key, and set your preferred default region.
-2. **Create the following dynamodb tables**
+2. **Create the following DynamoDB tables**
 
    | Table name                                     | Key                  | Key type |
    |------------------------------------------------|----------------------|----------|
@@ -36,7 +36,7 @@
 3. **Discord**
 
    Create a new application at https://discord.com/developers/, go to `Bot` and click `Reset Token`. Write the token into the `bot_token` file.
-   You can invite the bot with this url: https://discord.com/api/oauth2/authorize?client_id=<your_oauth_client_id>&permissions=2147493888&scope=bot
+   You can invite the bot with this url: https://discord.com/api/oauth2/authorize?client_id=your_oauth_client_id&permissions=2147493888&scope=bot
 4. **Google**
 
    Follow https://cloud.google.com/iam/docs/keys-create-delete to create a service account with a JSON key, download the json file into `service.json`.
