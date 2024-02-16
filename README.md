@@ -42,7 +42,7 @@
    Follow https://cloud.google.com/iam/docs/keys-create-delete to create a service account with a JSON key, download the json file into `service.json`.
 5. **Github**
 
-   Create a new GitHub app at https://github.com/settings/apps/new, add repo permissions and generate a private key, download the key into `celestetas-improvements-tracker.2022-05-01.private-key.pem`.
+   Create a new GitHub app at https://github.com/settings/apps/new, add repo permissions and generate a private key, download the key into `celestetas-improvements-tracker.2022-05-01.private-key.pem`. Change the `github_app_id`  in `gen_token.py` to your generated app id.
 6. **Change hardcoded constants**
 
    Change `admin_user_id` in `constants.py` to your discord account id and `slash_command_servers` to some test discord server

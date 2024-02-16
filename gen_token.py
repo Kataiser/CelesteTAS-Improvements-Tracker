@@ -11,6 +11,7 @@ import db
 import utils
 from utils import plural
 
+github_app_id = '196447'
 
 def generate_jwt(min_time: int) -> str:
     current_time = time.time()
@@ -25,7 +26,7 @@ def generate_jwt(min_time: int) -> str:
 
     payload = {'iat': round(current_time - 60),
                'exp': round(current_time + (9.5 * 60)),
-               'iss': '196447'}
+               'iss': github_app_id}
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
     log.info("Generated JWT")
@@ -43,6 +44,10 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
         r = requests.get('https://api.github.com/app/installations', headers=headers, timeout=30)
         utils.handle_potential_request_error(r, 200)
+
+        if r.status_code != 200:
+            raise Exception("nope")
+
         installations = ujson.loads(r.content)
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
 
