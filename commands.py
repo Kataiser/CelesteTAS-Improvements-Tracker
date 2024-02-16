@@ -19,6 +19,7 @@ import game_sync
 import gen_token
 import main
 import utils
+from constants import admin_user_id
 from utils import plural
 
 report_commands, kataiser_only_commands = (set(), set())
@@ -59,7 +60,7 @@ def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = Fals
         async def inner(message: discord.Message):
             message_fixed = re_combine_whitespace.sub(" ", message.content)
 
-            if kataiser_only and message.author.id != 219955313334288385:
+            if kataiser_only and message.author.id != admin_user_id:
                 await message.channel.send("Not allowed, you are not Kataiser.")
                 return
 
@@ -320,7 +321,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
             mods_missing_formatted = '\n'.join(sorted(mods_missing))
-            await (await client.fetch_user(219955313334288385)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
+            await (await client.fetch_user(admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
             await message.channel.send(f"The following mod(s) are not currently prepared for sync testing (Kataiser has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
 
     if not project_mods_added:
@@ -735,7 +736,7 @@ async def get_file(message: discord.Message):
 
 # verify that the user editing the project is an admin (or Kataiser)
 async def is_admin(message: discord.Message, project: dict):
-    if message.author.id in (*project['admins'], 219955313334288385):
+    if message.author.id in (*project['admins'], admin_user_id):
         return True
     else:
         log.warning("Not project admin")
@@ -746,8 +747,8 @@ async def is_admin(message: discord.Message, project: dict):
 # DM Kataiser when an important command is used
 async def report_command_used(command_name: str, message: discord.Message):
     try:
-        if command_name in report_commands and message.author.id != 219955313334288385:
-            await (await client.fetch_user(219955313334288385)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
+        if command_name in report_commands and message.author.id != admin_user_id:
+            await (await client.fetch_user(admin_user_id)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
             log.info("Reported command usage to Kataiser")
     except Exception as error:
         utils.log_error(f"Couldn't report command usage to Kataiser: {repr(error)}")

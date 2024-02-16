@@ -9,6 +9,7 @@ import ujson
 
 import db
 import utils
+from constants import github_app_id
 from utils import plural
 
 
@@ -25,7 +26,7 @@ def generate_jwt(min_time: int) -> str:
 
     payload = {'iat': round(current_time - 60),
                'exp': round(current_time + (9.5 * 60)),
-               'iss': '196447'}
+               'iss': github_app_id}
 
     generated_jwt = jwt.encode(payload, private, algorithm='RS256')
     log.info("Generated JWT")
