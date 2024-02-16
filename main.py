@@ -24,6 +24,7 @@ import gen_token
 import spreadsheet
 import utils
 import validation
+from constants import admin_user_id
 from utils import plural
 
 
@@ -430,7 +431,7 @@ async def handle_game_sync_results():
         except db.DBKeyError:
             log.info(f"Reporting sync check error: {sync_result}")
             assert sync_result['reported_error']
-            await (await client.fetch_user(219955313334288385)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
+            await (await client.fetch_user(admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
             db.sync_results.delete_item(project_id)
             continue
 

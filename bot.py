@@ -10,6 +10,7 @@ import db
 import main
 import spreadsheet
 import utils
+from constants import admin_user_id
 from utils import plural
 
 intents = discord.Intents.none()
@@ -127,7 +128,7 @@ async def on_message(message: discord.Message):
     elif message.channel.id == 1185382846018359346:
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
-        await (await client.fetch_user(219955313334288385)).send(updating_text)
+        await (await client.fetch_user(admin_user_id)).send(updating_text)
         import psutil
         self_process = psutil.Process()
         subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
@@ -189,7 +190,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
                 message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
                 project = db.projects.get(project_id)
 
-                if payload.user_id in (message.author.id, *project['admins'], 219955313334288385):
+                if payload.user_id in (message.author.id, *project['admins'], admin_user_id):
                     request_user = await client.fetch_user(payload.user_id)
                     log.info(f"{utils.detailed_user(user=request_user)} has requested committing invalid post")
                     await message.clear_reaction('⏭')
@@ -203,7 +204,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 async def on_guild_join(guild: discord.Guild):
     join_message = f"Bot has been added to server: {guild.name} (ID = {guild.id}, owner = {utils.detailed_user(user=guild.owner)})"
     log.info(join_message)
-    await (await client.fetch_user(219955313334288385)).send(join_message)
+    await (await client.fetch_user(admin_user_id)).send(join_message)
 
     if guild.id == 1039054819626848276:
         await guild.leave()
@@ -214,7 +215,7 @@ async def on_guild_join(guild: discord.Guild):
 async def on_guild_remove(guild: discord.Guild):
     remove_message = f"Bot has been removed from a server: {guild.name} (ID = {guild.id})"
     log.info(remove_message)
-    await (await client.fetch_user(219955313334288385)).send(remove_message)
+    await (await client.fetch_user(admin_user_id)).send(remove_message)
 
 
 @client.event

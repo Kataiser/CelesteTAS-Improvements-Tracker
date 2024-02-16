@@ -12,6 +12,7 @@ import requests
 import ujson
 
 import db
+from constants import admin_user_id
 
 
 def plural(count: Union[int, Sized]) -> str:
@@ -36,7 +37,7 @@ def log_error(message: Optional[str] = None, flash_window: bool = True) -> str:
 
 async def report_error(client: discord.Client, message: Optional[str] = None):
     error = log_error(message)
-    await (await client.fetch_user(219955313334288385)).send(f"```\n{error[-1990:]}```")
+    await (await client.fetch_user(admin_user_id)).send(f"```\n{error[-1990:]}```")
 
 
 def handle_potential_request_error(req: requests.Response, code: int):
