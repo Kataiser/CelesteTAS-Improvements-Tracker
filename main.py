@@ -144,15 +144,17 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             db.projects.set(message.channel.id, project)
             update_contributors(message.author, message.channel.id, project)
         else:
-            log.info(f"Warning {utils.detailed_user(message)} about {validation_result.log_text}")
+            log_messages = ", ".join(validation_result.log_text)
+            log.info(f"Warning {utils.detailed_user(message)} about {log_messages}")
             add_project_log(message)
             await message.add_reaction('❌')
             await message.add_reaction('⏭')
 
+            warnings="\n".join(validation_result.warning_text)
             if len(tas_attachments) > 1:
-                await message.reply(f"`{attachment.filename}`\n{validation_result.warning_text}")
+                await message.reply(f"`{attachment.filename}`\n{warnings}")
             else:
-                await message.reply(validation_result.warning_text)
+                await message.reply(warnings)
 
         if len(tas_attachments) > 1:
             log.info(f"Done processing {filename}")
