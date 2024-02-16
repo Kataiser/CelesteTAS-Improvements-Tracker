@@ -44,7 +44,6 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
         r = requests.get('https://api.github.com/app/installations', headers=headers, timeout=30)
         utils.handle_potential_request_error(r, 200)
-
         installations = ujson.loads(r.content)
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
 
