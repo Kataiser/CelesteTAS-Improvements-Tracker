@@ -9,9 +9,8 @@ import ujson
 
 import db
 import utils
+from constants import github_app_id
 from utils import plural
-
-github_app_id = '196447'
 
 def generate_jwt(min_time: int) -> str:
     current_time = time.time()

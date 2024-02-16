@@ -10,7 +10,7 @@ import db
 import main
 import spreadsheet
 import utils
-from constants import admin_user_id
+from constants import admin_user_id, slash_command_servers
 from utils import plural
 
 intents = discord.Intents.none()
@@ -21,7 +21,6 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 command_tree = discord.app_commands.CommandTree(client)
-slash_command_servers = [discord.Object(id=403698615446536203), discord.Object(id=970379400887558204)]
 
 debug = False
 safe_mode = False
