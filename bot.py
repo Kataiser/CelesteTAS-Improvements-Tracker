@@ -169,14 +169,30 @@ async def on_message(message: discord.Message):
 
 
 @client.event
+async def on_message_edit(old_message: discord.Message, message: discord.Message):
+    if message.channel.id not in main.fast_project_ids: return
+
+    remove_project_log(message)
+
+    for reaction in message.reactions:
+        await reaction.remove(client.user)
+
+    await delete_message_responses(message.channel.id, message.id)
+    await on_message(message)
+
+
+@client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     if payload.channel_id in main.fast_project_ids:
         await client.wait_until_ready()
+        await delete_message_responses(payload.channel_id, payload.message_id)
 
-        async for message in client.get_channel(payload.channel_id).history(limit=50):
-            if message.reference and message.reference.message_id == payload.message_id and message.author == client.user:
-                await message.delete()
-                log.info(f"Deleted bot reply message in project: {db.projects.get(payload.channel_id)['name']}")
+
+async def delete_message_responses(channel_id: int, message_id: int):
+    async for message in client.get_channel(channel_id).history(limit=50):
+        if message.reference and message.reference.message_id == message_id and message.author == client.user:
+            await message.delete()
+            log.info(f"Deleted bot reply message in project: {db.projects.get(channel_id)['name']}")
 
 
 @client.event
@@ -270,6 +286,12 @@ async def taser_status(interaction, taser: str):
 @progress.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
+
+
+def remove_project_log(message: discord.Message):
+    project_logs = db.project_logs.get(message.channel.id)
+    project_logs.remove(message.id)
+    db.project_logs.set(message.channel.id, project_logs)
 
 
 def share_client(client_: discord.Client):
