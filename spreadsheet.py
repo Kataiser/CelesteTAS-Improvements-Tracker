@@ -395,6 +395,11 @@ def write_sheet(spreadsheet: str, cell_range: str, new_values: List[List[Union[i
         db.sheet_writes.set(utils.log_timestamp(), {'status': 'ERROR', 'log': sheet_log})
 
 
+def check_write_permission(spreadsheet: str, cell_range: str):
+    result = sheet.values().get(spreadsheetId=spreadsheet, range=cell_range).execute().get('values')
+    sheet.values().update(spreadsheetId=spreadsheet, range=cell_range, valueInputOption='USER_ENTERED',
+                          body={'values': result}).execute()
+
 re_column_row = re.compile(r"([A-Z]+)(\d+)$")
 
 def offset_cell(base: str, column_offset: int, row_offset: int):
@@ -443,3 +448,5 @@ sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
 re_ping = re.compile(r'<@\d+>')
 sj_data, sj_data_filenames = utils.load_sj_data()
+
+service_account_email: str = creds.service_account_email

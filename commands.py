@@ -18,6 +18,7 @@ import db
 import game_sync
 import gen_token
 import main
+import spreadsheet
 import utils
 from constants import admin_user_id
 from utils import plural
@@ -114,7 +115,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
         await message.channel.send(response)
 
 
-@command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN] [YN]'), report_usage=True)
+@command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] (([0-9a-zA-Z-_]+/[A-Z]+\d+)|N) [YN] [YN] [YN]'), report_usage=True)
 async def command_register_project(message: discord.Message, message_split: List[str]):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL USE_CONTRIBUTORS_FILE DO_SYNC_CHECK
@@ -127,6 +128,7 @@ async def command_register_project(message: discord.Message, message_split: List
       ACCOUNT: Your GitHub account name
       COMMIT_DRAFTS: Automatically commit drafts to the root directory [Y or N]
       IS_LOBBY: Whether this channel is for a lobby, which handles file validation differently [Y or N]
+      LOBBY_SHEET_CELL: Google Sheet Cell where the lobby routing table starts, e.g. '15LAo4HhESyneN-5zWHMtCc42k85muXGr7UvEEeamgXs/B4' [SheetId/Cell or N]
       ENSURE_LEVEL: Whether to make sure the level's name is in the message when validating a posted file [Y or N]
       USE_CONTRIBUTORS_FILE: Save a Contributors.txt file [Y or N]
       DO_SYNC_CHECK: Do regular sync tests of all your files by actually running the game (highly recommended) [Y or N]
@@ -134,7 +136,7 @@ async def command_register_project(message: discord.Message, message_split: List
 
     log.info("Verifying project")
     await message.channel.send("Verifying...")
-    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, ensure_level, use_contributors_file, do_sync_check = message_split
+    _, name, improvements_channel_id, repo_and_subdir, github_account, commit_drafts, is_lobby, lobby_sheet_cell, ensure_level, use_contributors_file, do_sync_check = message_split
     improvements_channel_id = int(improvements_channel_id)
     projects = db.projects.dict()
     editing = improvements_channel_id in projects
@@ -211,6 +213,21 @@ async def command_register_project(message: discord.Message, message_split: List
         await message.channel.send(f"Github app instllation cannot access the repo.")
         return
 
+    # verify lobby sheet
+    if lobby_sheet_cell.lower() != 'y' and is_lobby.lower() == 'n':
+        await utils.report_error(client, f"Cannot add lobby sheet '{lobby_sheet_cell}' to a non-lobby project.")
+        await message.channel.send("Cannot add lobby sheet to a non-lobby project.")
+        return
+    (spreadsheet_id, _, cell) = lobby_sheet_cell.partition('/')
+
+    try:
+        spreadsheet.check_write_permission(spreadsheet_id, cell)
+    except Exception as e:
+        await utils.report_error(client, f"Cannot write to spreadsheet '{spreadsheet_id}'. Missing write access? Error message: {e}")
+        await message.channel.send(f"Cannot write to lobby sheet `{spreadsheet_id}`. Make sure to invite `{spreadsheet.service_account_email}` to the sheet.")
+        return
+
+
     # verify not adding run sync check to a lobby
     if do_sync_check.lower() == 'y' and is_lobby.lower() == 'y':
         await utils.report_error(client, "Can't add sync check to a lobby project")
@@ -227,6 +244,7 @@ async def command_register_project(message: discord.Message, message_split: List
                           'install_time': current_time,
                           'commit_drafts': commit_drafts.lower() == 'y',
                           'is_lobby': is_lobby.lower() == 'y',
+                          'lobby_sheet_cell': None if lobby_sheet_cell.lower() == 'n' else lobby_sheet_cell,
                           'ensure_level': ensure_level.lower() == 'y',
                           'do_run_validation': do_sync_check.lower() == 'y',
                           'use_contributors_file': use_contributors_file.lower() == 'y',
@@ -582,6 +600,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
                                client.get_channel(project['project_id']).get_partial_message(project['pin']).jump_url,
                                project['commit_drafts'],
                                project['is_lobby'],
+                               project['lobby_sheet_cell'],
                                project['ensure_level'],
                                project['do_run_validation'],
                                last_sync_check,
@@ -634,6 +653,7 @@ async def command_projects(message: discord.Message):
                f"\nImprovement channel: <#{project['project_id']}>" \
                f"\nAdmin{plural(admins)}: {', '.join(admins)}" \
                f"\nIs lobby: `{project['is_lobby']}`" \
+               f"\nLobby Sheet: `{project['lobby_sheet_cell']}`" \
                f"\nDoes sync check: `{project['do_run_validation']}`" \
                f"{last_sync_check}"
 
