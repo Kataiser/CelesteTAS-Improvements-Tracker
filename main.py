@@ -6,6 +6,7 @@ import io
 import logging
 import os
 import random
+import re
 import sys
 import time
 import urllib.parse
@@ -129,6 +130,10 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
 
+            if project['is_lobby']:
+                if validation_result.finaltime_frames is not None:
+                    write_lobby_sheet(filename, validation_result.finaltime_frames)
+
             if validation_result.sj_data:
                 try:
                     spreadsheet.update_stats(attachment.filename, validation_result)
@@ -163,6 +168,22 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     log.info("Done processing message")
     await set_status(message, project['name'])
     return True
+
+re_lobby_filename = re.compile(r'.+_(\d+)-(\d+)\.tas')
+def write_lobby_sheet(filename: str, frames: int):
+    from_to = re_lobby_filename.match(filename)
+    if not from_to:
+        return
+
+    from_idx = int(from_to[1])
+    to_idx = int(from_to[2])
+
+    s='1xY9W_fvKyYYz7E-t_t5UXSpqxECUil2mLY7PdB-ifLc'
+    table_anchor='C2'
+
+    connection_cell = spreadsheet.offset_cell(table_anchor, column_offset=to_idx, row_offset=from_idx)
+    log.info(f"Updating connection {from_idx}-{to_idx} at {connection_cell} to {frames}f")
+    spreadsheet.write_sheet(s, connection_cell, [[str(frames)]])
 
 
 # assumes already verified TAS
