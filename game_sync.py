@@ -515,7 +515,6 @@ def close_game():
         log.info("No running game to close")
 
 
-# TODO: make recursive (if necessary)
 @functools.cache
 def get_mod_dependencies(mod: str) -> set:
     everest_yaml = get_mod_everest_yaml(mod)
