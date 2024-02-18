@@ -699,6 +699,8 @@ def test_offset_cell():
     assert spreadsheet.offset_cell('AZZ0', 1, 0) == 'BAA0'
     assert spreadsheet.offset_cell('ZZZ0', 1, 0) == 'AAAA0'
 
+    assert spreadsheet.offset_cell('Lobby!C1', 1, 1) == 'Lobby!D2'
+
 # DB
 
 def test_project_get(fast_db):

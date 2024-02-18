@@ -425,10 +425,11 @@ def offset_cell(base: str, column_offset: int, row_offset: int):
     if not column_row: raise Exception(f"{base} is not a valid cell address")
 
 
-    base_column = column_to_index(column_row[1])
-    base_row = int(column_row[2])
+    subsheet = column_row[1] if column_row[1] else ""
+    base_column = column_to_index(column_row[2])
+    base_row = int(column_row[3])
 
-    return f"{index_to_column(base_column + column_offset)}{base_row+row_offset}"
+    return f"{subsheet}{index_to_column(base_column + column_offset)}{base_row+row_offset}"
 
 
 def update_last_command_used():
