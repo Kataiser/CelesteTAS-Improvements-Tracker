@@ -35,7 +35,10 @@
             "type": "boolean"
         },
         "lobby_sheet_cell": {
-            "type": "string"
+            "type": [
+                "string",
+                "null"
+            ]
         },
         "ensure_level": {
             "type": "boolean"
