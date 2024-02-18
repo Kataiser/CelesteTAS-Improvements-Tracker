@@ -149,7 +149,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             add_project_log(message)
             await message.add_reaction('❌')
             await message.add_reaction('⏭')
-            warnings="\n".join(validation_result.warning_text)
+            warnings = validation_result.warning_text[0] if len(validation_result.warning_text) == 1 else format_markdown_list(validation_result.warning_text)
 
             if len(tas_attachments) > 1:
                 await message.reply(f"`{attachment.filename}`\n{warnings}")
@@ -163,6 +163,9 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     log.info("Done processing message")
     await set_status(message, project['name'])
     return True
+
+def format_markdown_list(elements: list[str]) -> str:
+    return "- " + "\n- ".join(elements)
 
 
 # assumes already verified TAS
