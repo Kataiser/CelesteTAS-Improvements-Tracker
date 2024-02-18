@@ -149,8 +149,8 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             add_project_log(message)
             await message.add_reaction('❌')
             await message.add_reaction('⏭')
-
             warnings="\n".join(validation_result.warning_text)
+
             if len(tas_attachments) > 1:
                 await message.reply(f"`{attachment.filename}`\n{warnings}")
             else:

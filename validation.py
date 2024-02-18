@@ -12,8 +12,8 @@ import db
 @dataclasses.dataclass
 class ValidationResult:
     valid_tas: bool
-    warning_text: List[str]
-    log_text: List[str]
+    warning_text: list[str]
+    log_text: list[str]
     finaltime: Optional[str] = None
     timesave: Optional[str] = None
     wip: bool = False
