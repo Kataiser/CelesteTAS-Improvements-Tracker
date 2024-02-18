@@ -1,6 +1,7 @@
 import ast
 import dataclasses
 import datetime
+import functools
 import time
 from decimal import Decimal
 from pathlib import Path
@@ -610,8 +611,9 @@ async def test_command_add_mods(setup_log, monkeypatch):
     def mock_mods_dir() -> MockModsPath:
         return MockModsPath()
 
-    def mock_get_mod_dependencies(*args) -> list:
-        return []
+    @functools.cache
+    def mock_get_mod_dependencies(*args) -> set:
+        return set()
 
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)

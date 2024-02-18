@@ -156,7 +156,11 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             await message.add_reaction('❌')
             await message.add_reaction('⏭')
 
-            warnings="\n".join(validation_result.warning_text)
+            if len(validation_result.warning_text) == 1:
+                warnings = validation_result.warning_text[0]
+            else:
+                warnings = format_markdown_list(validation_result.warning_text)
+
             if len(tas_attachments) > 1:
                 await message.reply(f"`{attachment.filename}`\n{warnings}")
             else:
@@ -182,6 +186,8 @@ def write_lobby_sheet(spreadsheet_id: str, table_start: str, filename: str, fram
     connection_cell = spreadsheet.offset_cell(table_start, column_offset=to_idx, row_offset=from_idx)
     log.info(f"Updating connection {from_idx}-{to_idx} at {connection_cell} to {frames}f")
     spreadsheet.write_sheet(spreadsheet_id, connection_cell, [[str(frames)]])
+def format_markdown_list(elements: list[str]) -> str:
+    return "- " + "\n- ".join(elements)
 
 
 # assumes already verified TAS
