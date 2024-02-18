@@ -663,7 +663,7 @@ def test_get_mod_everest_yaml(monkeypatch):
 # SPREADSHEET
 
 def test_read_sheet():
-    read = spreadsheet.read_sheet('Intermediate!A2:I20', multiple_rows=True)
+    read = spreadsheet.read_sheet(spreadsheet.SJ_SHEET_ID, 'Intermediate!A2:I20', multiple_rows=True)
     assert read[9][0] == 'Pointless Machines'
     assert read[9][1] == 'pointless_machines.tas'
     assert read[9][2] == 'ImDart'
@@ -690,6 +690,18 @@ def test_correct_map_case():
     assert spreadsheet.correct_map_case('Paint') == 'paint'
     assert spreadsheet.correct_map_case('not a map') == 'not a map'
 
+def test_offset_cell():
+    assert spreadsheet.offset_cell('A2', 1, 10) == 'B12'
+    assert spreadsheet.offset_cell('AC30', 3, 4) == 'AF34'
+
+    assert spreadsheet.offset_cell('Z0', 1, 0) == 'AA0'
+    assert spreadsheet.offset_cell('AZ0', 1, 0) == 'BA0'
+    assert spreadsheet.offset_cell('ZZ0', 1, 0) == 'AAA0'
+    assert spreadsheet.offset_cell('AAZ0', 1, 0) == 'ABA0'
+    assert spreadsheet.offset_cell('AZZ0', 1, 0) == 'BAA0'
+    assert spreadsheet.offset_cell('ZZZ0', 1, 0) == 'AAAA0'
+
+    assert spreadsheet.offset_cell('Lobby!C1', 1, 1) == 'Lobby!D2'
 
 # DB
 

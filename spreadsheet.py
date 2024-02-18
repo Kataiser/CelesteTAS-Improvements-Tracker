@@ -4,7 +4,7 @@ import logging
 import re
 import time
 from ssl import SSLEOFError
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 
 import discord
 from google.oauth2 import service_account
@@ -34,7 +34,7 @@ class MapRow:
         self.improvement_date_cell = Cell(self, 'improvement_date')
         self.writes = []
         self.changed_data = False
-        values = read_sheet(self.range)
+        values = read_sheet(SJ_SHEET_ID, self.range)
 
         # because values can be too short
         for column_enum in enumerate(self.data):
@@ -58,7 +58,7 @@ class MapRow:
             sheet_log = str((self.map_name, self.range, ' '.join(self.writes)))
 
             try:
-                sheet.values().update(spreadsheetId=SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
+                sheet.values().update(spreadsheetId=SJ_SHEET_ID, range=self.range, valueInputOption='USER_ENTERED', body={'values': [list(self.data.values())]}).execute()
                 db.sheet_writes.set(utils.log_timestamp(), {'status': 'INFO', 'log': sheet_log})
             except HttpError:
                 utils.log_error()
@@ -261,11 +261,11 @@ async def taser_status(interaction: discord.Interaction, taser: str):
         taser = utils.nickname(await client.fetch_user(int(taser[2:-1])))
         log.info(f"Converted ping to name: {taser}")
 
-    sheet_beg = read_sheet('Beginner!A2:E24', multiple_rows=True)
-    sheet_int = read_sheet('Intermediate!A2:E20', multiple_rows=True)
-    sheet_adv = read_sheet('Advanced!A2:E27', multiple_rows=True)
-    sheet_exp = read_sheet('Expert!A2:E31', multiple_rows=True)
-    sheet_gm = read_sheet('Grandmaster!A2:E20', multiple_rows=True)
+    sheet_beg = read_sheet(SJ_SHEET_ID, 'Beginner!A2:E24', multiple_rows=True)
+    sheet_int = read_sheet(SJ_SHEET_ID, 'Intermediate!A2:E20', multiple_rows=True)
+    sheet_adv = read_sheet(SJ_SHEET_ID, 'Advanced!A2:E27', multiple_rows=True)
+    sheet_exp = read_sheet(SJ_SHEET_ID, 'Expert!A2:E31', multiple_rows=True)
+    sheet_gm = read_sheet(SJ_SHEET_ID, 'Grandmaster!A2:E20', multiple_rows=True)
     combined = sheet_beg + sheet_int + sheet_adv + sheet_exp + sheet_gm
     found_log = []
     found_formatted = []
@@ -371,9 +371,9 @@ async def invalid_map(interaction: discord.Interaction, map_name: str):
     await interaction.response.send_message(f"**{map_name}** is not a valid SJ map.", ephemeral=True)
 
 
-def read_sheet(cell_range: str, multiple_rows=False):
+def read_sheet(spreadsheet: str, cell_range: str, multiple_rows=False):
     try:
-        result = sheet.values().get(spreadsheetId=SHEET_ID, range=cell_range).execute()
+        result = sheet.values().get(spreadsheetId=spreadsheet, range=cell_range).execute()
 
         if multiple_rows:
             return result.get('values', [])
@@ -382,6 +382,54 @@ def read_sheet(cell_range: str, multiple_rows=False):
     except (HttpError, SSLEOFError):
         utils.log_error()
         raise SheetReadError
+
+def write_sheet(spreadsheet: str, cell_range: str, new_values: list[list[Union[int, str]]]):
+    sheet_log = f"{spreadsheet} {cell_range}: {";".join([','.join(row) for row in new_values])}"
+
+    try:
+        sheet.values().update(spreadsheetId=spreadsheet, range=cell_range, valueInputOption='USER_ENTERED',
+                              body={'values': new_values}).execute()
+        db.sheet_writes.set(utils.log_timestamp(), {'status': 'INFO', 'log': sheet_log})
+    except HttpError:
+        utils.log_error()
+        db.sheet_writes.set(utils.log_timestamp(), {'status': 'ERROR', 'log': sheet_log})
+
+
+def check_write_permission(spreadsheet: str, cell_range: str):
+    result = sheet.values().get(spreadsheetId=spreadsheet, range=cell_range).execute().get('values')
+    sheet.values().update(spreadsheetId=spreadsheet, range=cell_range, valueInputOption='USER_ENTERED',
+                          body={'values': result}).execute()
+
+
+def offset_cell(base: str, column_offset: int, row_offset: int):
+    def index_to_column(idx: int):
+        result = ""
+        while True:
+            lo = idx % 26
+            result = chr(65 + lo) + result
+            idx = (idx // 26) - 1
+            if idx < 0: break
+        return result
+
+    def column_to_index(column: str) -> int:
+        index = 0
+        for (i, char) in enumerate(reversed(column)):
+            char_idx = ord(char) - ord('A')
+            if i == 0:
+                index += char_idx * pow(26, i)
+            else:
+                index += (char_idx+1) * pow(26, i)
+        return index
+
+    column_row = re_column_row.match(base)
+    if not column_row: raise Exception(f"{base} is not a valid cell address")
+
+
+    subsheet = column_row[1] if column_row[1] else ""
+    base_column = column_to_index(column_row[2])
+    base_row = int(column_row[3])
+
+    return f"{subsheet}{index_to_column(base_column + column_offset)}{base_row+row_offset}"
 
 
 def update_last_command_used():
@@ -394,9 +442,12 @@ class SheetReadError(Exception):
 
 client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
-SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
+SJ_SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
 creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
 re_ping = re.compile(r'<@\d+>')
+re_column_row = re.compile(r"(.+!)?([A-Z]+)(\d+)$")
 sj_data, sj_data_filenames = utils.load_sj_data()
+
+service_account_email: str = creds.service_account_email

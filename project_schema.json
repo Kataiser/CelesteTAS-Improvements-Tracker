@@ -34,6 +34,12 @@
         "is_lobby": {
             "type": "boolean"
         },
+        "lobby_sheet_cell": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
         "ensure_level": {
             "type": "boolean"
         },

@@ -15,6 +15,7 @@ class ValidationResult:
     warning_text: list[str]
     log_text: list[str]
     finaltime: Optional[str] = None
+    finaltime_frames: Optional[int] = None
     timesave: Optional[str] = None
     wip: bool = False
     sj_data: Optional[tuple] = None
@@ -71,7 +72,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         else:
             timesave = None
 
-        return ValidationResult(True, [], [], finaltime=tas_parsed.finaltime, timesave=timesave, wip=wip_in_message)
+        return ValidationResult(True, [], [], finaltime=tas_parsed.finaltime,
+                                finaltime_frames=tas_parsed.finaltime_frames, timesave=timesave, wip=wip_in_message)
 
     validation_result = ValidationResult(True, [], [])
 
@@ -279,6 +281,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     sj_data = (tas_lines, tas_parsed.finaltime_line_num) if message.channel.id == 1074148268407275520 else None
 
     validation_result.finaltime = tas_parsed.finaltime
+    validation_result.finaltime_frames = tas_parsed.finaltime_frames
     validation_result.timesave = timesave
     validation_result.sj_data = sj_data
 
@@ -364,18 +367,18 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
             finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0').strip()
         else:
             if finaltime_type == FinalTimeTypes.Comment:
-                finaltime = finaltime_line.strip('#\n ').partition(' ')[0].partition('(')[0].rstrip()
+                finaltime_components = finaltime_line.strip('#\n ').partition(' ')[0].partition('(')
+                finaltime = finaltime_components[0].rstrip()
                 finaltime_trimmed = finaltime.removeprefix('0:').removeprefix('0')
             else:
                 # this seems unreachable. why does this exist
                 finaltime_components = finaltime_line.lstrip('#0:').partition('(')
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
-        if finaltime_type != FinalTimeTypes.Comment:
-            try:
-                finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
-            except ValueError:
-                pass
+        try:
+            finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
+        except ValueError:
+            pass
 
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)

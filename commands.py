@@ -18,6 +18,7 @@ import db
 import game_sync
 import gen_token
 import main
+import spreadsheet
 import utils
 from constants import admin_user_id
 from utils import plural
@@ -227,6 +228,7 @@ async def command_register_project(message: discord.Message, message_split: List
                           'install_time': current_time,
                           'commit_drafts': commit_drafts.lower() == 'y',
                           'is_lobby': is_lobby.lower() == 'y',
+                          'lobby_sheet_cell': None,
                           'ensure_level': ensure_level.lower() == 'y',
                           'do_run_validation': do_sync_check.lower() == 'y',
                           'use_contributors_file': use_contributors_file.lower() == 'y',
@@ -265,9 +267,61 @@ async def command_register_project(message: discord.Message, message_split: List
         await message.channel.send("Successfully verified and edited project.")
     else:
         add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `add_mods`." if do_sync_check.lower() == 'y' else ""
+        lobby_sheet_text = " If you want to automatically update lobby connection times on a google sheet, run `link_lobby_sheet`." if registered_project['is_lobby'] else ""
         await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
-                                   f"run the command again and it will overwrite what was there before.{add_mods_text}")
+                                   f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
 
+@command(re.compile(r'(?i)link_lobby_sheet .+ .+ (.+!)?[A-Z]+\d+'), report_usage=True)
+async def link_lobby_sheet(message: discord.Message, message_split: list[str]):
+    """
+    link_lobby_sheet PROJECT_NAME SHEET CELL
+
+      Link the lobby project to a google sheet, so that improvements will automatically be written to the routing table.
+
+      PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them.
+      SHEET: The link to your google sheet, e.g. https://docs.google.com/spreadsheets/d/1xY9W_fvKyYYz7E-t_t5UXSpqxECUil2mLY7PdB-ifLc.
+      CELL: The location where the 0-0 connection of the table is, e.g. C2, Beginner!C2 or "Beginner Lobby!C2".
+    """
+    project_search_name = message_split[1].replace('"', '')
+
+    sheet_match = re_google_sheet_id.match(message_split[2])
+    if not sheet_match:
+        log.warning(f"Invalid sheet: '{message_split[2]}'")
+        await message.channel.send(f"Could not understand google sheet link '{message_split[2]}, try pasting only the ID part after https://docs.google.com/spreadsheets/d/'")
+    spreadsheet_id = sheet_match[1]
+
+    sheet_cell=message_split[3].strip('"')
+
+    lobby_sheet_cell = f"{spreadsheet_id}/{sheet_cell}"
+    spreadsheet_url=f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
+
+    projects = db.projects.get_by_name_or_id(project_search_name)
+
+    if not projects:
+        log.warning(f"No projects found matching: {project_search_name}")
+        await message.channel.send("No projects (with sync checking enabled) matching that name or ID found.")
+
+    for project in projects:
+        if not await is_admin(message, project):
+            break
+        if not project['is_lobby']:
+            log.warning(f"Trying to link sheet to non-lobby project {project['name']}")
+            await message.channel.send("Cannot link sheet to a non-lobby project")
+            continue
+
+        try:
+            spreadsheet.check_write_permission(spreadsheet_id, sheet_cell)
+        except Exception as error:
+            await utils.report_error(client,
+                                     f"Cannot write to '{spreadsheet_url}' '{sheet_cell}'. Missing write access? Error message: {error}")
+            await message.channel.send(
+                f"Bot can't write to to `{spreadsheet_url}` at '{sheet_cell}'. Make sure to invite `{spreadsheet.service_account_email}` to the sheet.")
+            return
+
+        project['lobby_sheet_cell'] = lobby_sheet_cell
+        db.projects.set(project['project_id'], project)
+
+        await message.channel.send(f"Project \"{project['name']}\" is now linked to {spreadsheet_url} {sheet_cell}")
 
 @command(re.compile(r'(?i)add_mods .+ .+'), report_usage=True)
 async def command_add_mods(message: discord.Message, message_split: List[str]):
@@ -582,6 +636,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
                                client.get_channel(project['project_id']).get_partial_message(project['pin']).jump_url,
                                project['commit_drafts'],
                                project['is_lobby'],
+                               project['lobby_sheet_cell'],
                                project['ensure_level'],
                                project['do_run_validation'],
                                last_sync_check,
@@ -629,11 +684,18 @@ async def command_projects(message: discord.Message):
         admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
         repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
 
+        spreadsheet_line = ""
+        if project['lobby_sheet_cell']:
+            spreadsheet_id, _, cell = project['lobby_sheet_cell'].partition('/')
+            spreadsheet_url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}'
+            spreadsheet_line = f"\nLobby Sheet: [google sheet]({spreadsheet_url}) {cell}"
+
         text = f"**{project['name']}**" \
                f"\nRepo: <{repo_url}>" \
                f"\nImprovement channel: <#{project['project_id']}>" \
                f"\nAdmin{plural(admins)}: {', '.join(admins)}" \
-               f"\nIs lobby: `{project['is_lobby']}`" \
+               f"\nIs lobby: `{project['is_lobby']}`" + \
+               spreadsheet_line + \
                f"\nDoes sync check: `{project['do_run_validation']}`" \
                f"{last_sync_check}"
 
@@ -758,3 +820,4 @@ client: Optional[discord.Client] = None
 log: Optional[logging.Logger] = None
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
 re_combine_whitespace = re.compile(r'\s+')
+re_google_sheet_id = re.compile(r'(?:https://docs.google.com/spreadsheets/d/)?([0-9a-zA-Z-_]+).*')

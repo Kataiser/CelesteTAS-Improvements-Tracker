@@ -6,6 +6,7 @@ import io
 import logging
 import os
 import random
+import re
 import sys
 import time
 import urllib.parse
@@ -129,6 +130,11 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
 
+            if project['is_lobby'] and project['lobby_sheet_cell']:
+                if validation_result.finaltime_frames is not None:
+                    spreadsheet_id, _, cell = project['lobby_sheet_cell'].partition('/')
+                    write_lobby_sheet(spreadsheet_id, cell, filename, validation_result.finaltime_frames)
+
             if validation_result.sj_data:
                 try:
                     spreadsheet.update_stats(attachment.filename, validation_result)
@@ -168,6 +174,18 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     await set_status(message, project['name'])
     return True
 
+re_lobby_filename = re.compile(r'.+_(\d+)-(\d+)\.tas')
+def write_lobby_sheet(spreadsheet_id: str, table_start: str, filename: str, frames: int):
+    from_to = re_lobby_filename.match(filename)
+    if not from_to:
+        return
+
+    from_idx = int(from_to[1])
+    to_idx = int(from_to[2])
+
+    connection_cell = spreadsheet.offset_cell(table_start, column_offset=to_idx, row_offset=from_idx)
+    log.info(f"Updating connection {from_idx}-{to_idx} at {connection_cell} to {frames}f")
+    spreadsheet.write_sheet(spreadsheet_id, connection_cell, [[str(frames)]])
 def format_markdown_list(elements: list[str]) -> str:
     return "- " + "\n- ".join(elements)
 
