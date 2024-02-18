@@ -172,10 +172,13 @@ async def on_message(message: discord.Message):
 async def on_message_edit(old_message: discord.Message, message: discord.Message):
     if message.channel.id not in main.fast_project_ids: return
 
-    remove_project_log(message)
+    if not await has_bot_reaction(message,"❌"):
+        return
 
     for reaction in message.reactions:
         await reaction.remove(client.user)
+
+    remove_project_log(message)
 
     await delete_message_responses(message.channel.id, message.id)
     await on_message(message)
@@ -290,8 +293,17 @@ async def map_autocomplete(interaction: discord.Interaction, current: str) -> Li
 
 def remove_project_log(message: discord.Message):
     project_logs = db.project_logs.get(message.channel.id)
-    project_logs.remove(message.id)
-    db.project_logs.set(message.channel.id, project_logs)
+    if message.id in project_logs:
+        project_logs.remove(message.id)
+        db.project_logs.set(message.channel.id, project_logs)
+
+async def has_bot_reaction(message: discord.Message, emoji: str):
+    for reaction in message.reactions:
+        if reaction.emoji == '❌':
+            async for user in reaction.users():
+                if user.id == client.user.id:
+                    return True
+    return False
 
 
 def share_client(client_: discord.Client):
