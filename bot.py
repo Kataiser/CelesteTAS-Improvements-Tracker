@@ -297,6 +297,7 @@ def remove_project_log(message: discord.Message):
         project_logs.remove(message.id)
         db.project_logs.set(message.channel.id, project_logs)
 
+
 async def has_bot_reaction(message: discord.Message, emoji: str):
     for reaction in message.reactions:
         if reaction.emoji == '❌':
