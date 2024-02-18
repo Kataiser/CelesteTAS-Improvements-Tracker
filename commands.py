@@ -218,12 +218,12 @@ async def command_register_project(message: discord.Message, message_split: List
         await utils.report_error(client, f"Cannot add lobby sheet '{lobby_sheet_cell}' to a non-lobby project.")
         await message.channel.send("Cannot add lobby sheet to a non-lobby project.")
         return
-    (spreadsheet_id, _, cell) = lobby_sheet_cell.partition('/')
+    spreadsheet_id, _, cell = lobby_sheet_cell.partition('/')
 
     try:
         spreadsheet.check_write_permission(spreadsheet_id, cell)
-    except Exception as e:
-        await utils.report_error(client, f"Cannot write to spreadsheet '{spreadsheet_id}'. Missing write access? Error message: {e}")
+    except Exception as error:
+        await utils.report_error(client, f"Cannot write to spreadsheet '{spreadsheet_id}'. Missing write access? Error message: {error}")
         await message.channel.send(f"Cannot write to lobby sheet `{spreadsheet_id}`. Make sure to invite `{spreadsheet.service_account_email}` to the sheet.")
         return
 
@@ -648,12 +648,16 @@ async def command_projects(message: discord.Message):
         admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
         repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
 
+        spreadsheet_id = project['lobby_sheet_cell'].partition('/')[0] if project['lobby_sheet_cell'] else None
+        spreadsheet_url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}' if spreadsheet_id else None
+        spreadsheet_line = f"\nLobby Sheet: [google sheet](`{spreadsheet_url})" if spreadsheet_url else ""
+
         text = f"**{project['name']}**" \
                f"\nRepo: <{repo_url}>" \
                f"\nImprovement channel: <#{project['project_id']}>" \
                f"\nAdmin{plural(admins)}: {', '.join(admins)}" \
-               f"\nIs lobby: `{project['is_lobby']}`" \
-               f"\nLobby Sheet: `{project['lobby_sheet_cell']}`" \
+               f"\nIs lobby: `{project['is_lobby']}`" + \
+               spreadsheet_line + \
                f"\nDoes sync check: `{project['do_run_validation']}`" \
                f"{last_sync_check}"
 

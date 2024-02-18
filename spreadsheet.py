@@ -383,7 +383,7 @@ def read_sheet(spreadsheet: str, cell_range: str, multiple_rows=False):
         utils.log_error()
         raise SheetReadError
 
-def write_sheet(spreadsheet: str, cell_range: str, new_values: List[List[Union[int, str]]]):
+def write_sheet(spreadsheet: str, cell_range: str, new_values: list[list[Union[int, str]]]):
     sheet_log = f"{spreadsheet} {cell_range}: {";".join([','.join(row) for row in new_values])}"
 
     try:
@@ -400,7 +400,6 @@ def check_write_permission(spreadsheet: str, cell_range: str):
     sheet.values().update(spreadsheetId=spreadsheet, range=cell_range, valueInputOption='USER_ENTERED',
                           body={'values': result}).execute()
 
-re_column_row = re.compile(r"([A-Z]+)(\d+)$")
 
 def offset_cell(base: str, column_offset: int, row_offset: int):
     def index_to_column(idx: int):
@@ -447,6 +446,7 @@ creds = service_account.Credentials.from_service_account_file('service.json', sc
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
 re_ping = re.compile(r'<@\d+>')
+re_column_row = re.compile(r"(.+!)?([A-Z]+)(\d+)$")
 sj_data, sj_data_filenames = utils.load_sj_data()
 
 service_account_email: str = creds.service_account_email
