@@ -271,7 +271,7 @@ async def command_register_project(message: discord.Message, message_split: List
         await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
 
-@command(re.compile(r'(?i)link_lobby_sheet .+ .+ (.+!)?[A-Z]+\d+'))
+@command(re.compile(r'(?i)link_lobby_sheet .+ .+ (.+!)?[A-Z]+\d+'), report_usage=True)
 async def link_lobby_sheet(message: discord.Message, message_split: list[str]):
     """
     link_lobby_sheet PROJECT_NAME SHEET CELL
@@ -297,7 +297,7 @@ async def link_lobby_sheet(message: discord.Message, message_split: list[str]):
 
     projects = db.projects.get_by_name_or_id(project_search_name)
 
-    if len(projects) == 0:
+    if not projects:
         log.warning(f"No projects found matching: {project_search_name}")
         await message.channel.send("No projects (with sync checking enabled) matching that name or ID found.")
 
