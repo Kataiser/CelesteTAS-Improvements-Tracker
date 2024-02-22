@@ -79,11 +79,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate file not in excluded items
     if filename in project['excluded_items']:
-        validation_result.emit_failed_check("This filename is excluded from the project.", f"file {filename} is excluded from project (in {project['excluded_items']})")
+        return ValidationResult(False, ["This filename is excluded from the project."], [f"file {filename} is excluded from project (in {project['excluded_items']})"])
 
     # validate file has been updated
     if old_tas and tas.replace(b'\r', b'') == old_tas.replace(b'\r', b''):
-        validation_result.emit_failed_check("This file is identical to what's already in the repo.", f"file {filename} is unchanged from repo")
+        return ValidationResult(False, ["This file is identical to what's already in the repo."], [f"file {filename} is unchanged from repo"])
 
     # validate breakpoint doesn't exist and chaptertime does
     if len(tas_parsed.breakpoints) == 1:
@@ -158,9 +158,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             rules_functions = command_rules[command]
 
-            if not isinstance(rules_functions, Tuple):
+            if command in disallowed_commands:
                 validation_result.emit_failed_check(f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {rules_functions}.",
-                                        f"incorrect command argument in {filename}: {line_split[0]}, {rules_functions}")
+                                                    f"incorrect command argument in {filename}: {line_split[0]}, {rules_functions}")
+                continue
 
             args = [i.strip() for i in line_split[1:] if i]
             required_args_count = len([f for f in rules_functions if not isinstance(f, OptionalArg)])
@@ -168,9 +169,9 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             if len(args) < required_args_count or len(args) > len(rules_functions):
                 validation_result.emit_failed_check(f"Incorrect number of arguments to `{line_split[0]}` command on line {line_num + 1}: is {len(args)}, should be {args_count_options}.",
-                                        f"incorrect command arguments count in {filename}: {line_split[0]}, {len(args)} vs {args_count_options}")
+                                                    f"incorrect command arguments count in {filename}: {line_split[0]}, {len(args)} vs {args_count_options}")
 
-            for arg in enumerate(args):
+            for arg in enumerate(args[:len(rules_functions)]):
                 rules_function = rules_functions[arg[0]]
                 last_analogmode = arg[1].lower() if command in ('analogmode', 'analoguemode') else last_analogmode
 
@@ -182,7 +183,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
                     if arg_validity is not True:
                         validation_result.emit_failed_check(f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {arg_validity}.",
-                                                f"incorrect command argument in {filename}: {line_split[0]}, {arg_validity}")
+                                                            f"incorrect command argument in {filename}: {line_split[0]}, {arg_validity}")
 
     # validate last analogmode is ignore
     if last_analogmode != 'ignore':
@@ -192,7 +193,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     time_saved_messages: Union[None, re.Match] = None
 
     # validate chaptertime is in message content
-    if not is_dash_save:
+    if tas_parsed.finaltime and not is_dash_save:
         if project['is_lobby']:
             if tas_parsed.finaltime not in message.content:
                 validation_result.emit_failed_check(f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
@@ -375,13 +376,9 @@ def parse_tas_file(tas_lines: list, find_breakpoints: bool, allow_comment_time: 
                 finaltime_components = finaltime_line.lstrip('#0:').partition('(')
                 finaltime = finaltime_trimmed = finaltime_components[0].strip()
 
-        try:
-            finaltime_frames = int(finaltime_components[2].rstrip(')\n'))
-        except ValueError:
-            pass
-
         finaltime = re_remove_non_digits.sub('', finaltime)
         finaltime_trimmed = re_remove_non_digits.sub('', finaltime_trimmed)
+        finaltime_frames = time_to_frames(finaltime_trimmed)
 
     return ParsedTASFile(breakpoints, found_finaltime, finaltime, finaltime_trimmed, finaltime_line_num, finaltime_frames, finaltime_type)
 
@@ -476,7 +473,7 @@ command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_mode
                  'exportlibtas': "ExportLibTAS command is not allowed",
                  'endexportlibtas': "EndExportLibTAS command is not allowed",
                  'add': (True,),
-                 'skip': lambda frames: True if frames.isdigit() else f"frame count must be a number, you used \"{frames}\"",
+                 'skip': (lambda frames: True if frames.isdigit() else f"frame count must be a number, you used \"{frames}\"",),
                  'exitgame': "ExitGame command is not allowed",
                  'startrecording': "StartRecording command is not allowed",
                  'stoprecording': "StopRecording command is not allowed",

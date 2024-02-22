@@ -636,7 +636,6 @@ async def command_about_project(message: discord.Message, message_split: List[st
                                client.get_channel(project['project_id']).get_partial_message(project['pin']).jump_url,
                                project['commit_drafts'],
                                project['is_lobby'],
-                               project['lobby_sheet_cell'],
                                project['ensure_level'],
                                project['do_run_validation'],
                                last_sync_check,
