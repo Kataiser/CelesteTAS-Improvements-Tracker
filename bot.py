@@ -147,6 +147,9 @@ async def on_message(message: discord.Message):
     if 'cabob' in message_lower:
         user_ids.add(256796503530536970)
 
+    if 'vamp' in message_lower:
+        user_ids.add(234520815658336258)
+
     if message.reference:
         replied_to_kataiser = False
 
