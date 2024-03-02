@@ -36,9 +36,13 @@ class ValidationResult:
 def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], project: dict, skip_validation: bool = False) -> ValidationResult:
     log.info(f"Validating{' lobby file' if project['is_lobby'] else ''} {filename}, {len(tas)} bytes, {len(message.content)} char message")
 
-    # validate length
-    if not skip_validation and len(tas) > 204800:  # 200 kb
-        return ValidationResult(False, [f"This TAS file is very large ({len(tas) / 1024:.1f} KB). For safety, it won't be processed."], [f"{filename} being too long ({len(tas)} bytes)"])
+    if not skip_validation:
+        # validate length
+        if not tas or tas == b'404: Not Found':
+            return ValidationResult(False, [f"This TAS file is empty or couldn't be downloaded."], [f"{filename} being empty"])
+
+        if not skip_validation and len(tas) > 204800:  # 200 kb
+            return ValidationResult(False, [f"This TAS file is very large ({len(tas) / 1024:.1f} KB). For safety, it won't be processed."], [f"{filename} being too long ({len(tas)} bytes)"])
 
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
