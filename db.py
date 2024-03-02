@@ -166,8 +166,12 @@ def add_project_key(key: str, value: Any):
 
     for project_id in projects_:
         print(projects_[project_id]['name'])
-        projects_[project_id][key] = value
-        projects.set(project_id, projects_[project_id])
+
+        if key in projects_[project_id]:
+            print(f"\tAlready exists: {projects_[project_id][key]}")
+        else:
+            projects_[project_id][key] = value
+            projects.set(project_id, projects_[project_id])
 
     print(f"Added `{key}: {value}` to {len(projects_)} projects, be sure to update command_register_project")
 
