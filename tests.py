@@ -180,6 +180,12 @@ async def test_process_improvement_message(setup_log, monkeypatch):
                                "Make sure you improved the latest version of the file."]
     assert message.reactions == {'⏭', '❌'}
 
+    message = discord.Message('-1f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
+    message.reactions = set()
+    assert await main.process_improvement_message(message, skip_validation=True)
+    assert message.replies == []
+    assert message.reactions == {'📝'}
+
 
 def test_generate_path_cache(setup_log):
     path_cache = main.generate_path_cache(970380662907482142)
