@@ -117,7 +117,8 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             commit_status = commit(project, message, filename, file_content, validation_result)
             project['last_commit_time'] = int(time.time())
 
-            if not skip_validation:
+            # try to only add to project log if not already added
+            if not skip_validation or message.id not in db.project_logs.get(message.channel.id):
                 add_project_log(message)
 
             if commit_status:
