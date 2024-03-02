@@ -34,11 +34,11 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     if not project:
         project = db.projects.get(message.channel.id)
 
-    if message.channel.id == 1202709072718200842:
-        skip_validation = True
-
     if not skip_validation and not is_processable_message(message, project):
         return False
+
+    if message.channel.id == 1202709072718200842:
+        skip_validation = True
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']})\n{message.jump_url}\n{message.content}")
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
