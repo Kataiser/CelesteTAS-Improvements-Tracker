@@ -166,19 +166,19 @@ async def test_process_improvement_message(setup_log, monkeypatch):
     monkeypatch.setattr(main, 'set_status', mock_passthrough_async)
     monkeypatch.setattr(db.history_log, 'set', mock_passthrough)
     monkeypatch.setattr(discord, 'Message', mock_message)
-    tas_file = MockAttachment('0oi71n.tas', 'https://cdn.discordapp.com/attachments/444284857372114944/1195865779695009912/0oi71n.tas')
+    tas_file = MockAttachment('0oi71n.tas', 'https://raw.githubusercontent.com/Kataiser/improvements-bot-testing/main/0oi71n 2.tas')
 
     message = discord.Message('-0f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
     assert await main.process_improvement_message(message)
-    assert message.reactions == {'📝'}
     assert message.replies == []
+    assert message.reactions == {'📝'}
 
     message = discord.Message('-1f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
     message.reactions = set()
     assert await main.process_improvement_message(message)
-    assert message.reactions == {'⏭', '❌'}
     assert message.replies == ["Frames saved is incorrect (you said \"-1f\", but it seems to be \"-0f\" or \"+0f\"), please fix and post again. "
                                "Make sure you improved the latest version of the file."]
+    assert message.reactions == {'⏭', '❌'}
 
 
 def test_generate_path_cache(setup_log):
