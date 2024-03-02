@@ -271,6 +271,7 @@ async def command_register_project(message: discord.Message, message_split: List
         await message.channel.send("Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
 
+
 @command(re.compile(r'(?i)link_lobby_sheet .+ .+ (.+!)?[A-Z]+\d+'), report_usage=True)
 async def link_lobby_sheet(message: discord.Message, message_split: list[str]):
     """
@@ -290,10 +291,10 @@ async def link_lobby_sheet(message: discord.Message, message_split: list[str]):
         await message.channel.send(f"Could not understand google sheet link '{message_split[2]}, try pasting only the ID part after https://docs.google.com/spreadsheets/d/'")
     spreadsheet_id = sheet_match[1]
 
-    sheet_cell=message_split[3].strip('"')
+    sheet_cell = message_split[3].strip('"')
 
     lobby_sheet_cell = f"{spreadsheet_id}/{sheet_cell}"
-    spreadsheet_url=f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
+    spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
 
     projects = db.projects.get_by_name_or_id(project_search_name)
 
@@ -322,6 +323,7 @@ async def link_lobby_sheet(message: discord.Message, message_split: list[str]):
         db.projects.set(project['project_id'], project)
 
         await message.channel.send(f"Project \"{project['name']}\" is now linked to {spreadsheet_url} {sheet_cell}")
+
 
 @command(re.compile(r'(?i)add_mods .+ .+'), report_usage=True)
 async def command_add_mods(message: discord.Message, message_split: List[str]):

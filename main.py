@@ -174,7 +174,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     await set_status(message, project['name'])
     return True
 
-re_lobby_filename = re.compile(r'.+_(\d+)-(\d+)\.tas')
+
 def write_lobby_sheet(spreadsheet_id: str, table_start: str, filename: str, frames: int):
     from_to = re_lobby_filename.match(filename)
     if not from_to:
@@ -186,6 +186,8 @@ def write_lobby_sheet(spreadsheet_id: str, table_start: str, filename: str, fram
     connection_cell = spreadsheet.offset_cell(table_start, column_offset=to_idx, row_offset=from_idx)
     log.info(f"Updating connection {from_idx}-{to_idx} at {connection_cell} to {frames}f")
     spreadsheet.write_sheet(spreadsheet_id, connection_cell, [[str(frames)]])
+
+
 def format_markdown_list(elements: list[str]) -> str:
     return "- " + "\n- ".join(elements)
 
@@ -627,3 +629,4 @@ safe_mode = None
 safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976903244863381564, 1067206696927248444)
 inaccessible_projects = set(safe_projects)
 fast_project_ids = set()
+re_lobby_filename = re.compile(r'.+_(\d+)-(\d+)\.tas')
