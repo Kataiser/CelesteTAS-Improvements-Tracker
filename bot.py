@@ -131,6 +131,7 @@ async def on_message(message: discord.Message):
         import psutil
         self_process = psutil.Process()
         subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
+        time.sleep(60)
 
     message_lower = message.content.lower()
     substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
@@ -147,7 +148,7 @@ async def on_message(message: discord.Message):
     if 'cabob' in message_lower:
         user_ids.add(256796503530536970)
 
-    if 'vamp' in message_lower and 'vampire' not in message_lower:
+    if 'vamp' in message_lower and 'vampire' not in message_lower and 'revamp' not in message_lower:
         user_ids.add(234520815658336258)
 
     if message.reference:
