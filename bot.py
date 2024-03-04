@@ -1,4 +1,5 @@
 import argparse
+import re
 import subprocess
 import time
 from typing import List, Optional
@@ -134,21 +135,23 @@ async def on_message(message: discord.Message):
         time.sleep(60)
 
     message_lower = message.content.lower()
-    substrings_1984_found = [s for s in substrings_1984 if s in message_lower]
-    substrings_1984_music_found = [s for s in substrings_1984_music if s in message_lower]
-    substrings_1984_hydro_found = [s for s in substrings_1984_hydro if s in message_lower]
     user_ids = set()
 
-    if substrings_1984_found or (substrings_1984_music_found and ('music' in message_lower or ('song' in message_lower and 'shatter' not in message_lower))):
+    if re_1984.findall(message_lower):
         user_ids.add(219955313334288385)
+    elif re_1984_music.findall(message_lower):
+        message_split = re.findall(r'\w+|[^\w\s]', message_lower)
 
-    if substrings_1984_hydro_found or ('hydro' in message_lower and 'hydroshock' not in message_lower):
+        if 'music' in message_split or 'song' in message_split:
+            user_ids.add(219955313334288385)
+
+    if re_1984_hydro.findall(message_lower):
         user_ids.add(236760821286436865)
 
-    if 'cabob' in message_lower:
+    if re_1984_cabob.findall(message_lower):
         user_ids.add(256796503530536970)
 
-    if 'vamp' in message_lower and 'vampire' not in message_lower and 'revamp' not in message_lower:
+    if re_1984_vamp.findall(message_lower):
         user_ids.add(234520815658336258)
 
     if message.reference:
@@ -174,9 +177,10 @@ async def on_message(message: discord.Message):
 
 @client.event
 async def on_message_edit(old_message: discord.Message, message: discord.Message):
-    if message.channel.id not in main.fast_project_ids: return
+    if message.channel.id not in main.fast_project_ids:
+        return
 
-    if not await has_bot_reaction(message,"❌"):
+    if not await has_bot_reaction(message, "❌"):
         return
 
     for reaction in message.reactions:
@@ -322,8 +326,13 @@ share_client(client)
 main.safe_mode = safe_mode
 projects_startup = Optional[dict]
 substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
-substrings_1984_music = ('lab ', 'psychokinetic', 'pk ', 'superluminary')
-substrings_1984_hydro = ('shatter', 'shong')
+substrings_1984_music = ('lab', 'psychokinetic', 'pk ', 'superluminary')
+substrings_1984_hydro = ('shatter', 'shong', 'shattersong', 'hydro')
+re_1984 = re.compile('|'.join(r'\b{}\b'.format(re.escape(sub)) for sub in substrings_1984))
+re_1984_music = re.compile('|'.join(r'\b{}\b'.format(re.escape(sub)) for sub in substrings_1984_music))
+re_1984_hydro = re.compile('|'.join(r'\b{}\b'.format(re.escape(sub)) for sub in substrings_1984_hydro))
+re_1984_cabob = re.compile(r'\bcabob\b')
+re_1984_vamp = re.compile(r'\bvamp\b')
 
 if __name__ == '__main__':
     start()
