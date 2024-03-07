@@ -325,12 +325,12 @@ log = main.create_logger('bot')
 share_client(client)
 main.safe_mode = safe_mode
 projects_startup = Optional[dict]
-substrings_1984 = ('kataiser', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
+substrings_1984 = ('kataiser', 'kata', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
 substrings_1984_music = ('lab', 'psychokinetic', 'pk ', 'superluminary')
 substrings_1984_hydro = ('shatter', 'shong', 'shattersong', 'hydro')
-re_1984 = re.compile('|'.join(r'\b{}\b'.format(re.escape(sub)) for sub in substrings_1984))
-re_1984_music = re.compile('|'.join(r'\b{}\b'.format(re.escape(sub)) for sub in substrings_1984_music))
-re_1984_hydro = re.compile('|'.join(r'\b{}\b'.format(re.escape(sub)) for sub in substrings_1984_hydro))
+re_1984 = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984))
+re_1984_music = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984_music))
+re_1984_hydro = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984_hydro))
 re_1984_cabob = re.compile(r'\bcabob\b')
 re_1984_vamp = re.compile(r'\bvamp\b')
 
