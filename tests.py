@@ -373,6 +373,20 @@ def test_validate(setup_log, monkeypatch):
                                                                       "no \"draft\" text in message"])
     assert validation.validate(Path('test_tases\\invalids\\ehs_exitgame.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_disallowed_command
 
+    result_disallowed_command2 = validation.ValidationResult(valid_tas=False, finaltime='0:45.016', finaltime_frames=2648,
+                                                             warning_text=["Incorrect `Set` command usage on line 10: Set command is not allowed.",
+                                                                           "Incorrect `Set` command usage on line 394: Set command is not allowed.",
+                                                                           "The file's ChapterTime (45.016) is missing in your message, please add it and post again.",
+                                                                           "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) "
+                                                                           "and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.",
+                                                                           "The level name is missing in your message, please add it and post again."],
+                                                             log_text=["incorrect command argument in nyoom.tas: Set, Set command is not allowed",
+                                                                       "incorrect command argument in nyoom.tas: Set, Set command is not allowed",
+                                                                       "ChapterTime (45.016) missing in message content",
+                                                                       "no \"draft\" text in message",
+                                                                       "level name (nyoom) missing in message content"])
+    assert validation.validate(Path('test_tases\\nyoom.tas').read_bytes(), 'nyoom.tas', message, None, test_project, False) == result_disallowed_command2
+
     result_wrong_command_args = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
                                                             warning_text=["Incorrect number of arguments to `Read` command on line 3452: is 4, should be 1-3.", "Since this is a draft, "
                                                                           "please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. If it "

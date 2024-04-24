@@ -162,7 +162,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             rules_functions = command_rules[command]
 
-            if command in disallowed_commands:
+            if command in disallowed_commands and isinstance(rules_functions, str):
                 validation_result.emit_failed_check(f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {rules_functions}.",
                                                     f"incorrect command argument in {filename}: {line_split[0]}, {rules_functions}")
                 continue
