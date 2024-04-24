@@ -1,5 +1,4 @@
 import base64
-import ctypes
 import inspect
 import logging
 import os
@@ -562,7 +561,8 @@ async def command_about(message: discord.Message):
 
     sync_checks = 0
     installations = set()
-    host_uptime = round(ctypes.windll.kernel32.GetTickCount64() / 86400000, 1)
+    import psutil
+    host_uptime = round((time.time() - psutil.boot_time()) / 86400, 1)
 
     for project in db.projects.get_all(consistent_read=False):
         installations.add(project['installation_owner'])
