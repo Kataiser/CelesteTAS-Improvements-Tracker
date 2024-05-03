@@ -231,6 +231,7 @@ def sync_test(project_id: int, force: bool):
         # now run it
         time.sleep(0.5)
         initial_mtime = os.path.getmtime(file_path)
+        file_sync_start_time = time.time()
         log.info(f"Sync checking {tas_filename} ({tas_parsed.finaltime_trimmed})")
         tas_started = False
         tas_finished = False
@@ -248,6 +249,9 @@ def sync_test(project_id: int, force: bool):
                 tas_started = True
 
         while not tas_finished and not game_crashed:
+            if time.time() - file_sync_start_time > 3600 * 5:
+                raise TimeoutError(f"File {tas_filename} in project {project['name']} has frozen after five hours")
+
             try:
                 scaled_sleep(20 if has_filetime else 5)
                 session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
@@ -455,6 +459,7 @@ def wait_for_game_load(mods: set):
     import psutil
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
+    wait_start_time = time.time()
 
     while not game_loaded:
         try:
@@ -465,6 +470,9 @@ def wait_for_game_load(mods: set):
 
             if current_time - last_game_loading_notify > 60:
                 last_game_loading_notify = current_time
+
+            if time.time() - wait_start_time > 3600:
+                raise TimeoutError("Game failed to load after an hour")
         else:
             game_loaded = True
 
