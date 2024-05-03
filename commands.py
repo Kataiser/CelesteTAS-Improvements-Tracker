@@ -114,7 +114,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
         await message.channel.send(response)
 
 
-@command(re.compile(r'(?i)register_project .+ \d+ .+/.+ .+ [YN] [YN] [YN] [YN] [YN]'), report_usage=True)
+@command(re.compile(r'(?i)register_project .+ \d+ .+ .+ [YN] [YN] [YN] [YN] [YN]'), report_usage=True)
 async def command_register_project(message: discord.Message, message_split: List[str]):
     """
     register_project NAME IMPROVEMENTS_CHANNEL_ID REPOSITORY ACCOUNT COMMIT_DRAFTS IS_LOBBY ENSURE_LEVEL USE_CONTRIBUTORS_FILE DO_SYNC_CHECK
@@ -187,6 +187,10 @@ async def command_register_project(message: discord.Message, message_split: List
         return
 
     # verify repo exists
+    if '/' not in repo_and_subdir:
+        await utils.report_error(client, f"Repo {repo_and_subdir} isn't fully qualified, must be OWNER/REPO or OWNER/REPO/PROJECT")
+        await message.channel.send(f"Repo \"{repo_and_subdir}\" isn't fully qualified")
+        return
     repo_split = repo_and_subdir.rstrip('/').split('/')
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
