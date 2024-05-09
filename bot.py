@@ -325,7 +325,7 @@ log = main.create_logger('bot')
 share_client(client)
 main.safe_mode = safe_mode
 projects_startup = Optional[dict]
-substrings_1984 = ('kataiser', 'kata', 'warm fish', 'jaded', 'psycabob', 'shadowdrop', 'cosmic brain')
+substrings_1984 = ('kataiser', 'kata', 'warm fish', 'jaded', 'psycabob', 'shadowdrop mix', 'cosmic brain')
 substrings_1984_music = ('lab', 'psychokinetic', 'pk ', 'superluminary')
 substrings_1984_hydro = ('shatter', 'shong', 'shattersong', 'hydro')
 re_1984 = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984))
