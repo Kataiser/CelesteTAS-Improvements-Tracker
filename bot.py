@@ -112,6 +112,9 @@ async def on_ready():
     if not main.handle_game_sync_results.is_running():
         main.handle_game_sync_results.start()
 
+    if not main.handle_no_game_sync_results.is_running():
+        main.handle_no_game_sync_results.start()
+
 
 @client.event
 async def on_message(message: discord.Message):
