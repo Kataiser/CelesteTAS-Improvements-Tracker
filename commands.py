@@ -336,7 +336,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
       Set the game mods a sync check needs to load.
 
       PROJECT_NAME: The name or ID of your project (in quotes if needed). If you have multiple improvement channels with the same project name, this will update all of them.
-      MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, conquerorpeak103
+      MODS: The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, "Monika's D-Sides"
     """
 
     project_search_name = message_split[1].replace('"', '')
@@ -352,7 +352,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
 
         log.info(f"Adding mods for project: {project['name']}")
         project_mods_added = True
-        mods_given = [mod.removesuffix('.zip') for mod in message_split[2:]]
+        mods_given = [mod.replace('"', '').removesuffix('.zip') for mod in message_split[2:]]
         project_mods = set(project['mods'])
         log.info(f"{len(project_mods)} mod{plural(project_mods)} before adding: {project_mods}")
         project_mods = project_mods.union(mods_given)
