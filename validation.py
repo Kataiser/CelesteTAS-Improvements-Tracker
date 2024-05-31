@@ -94,7 +94,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         validation_result.emit_failed_check(f"Breakpoint found on line {tas_parsed.breakpoints[0]}, please remove it (Ctrl+P in Studio) and post again.", f"breakpoint in {filename}")
     elif len(tas_parsed.breakpoints) > 1:
         validation_result.emit_failed_check(f"Breakpoints found on lines: {', '.join(tas_parsed.breakpoints)}, please remove them (Ctrl+P in Studio) and post again.",
-                                f"{len(tas_parsed.breakpoints)} breakpoints in {filename}")
+                                            f"{len(tas_parsed.breakpoints)} breakpoints in {filename}")
     elif not tas_parsed.found_finaltime:
         if project['is_lobby']:
             validation_result.emit_failed_check("No final time found in file, please add one and post again.", f"no final time in {filename}")
@@ -112,13 +112,14 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             if room_name in rooms_found:
                 if rooms_found[room_name] is None:
                     validation_result.emit_failed_check(f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
-                                            f"Duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"Duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
                 elif room_index is None:
                     validation_result.emit_failed_check(f"Missing room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
-                                            f"Missing room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"Missing room label {line[1]} on line {line[0] + 1} in {filename}")
                 elif room_index <= rooms_found[room_name]:
-                    validation_result.emit_failed_check(f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
-                                            f"Out of order room label {line[1]} on line {line[0] + 1} in {filename}")
+                    validation_result.emit_failed_check(f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, "
+                                                        f"please index revisited rooms starting from zero and post again.",
+                                                        f"Out of order room label {line[1]} on line {line[0] + 1} in {filename}")
             else:
                 if uses_one_indexing is None:
                     match room_index:
@@ -130,7 +131,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 if room_index is not None and ((not uses_one_indexing and room_index != 0) or (uses_one_indexing and room_index != 1)):
                     init_str = "one" if uses_one_indexing else "zero"
                     validation_result.emit_failed_check(f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms "
-                                            f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
 
             rooms_found[room_name] = room_index
 
@@ -192,7 +193,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate last analogmode is ignore
     if last_analogmode != 'ignore':
         validation_result.emit_failed_check(f"Incorrect last AnalogMode, is {last_analogmode.capitalize()} but should be Ignore so as to not possibly desync later TASes.",
-                                f"last analogmode in {filename} is {last_analogmode}")
+                                            f"last analogmode in {filename} is {last_analogmode}")
 
     time_saved_messages: Union[None, re.Match] = None
 
@@ -201,17 +202,17 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         if project['is_lobby']:
             if tas_parsed.finaltime not in message.content:
                 validation_result.emit_failed_check(f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
-                                        f"final time ({tas_parsed.finaltime}) missing in message content")
+                                                    f"final time ({tas_parsed.finaltime}) missing in message content")
         else:
             if tas_parsed.finaltime not in message.content and tas_parsed.finaltime_trimmed not in message.content:
                 chapter_time_notif = tas_parsed.finaltime if tas_parsed.finaltime == tas_parsed.finaltime_trimmed else tas_parsed.finaltime_trimmed
                 validation_result.emit_failed_check(f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
-                                        f"ChapterTime ({chapter_time_notif}) missing in message content")
+                                                    f"ChapterTime ({chapter_time_notif}) missing in message content")
 
     # validate #Start exists
     if not found_start:
         validation_result.emit_failed_check(f"No `#Start` found in file, please add one between the console load frame and the intro frames (or first room label if none) and post again.",
-                                f"no #Start in file")
+                                            f"no #Start in file")
 
     if old_tas and not is_dash_save:
         # validate timesave frames is in message content
@@ -233,21 +234,21 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                     time_saved_options = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
                 validation_result.emit_failed_check(f"Please mention how many frames were saved or lost, with the text \"{time_saved_options}\" (if that's correct), and post again.",
-                                        f"no timesave in message (should be {time_saved_options})")
+                                                    f"no timesave in message (should be {time_saved_options})")
             else:
                 if time_saved_num == 0:
                     if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
                         time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
                         validation_result.emit_failed_check(f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), "
-                                                f"please fix and post again{linn_moment}. Make sure you improved the latest version of the file.",
-                                                f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
+                                                            f"please fix and post again{linn_moment}. Make sure you improved the latest version of the file.",
+                                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
                 else:
                     time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
                     if time_saved_messages[0] != time_saved_actual:
                         validation_result.emit_failed_check(f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
-                                                f"please fix and post again{linn_moment}. Make sure you improved the latest version of the file.",
-                                                f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
+                                                            f"please fix and post again{linn_moment}. Make sure you improved the latest version of the file.",
+                                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
         else:
             log.info("Old file has no final time, skipping validating timesave")
     elif not old_tas:
@@ -265,7 +266,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 shouldnt_be_draft_text = ""
 
             validation_result.emit_failed_check(f"Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again."
-                                           f"{shouldnt_be_draft_text}", "no \"draft\" text in message")
+                                                f"{shouldnt_be_draft_text}", "no \"draft\" text in message")
 
     # validate level
     if project['ensure_level']:
