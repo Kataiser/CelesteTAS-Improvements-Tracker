@@ -47,7 +47,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     tas_lines = as_lines(tas)
     message_lowercase = message.content.lower()
     tas_parsed = parse_tas_file(tas_lines, True)
-    dash_saves = re_dash_saves.search(message.content)
+    dash_saves = re_dash_saves.search(message.content.partition('\n')[0])
     is_dash_save = dash_saves is not None
     got_timesave = False
     wip_in_message = 'wip' in re_remove_punctuation.subn(' ', message_lowercase)[0].split()
