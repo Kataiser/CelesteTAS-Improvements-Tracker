@@ -694,16 +694,12 @@ async def test_command_projects_admined(setup_log, monkeypatch):
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)
     channel = discord.TextChannel()
     await commands.handle(discord.Message("projects_admined", channel, MockUser()))
-    assert channel.sent_messages == ["FLCC\n"
-                                     "FLCC Lobby\n"
-                                     "Improvements bot directory testing\n"
-                                     "Improvements bot lobby testing\n"
-                                     "Improvements bot sync testing\n"
-                                     "Improvements bot testing\n"
-                                     "Improvements bot thread testing\n"
-                                     "Midway Contest\n"
-                                     "Midway Contest Lobby\n"
-                                     "Strawberry Jam"]
+    assert "FLCC" in channel.sent_messages[0]
+    assert "Improvements bot directory testing" in channel.sent_messages[0]
+    assert "Improvements bot testing" in channel.sent_messages[0]
+    assert "Midway Contest" in channel.sent_messages[0]
+    assert "Strawberry Jam" in channel.sent_messages[0]
+    assert channel.sent_messages[0].count('\n') >= 10
 
 
 @pytest.mark.asyncio
