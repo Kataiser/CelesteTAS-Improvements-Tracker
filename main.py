@@ -496,7 +496,7 @@ async def handle_game_sync_results():
 @tasks.loop(hours=2)
 async def handle_no_game_sync_results():
     if not db.sync_results.size():
-        time_since_last_game_sync_result = time.time() - db.misc.get('last_game_sync_result_time')
+        time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
 
         if time_since_last_game_sync_result > 86400:
             await (await client.fetch_user(admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result, 1)} days ago")
