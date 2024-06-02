@@ -19,18 +19,23 @@ class ValidationResult:
     timesave: Optional[str] = None
     wip: bool = False
     sj_data: Optional[tuple] = None
+    finished: Optional[bool] = True
 
     def emit_failed_check(self, warning: str, log_message: str):
         self.valid_tas = False
         self.warning_text.append(warning)
         self.log_text.append(log_message)
 
-    def __post_init__(self):
+    def finish(self):
         if self.valid_tas:
             log.info("TAS file and improvement post have been validated")
 
             if not self.finaltime:
                 log.warning("Valid tas result has no finaltime")
+
+    def __post_init__(self):
+        if self.finished:
+            self.finish()
 
 
 def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optional[bytes], project: dict, skip_validation: bool = False) -> ValidationResult:
@@ -79,7 +84,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         return ValidationResult(True, [], [], finaltime=tas_parsed.finaltime,
                                 finaltime_frames=tas_parsed.finaltime_frames, timesave=timesave, wip=wip_in_message)
 
-    validation_result = ValidationResult(True, [], [])
+    validation_result = ValidationResult(True, [], [], finished=False)
 
     # validate file not in excluded items
     if filename in project['excluded_items']:
@@ -218,7 +223,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         # validate timesave frames is in message content
         old_tas_parsed = parse_tas_file(as_lines(old_tas), False)
 
-        if old_tas_parsed.found_finaltime:
+        if not old_tas_parsed.found_finaltime:
+            log.info("Old file has no final time, skipping validating timesave")
+        elif not tas_parsed.found_finaltime:
+            log.info("New file has no final time, skipping validating timesave")
+        else:
             time_saved_num = calculate_time_difference(old_tas_parsed.finaltime, tas_parsed.finaltime)
             time_saved_minus = f'-{abs(time_saved_num)}f'
             time_saved_plus = f'+{abs(time_saved_num)}f'
@@ -249,8 +258,6 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                         validation_result.emit_failed_check(f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
                                                             f"please fix and post again{linn_moment}. Make sure you updated the time and improved the latest version of the file.",
                                                             f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
-        else:
-            log.info("Old file has no final time, skipping validating timesave")
     elif not old_tas:
         # validate draft text
         if "draft" not in message_lowercase:
@@ -285,12 +292,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         timesave = None
 
     sj_data = (tas_lines, tas_parsed.finaltime_line_num) if message.channel.id == 1074148268407275520 else None
-
     validation_result.finaltime = tas_parsed.finaltime
     validation_result.finaltime_frames = tas_parsed.finaltime_frames
     validation_result.timesave = timesave
     validation_result.sj_data = sj_data
-
+    validation_result.finish()
     return validation_result
 
 
