@@ -19,7 +19,7 @@ class ValidationResult:
     timesave: Optional[str] = None
     wip: bool = False
     sj_data: Optional[tuple] = None
-    finished: Optional[bool] = True
+    finished: bool = True
 
     def emit_failed_check(self, warning: str, log_message: str):
         self.valid_tas = False
@@ -27,6 +27,8 @@ class ValidationResult:
         self.log_text.append(log_message)
 
     def finish(self):
+        self.finished = True
+
         if self.valid_tas:
             log.info("TAS file and improvement post have been validated")
 

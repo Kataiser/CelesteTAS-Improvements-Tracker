@@ -177,7 +177,7 @@ async def test_process_improvement_message(setup_log, monkeypatch):
     message.reactions = set()
     assert await main.process_improvement_message(message)
     assert message.replies == ["Frames saved is incorrect (you said \"-1f\", but it seems to be \"-0f\" or \"+0f\"), please fix and post again. "
-                               "Make sure you improved the latest version of the file."]
+                               "Make sure you updated the time and improved the latest version of the file."]
     assert message.reactions == {'⏭', '❌'}
 
     message = discord.Message('-1f 0oi71n 1:08.748', MockChannel(970380662907482142), MockUser(), attachments=[tas_file], id=1178068061358653480)
@@ -444,13 +444,13 @@ def test_validate(setup_log, monkeypatch):
     message_wrong_timesave = discord.Message("-666f Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
     result_wrong_timesave = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937, timesave='-666f',
                                                         warning_text=["Frames saved is incorrect (you said \"-666f\", but it seems to be \"-229f\"), please fix and post again. Make sure "
-                                                                      "you improved the latest version of the file."],
+                                                                      "you updated the time and improved the latest version of the file."],
                                                         log_text=["incorrect time saved in message (is \"-666f\", should be \"-229f\")"])
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_wrong_timesave, ehs_old, test_project, False) == result_wrong_timesave
 
     result_wrong_timesave_options = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937, timesave='-229f',
                                                                 warning_text=["Frames saved is incorrect (you said \"-229f\", but it seems to be \"-0f\" or \"+0f\"), please fix and post "
-                                                                              "again. Make sure you improved the latest version of the file."],
+                                                                              "again. Make sure you updated the time and improved the latest version of the file."],
                                                                 log_text=["incorrect time saved in message (is \"-229f\", should be \"-0f\" or \"+0f\")"])
     assert (validation.validate(Path('test_tases\\invalids\\ehs_slightly_different.tas').read_bytes(), 'expert_heartside.tas', message, ehs_valid, test_project, False) ==
             result_wrong_timesave_options)
