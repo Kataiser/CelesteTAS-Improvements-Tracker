@@ -779,7 +779,7 @@ async def command_run_cmd(message: discord.Message):
 
 @command(kataiser_only=True)
 async def command_install_mod(message: discord.Message):
-    install_log = subprocess.check_output(f'mons mods add itch {message.content} --force')
+    install_log = subprocess.check_output(f'mons mods add itch {message.content.partition(' ')[2]} --force')
     await message.channel.send(install_log.decode('UTF8'))
 
 
