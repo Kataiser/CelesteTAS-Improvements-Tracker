@@ -367,7 +367,7 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
     pin = project['pin']
     subdir = project['subdir']
     admins = ', '.join([f'<@{admin}>' for admin in project['admins']])
-    repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
+    repo_url = f'https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else f'https://github.com/{repo}'
     package_url = f'https://download-directory.github.io/?url=https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else \
                   f'https://github.com/{repo}/archive/refs/heads/master.zip'
     repo_full = f'{repo}/{subdir}' if subdir else repo
