@@ -477,6 +477,7 @@ def wait_for_game_load(mods: set):
             game_loaded = True
 
     mod_versions_start_time = time.perf_counter()
+    scaled_sleep(5)
     log.info(f"Game loaded, mod versions: {mod_versions(mods)}")
     scaled_sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
 
