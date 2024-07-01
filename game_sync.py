@@ -212,9 +212,8 @@ def sync_test(project_id: int, force: bool):
                 has_console_load = [line for line in tas_lines if line.startswith('console load')] != []
 
                 if not has_console_load:
-                    # if it starts from begin, then menu there
-                    tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 5\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n',
-                                     '14\n', '1,D\n', '1,F,180\n', '1,D\n', '1,F,180\n', '1,L\n', '1,U\n', '1,F,\n', '1,U\n', '1,F,\n']
+                    # if it starts from begin, then menu there. doesn't change mod
+                    tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 5\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n', '14\n']
             else:
                 tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
         else:
