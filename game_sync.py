@@ -575,7 +575,7 @@ def mod_versions(mods: set) -> str:
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}}
+    state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': None}
 
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
@@ -599,6 +599,12 @@ def generate_environment_state(project: dict, mods: set) -> dict:
             mod_gb = gb_mods[mod.replace('_', ' ')]
 
         state['mod_versions'][mod] = mod_gb['Version']
+
+    try:
+        with open('game_sync.py', 'rb') as game_sync_py:
+            state['game_sync_hash'] = hash(game_sync_py.read())
+    except Exception:
+        utils.log_error(flash_window=False)
 
     state['mod_versions']['CelesteTAS'] = gb_mods['CelesteTAS']['Version']
     state['mod_versions']['SpeedrunTool'] = gb_mods['SpeedrunTool']['Version']
