@@ -27,12 +27,15 @@ from utils import plural
 
 
 def run_syncs():
-    global log
+    global log, game_sync_hash
     start_time = time.time()
     log = main.create_logger('game_sync')
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
     cli_project = parser.parse_args().project
+
+    with open('game_sync.py', 'rb') as game_sync_py:
+        game_sync_hash = hash(game_sync_py.read())
 
     if cli_project:
         if cli_project.isdigit():
@@ -575,7 +578,7 @@ def mod_versions(mods: set) -> str:
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': None}
+    state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash}
 
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
@@ -599,12 +602,6 @@ def generate_environment_state(project: dict, mods: set) -> dict:
             mod_gb = gb_mods[mod.replace('_', ' ')]
 
         state['mod_versions'][mod] = mod_gb['Version']
-
-    try:
-        with open('game_sync.py', 'rb') as game_sync_py:
-            state['game_sync_hash'] = hash(game_sync_py.read())
-    except Exception:
-        utils.log_error(flash_window=False)
 
     state['mod_versions']['CelesteTAS'] = gb_mods['CelesteTAS']['Version']
     state['mod_versions']['SpeedrunTool'] = gb_mods['SpeedrunTool']['Version']
@@ -718,6 +715,7 @@ def log_error(message: Optional[str] = None):
 
 log: Optional[logging.Logger] = None
 re_redact_token = re.compile(r"'token': '[^']*'")
+game_sync_hash = None
 
 if __name__ == '__main__':
     run_syncs()
