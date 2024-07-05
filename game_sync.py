@@ -178,7 +178,7 @@ def sync_test(project_id: int, force: bool):
     if asserts_added:
         log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
 
-    game_process = wait_for_game_load(mods_to_load)
+    game_process = wait_for_game_load(mods_to_load, project['name'])
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
@@ -288,7 +288,7 @@ def sync_test(project_id: int, force: bool):
                 with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'rb') as new_crash_log:
                     crash_logs_data[f'{new_crash_log_name}.gz'] = gzip.compress(new_crash_log.read())
 
-            game_process = wait_for_game_load(mods_to_load)
+            game_process = wait_for_game_load(mods_to_load, project['name'])
             continue
 
         # determine if it synced or not
@@ -454,7 +454,7 @@ def start_game():
     subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
 
 
-def wait_for_game_load(mods: set):
+def wait_for_game_load(mods: set, project_name: str):
     import psutil
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
@@ -471,7 +471,7 @@ def wait_for_game_load(mods: set):
                 last_game_loading_notify = current_time
 
             if time.time() - wait_start_time > 3600:
-                raise TimeoutError("Game failed to load after an hour")
+                raise TimeoutError(f"Game failed to load after an hour for project {project_name}")
         else:
             game_loaded = True
 
