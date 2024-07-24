@@ -400,13 +400,13 @@ def download_old_file(project_id: int, repo: str, filename: str, path_cache: Opt
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
         r_json = ujson.loads(r.content)
 
-        if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
+        if r.status_code == 404 and 'message' in r_json and r_json['message'] in ("Not Found", "This repository is empty."):
             if path_cache is None:
                 log.warning("File existed in path cache but doesn't seem to exist in repo. Retrying download with updated path cache")
                 new_path_cache = generate_path_cache(project_id)
                 return download_old_file(project_id, repo, filename, new_path_cache)
             else:
-                log.warning("File still not available")
+                log.warning("File not available")
         else:
             utils.handle_potential_request_error(r, 200)
             return base64.b64decode(r_json['content'])
@@ -536,7 +536,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
     r = requests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
     r_json = ujson.loads(r.content)
 
-    if r.status_code == 404 and 'message' in r_json and r_json['message'] == "Not Found":
+    if r.status_code == 404 and 'message' in r_json and r_json['message'] in ("Not Found", "This repository is empty."):
         commit_message = "Created Contributors.txt"
         created_file = True
         do_commit = True

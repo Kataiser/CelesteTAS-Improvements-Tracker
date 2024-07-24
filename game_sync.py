@@ -571,14 +571,14 @@ def mod_versions(mods: set) -> str:
 
     for mod in mods:
         everest_yaml = get_mod_everest_yaml(mod)
-        versions.append(f"{mod} = {get_mod_everest_yaml(mod)['Version'] if everest_yaml else "UNKNOWN"}")
+        versions.append(f"{mod} = {everest_yaml['Version'] if everest_yaml else "UNKNOWN"}")
 
     return ", ".join(sorted(versions))
 
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': socket.gethostname(), 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash}
+    state = {'host': socket.gethostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash}
 
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
@@ -587,8 +587,10 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         log_error()
         return project['sync_environment_state']
 
-    commit = ujson.loads(r_commits.content)
-    state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
+    if r_commits.status_code == 200:
+        commit = ujson.loads(r_commits.content)
+        state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
+
     state['everest_version'] = latest_everest_stable_version()
     gb_mods = gb_mod_versions()
 
