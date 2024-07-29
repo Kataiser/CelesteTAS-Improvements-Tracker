@@ -447,7 +447,7 @@ assert_conditions = (('equal', 'notequal', 'contain', 'notcontain', 'startwith',
 stunpause_modes = {'input': True, 'simulate': "Simulate mode is not allowed outside of testing routes"}
 mouse_buttons = (('l', 'r', 'm', 'x1', 'x2'), "L, R, M, X1, or X2")
 set_exceptions = ('celestetas.simplifiedgraphics', 'celestetas.simplifiedbackdrop')
-disallowed_commands = ('console', 'invoke', 'set', 'exportlibtas', 'endexportlibtas', 'exitgame')
+disallowed_commands = ('console', 'invoke', 'set', 'exportlibtas', 'endexportlibtas', 'exitgame', 'startrecording', 'stoprecording')
 project_exceptions = {879081769138286662: (('set', 'session.time'), ('set', 'engine.scene.timeactive')),
                       1155076734450933791: (('invoke', 'luacutscenesutils.triggerbooleanvariant'), ('set', 'extendedvariantmode.everyjumpisultra')),
                       1117550548518981753: (('console', 'evalcs savedata.instance.addtime'), ('set', 'level.timeactive'), ('set', 'session.time')),
