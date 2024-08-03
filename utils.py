@@ -57,11 +57,12 @@ def detailed_user(message: Optional[discord.Message] = None, user: Optional[disc
 
 def nickname(author: discord.User) -> str:
     nicknames = {234520815658336258: "Vamp",
-                 587491655129759744: "Ella",
+                 587491655129759744: "EllaTAS",
                  513223843721117713: "The Senate",
                  671098132959985684: "Mr. Wolf",
                  226515080752267286: "Soloiini",
-                 794291191726211103: "Ash"}
+                 794291191726211103: "Ash",
+                 761176028982018048: "Daniell"}
 
     return nicknames[author.id] if author.id in nicknames else (author.global_name if author.global_name else author.name)
 
