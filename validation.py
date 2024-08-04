@@ -280,7 +280,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     # validate level
     if project['ensure_level']:
         filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
-        message_level = re_remove_punctuation.subn('', message_lowercase)[0].replace('_', '')
+        message_level = re_remove_punctuation.subn('', filter_out_links(message_lowercase))[0].replace('_', '')
 
         if filename_level not in message_level:
             validation_result.emit_failed_check("The level name is missing in your message, please add it and post again.", f"level name ({filename_level}) missing in message content")
@@ -426,6 +426,18 @@ def as_lines(tas: bytes) -> List[str]:
     return lines
 
 
+def filter_out_links(text: str):
+    def replace_link(match):
+        return match.group(1)
+
+    text_filtered = re_markdown_link.sub(replace_link, text)
+
+    if text_filtered != text:
+        log.info("Filtered link(s) out of message")
+
+    return text_filtered
+
+
 class OptionalArg:
     def __init__(self, validate_func: Optional[Callable] = None):
         self.validate_func = validate_func
@@ -439,6 +451,7 @@ re_dash_saves = re.compile(r'[-+]\d+x')
 re_remove_punctuation = re.compile(r'\W')
 re_remove_non_digits = re.compile(r'[^\d.:]')
 re_check_space_command = re.compile(r'^[^,]+?\s+[^,]')
+re_markdown_link = re.compile(r'\[([^]]+)]\([^)]+\)')
 log: Optional[logging.Logger] = None
 
 analog_modes = (('ignore', 'circle', 'square', 'precise'), "Ignore, Circle, Square, or Precise")

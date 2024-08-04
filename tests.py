@@ -599,6 +599,14 @@ def test_as_lines(setup_log):
     assert validation.as_lines(Path('test_tases\\abby-cookie.tas').read_bytes()) == lines
 
 
+def test_filter_out_links(setup_log):
+    message = ("-17f The [House](https://discord.com/channels/1269042133541585049/1269042134124855321/1269247598250819635) on Ash Tree Lane 0:15.742(926) -> 0:15.453(909)\n"
+               "+4f [a-00-outside] Build up speed\n"
+               "[second link](https://ptb.discord.com/channels/1269042133541585049/1269042134124855321/1269422472097300563) I guess")
+
+    assert validation.filter_out_links(message) == "-17f The House on Ash Tree Lane 0:15.742(926) -> 0:15.453(909)\n+4f [a-00-outside] Build up speed\nsecond link I guess"
+
+
 # COMMANDS
 
 @pytest.mark.asyncio
@@ -926,7 +934,7 @@ def test_get_user_github_account():
 
 def test_nicknames(monkeypatch):
     monkeypatch.setattr(discord, 'User', mock_user)
-    assert utils.nickname(discord.User(587491655129759744, "έλλατάς", "ellatas")) == "Ella"
+    assert utils.nickname(discord.User(587491655129759744, "έλλατάς", "ellatas")) == "EllaTAS"
     assert utils.nickname(discord.User(219955313334288385, "Kataiser", "kataiser")) == "Kataiser"
 
 
