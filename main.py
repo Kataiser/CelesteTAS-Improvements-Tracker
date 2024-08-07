@@ -37,7 +37,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     if not skip_validation and not is_processable_message(message, project):
         return False
 
-    if message.channel.id == 1202709072718200842:
+    if message.channel.id == 1202709072718200842:  # celeste 64
         skip_validation = True
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']})\n{message.jump_url}\n{message.content}")
@@ -299,7 +299,7 @@ def get_sha(repo: str, file_path: str) -> str:
 
 # haven't processed message before, and wasn't posted before project install
 def is_processable_message(message: discord.Message, project: dict) -> bool:
-    if message.id in db.project_logs.get(message.channel.id) or message.author == client.user or (safe_mode and message.channel.id not in safe_projects):
+    if message.id in db.project_logs.get(message.channel.id) or message.author == client.user or (safe_mode and message.channel.id not in safe_projects) or not project['enabled']:
         return False
     else:
         # because the timestamp is UTC, but the library doesn't seem to know that

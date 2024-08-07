@@ -99,6 +99,9 @@
         },
         "sync_environment_state": {
             "type": "object"
+        },
+        "enabled": {
+            "type": "boolean"
         }
     }
 }

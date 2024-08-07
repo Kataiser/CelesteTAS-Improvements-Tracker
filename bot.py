@@ -45,8 +45,7 @@ def start():
              f"and {path_caches_size} path cache{plural(path_caches_size)}")
 
     if not len(projects_startup) == project_logs_size == path_caches_size:
-        log.critical("Project data component lengths are not equal, exiting")
-        return
+        log.warning("Project data component lengths are not equal")
 
     with open('bot_token', 'r') as bot_token_file:
         bot_token = bot_token_file.read()

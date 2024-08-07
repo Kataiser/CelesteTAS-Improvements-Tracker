@@ -135,7 +135,7 @@ class Projects(Table):
         return super().set(project_id, project)
 
     def get_all(self, consistent_read: bool = True) -> list:
-        projects_list = super().get_all(consistent_read)
+        projects_list = [p for p in super().get_all(consistent_read) if p['enabled']]
 
         for project_unvalidated in projects_list:
             self.validate_project_schema(project_unvalidated)
@@ -143,6 +143,7 @@ class Projects(Table):
         return projects_list
 
     def get_by_name_or_id(self, name_or_id: Union[str, int], consistent_read: bool = True) -> list:
+        # gave ID
         if isinstance(name_or_id, int) or name_or_id.isdigit():
             try:
                 return [self.get(int(name_or_id), consistent_read)]
