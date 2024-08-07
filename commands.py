@@ -585,7 +585,7 @@ async def command_about(message: discord.Message):
                            len(installations),
                            bot_uptime,
                            sync_checks,
-                           db.history_log.size(),  # techically inaccurate because add/edit project logs but close enough
+                           db.history_log.size(False),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks),
                            utils.host(),
                            host_uptime)

@@ -895,6 +895,7 @@ def test_set_delete_and_size():
     time.sleep(0.5)
     assert 'TEST' not in [item['key'] for item in db.misc.get_all()]
     assert db.misc.size() == size
+    assert db.history_log.size(False) > 9000
 
 
 # UTILS

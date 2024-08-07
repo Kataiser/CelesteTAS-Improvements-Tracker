@@ -91,8 +91,11 @@ class Table:
     def metadata(self) -> dict:
         return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')
 
-    def size(self) -> int:
-        return client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Select='COUNT', ConsistentRead=True)['Count']
+    def size(self, consistent_read: bool = True) -> int:
+        if consistent_read:
+            return client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Select='COUNT', ConsistentRead=True)['Count']
+        else:
+            return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')['Table']['ItemCount']
 
     def enable_cache(self):
         self.caching = True
