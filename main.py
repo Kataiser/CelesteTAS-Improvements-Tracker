@@ -602,11 +602,8 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
 
     # backup old logs
     if os.path.isfile(filename) and use_file_handler:
-        with open(filename, 'rb') as old_log:
-            old_log_data = old_log.read()
-
-        with gzip.open(Path(f'log_history/{utils.saved_log_name(name)}.gz'), 'wb') as old_log_gzip:
-            old_log_gzip.write(old_log_data)
+        with open(filename, 'rb') as old_log, open(Path(f'log_history/{utils.saved_log_name(name)}'), 'wb') as old_log_backup:
+            old_log_backup.write(old_log.read())
 
     logger = logging.getLogger('bot')
     logger.setLevel(logging.DEBUG)
