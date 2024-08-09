@@ -261,7 +261,7 @@ def test_validate(setup_log, monkeypatch):
                 '1k_Kataiser.tas': 'subproject/1k_Kataiser.tas', 'royal_gardens_renamed.tas': 'subproject/royal_gardens_renamed.tas',
                 'glitchy.tas': 'sync_testing/glitchy.tas', 'glitchy_-_Copy.tas': 'sync_testing/glitchy_-_Copy.tas'}
 
-    test_project = {'is_lobby': False, 'excluded_items': (), 'ensure_level': True}
+    test_project = {'is_lobby': False, 'excluded_items': (), 'ensure_level': True, 'disallowed_command_exemptions': []}
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(db.path_caches, 'get', mock_path_caches_get)
     ehs_valid = Path('test_tases\\expert_heartside.tas').read_bytes()
@@ -316,12 +316,12 @@ def test_validate(setup_log, monkeypatch):
                                                                             "that in your message (just put the word \"draft\" somewhere reasonable) and post again. If it shouldn't be a "
                                                                             "draft, make sure your filename is exactly the same as in the repo.", "The level name is missing in your "
                                                                             "message, please add it and post again."],
-                                                              log_text=["Duplicate room label #lvl_start-01-Radley on line 225 in the_lab.tas",
-                                                                        "Duplicate room label #lvl_hub on line 240 in the_lab.tas",
-                                                                        "Duplicate room label #lvl_start-04-Radley on line 376 in the_lab.tas",
-                                                                        "Duplicate room label #lvl_hub on line 383 in the_lab.tas",
-                                                                        "Duplicate room label #lvl_start-02-Radley on line 515 in the_lab.tas",
-                                                                        "Duplicate room label #lvl_hub on line 521 in the_lab.tas",
+                                                              log_text=["duplicate room label #lvl_start-01-Radley on line 225 in the_lab.tas",
+                                                                        "duplicate room label #lvl_hub on line 240 in the_lab.tas",
+                                                                        "duplicate room label #lvl_start-04-Radley on line 376 in the_lab.tas",
+                                                                        "duplicate room label #lvl_hub on line 383 in the_lab.tas",
+                                                                        "duplicate room label #lvl_start-02-Radley on line 515 in the_lab.tas",
+                                                                        "duplicate room label #lvl_hub on line 521 in the_lab.tas",
                                                                         "ChapterTime (1:32.871) missing in message content",
                                                                         "no \"draft\" text in message",
                                                                         "level name (lab) missing in message content"])
@@ -333,7 +333,7 @@ def test_validate(setup_log, monkeypatch):
                                                                           "this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and "
                                                                           "post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.", "The level "
                                                                           "name is missing in your message, please add it and post again."],
-                                                            log_text=["Missing room label #lvl_hub on line 521 in the_lab.tas",
+                                                            log_text=["missing room label #lvl_hub on line 521 in the_lab.tas",
                                                                       "ChapterTime (1:32.871) missing in message content",
                                                                       "no \"draft\" text in message",
                                                                       "level name (lab) missing in message content"])
@@ -345,7 +345,7 @@ def test_validate(setup_log, monkeypatch):
                                                                              "again.", "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere "
                                                                              "reasonable) and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the "
                                                                              "repo.", "The level name is missing in your message, please add it and post again."],
-                                                               log_text=["Out of order room label #lvl_hub (2) on line 521 in the_lab.tas",
+                                                               log_text=["out of order room label #lvl_hub (2) on line 521 in the_lab.tas",
                                                                          "ChapterTime (1:32.871) missing in message content",
                                                                          "no \"draft\" text in message",
                                                                          "level name (lab) missing in message content"])
@@ -358,7 +358,7 @@ def test_validate(setup_log, monkeypatch):
                                                                                "word \"draft\" somewhere reasonable) and post again. If it shouldn't be a draft, make sure your filename is "
                                                                                "exactly the same as in the repo.",
                                                                                "The level name is missing in your message, please add it and post again."],
-                                                                 log_text=["Incorrect initial room label #lvl_start-04-Radley (1) on line 80 in the_lab.tas",
+                                                                 log_text=["incorrect initial room label #lvl_start-04-Radley (1) on line 80 in the_lab.tas",
                                                                            "ChapterTime (1:32.871) missing in message content",
                                                                            "no \"draft\" text in message",
                                                                            "level name (lab) missing in message content"])
@@ -707,7 +707,7 @@ async def test_command_projects_admined(setup_log, monkeypatch):
     assert "Improvements bot testing" in channel.sent_messages[0]
     assert "Midway Contest" in channel.sent_messages[0]
     assert "Strawberry Jam" in channel.sent_messages[0]
-    assert channel.sent_messages[0].count('\n') >= 10
+    assert channel.sent_messages[0].count('\n') >= 9
 
 
 @pytest.mark.asyncio

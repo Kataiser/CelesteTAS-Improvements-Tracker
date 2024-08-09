@@ -119,14 +119,14 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             if room_name in rooms_found:
                 if rooms_found[room_name] is None:
                     validation_result.emit_failed_check(f"Duplicate room label `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
-                                                        f"Duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"duplicate room label {line[1]} on line {line[0] + 1} in {filename}")
                 elif room_index is None:
                     validation_result.emit_failed_check(f"Missing room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms starting from zero and post again.",
-                                                        f"Missing room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"missing room label {line[1]} on line {line[0] + 1} in {filename}")
                 elif room_index <= rooms_found[room_name]:
                     validation_result.emit_failed_check(f"Out of order room label index `{line[1]}` found on line {line[0] + 1}, "
                                                         f"please index revisited rooms starting from zero and post again.",
-                                                        f"Out of order room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"out of order room label {line[1]} on line {line[0] + 1} in {filename}")
             else:
                 if uses_one_indexing is None:
                     match room_index:
@@ -138,7 +138,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                 if room_index is not None and ((not uses_one_indexing and room_index != 0) or (uses_one_indexing and room_index != 1)):
                     init_str = "one" if uses_one_indexing else "zero"
                     validation_result.emit_failed_check(f"Incorrect initial room label index `{line[1]}` found on line {line[0] + 1}, please index revisited rooms "
-                                                        f"starting from {init_str} and post again.", f"Incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
+                                                        f"starting from {init_str} and post again.", f"incorrect initial room label {line[1]} on line {line[0] + 1} in {filename}")
 
             rooms_found[room_name] = room_index
 
