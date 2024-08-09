@@ -578,7 +578,9 @@ def mod_versions(mods: set) -> str:
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': socket.gethostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash}
+    state = {'host': socket.gethostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash,
+             'excluded_items': project['excluded_items'], 'installation_owner': project['installation_owner'], 'is_lobby': project['is_lobby'], 'repo': project['repo'],
+             'subdir': project['subdir']}
 
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
