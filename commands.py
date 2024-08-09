@@ -145,7 +145,7 @@ async def command_register_project(message: discord.Message, message_split: List
 
         log.info("This project already exists, preserving some keys")
         preserved_keys = ('install_time', 'pin', 'mods', 'last_run_validation', 'admins', 'desyncs', 'filetimes', 'last_commit_time', 'excluded_items',
-                          'sync_environment_state', 'contributors_file_path', 'enabled')
+                          'sync_environment_state', 'contributors_file_path', 'disallowed_command_exemptions')
         previous = {key: projects[improvements_channel_id][key] for key in preserved_keys}
 
     # verify improvements channel exists
@@ -246,7 +246,8 @@ async def command_register_project(message: discord.Message, message_split: List
                           'sync_check_timed_out': False,
                           'excluded_items': [],
                           'sync_environment_state': {'host': None, 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}},
-                          'enabled': True}
+                          'enabled': True,
+                          'disallowed_command_exemptions': []}
 
     if not editing:
         await message.channel.send("Generating path cache...")

@@ -102,6 +102,16 @@
         },
         "enabled": {
             "type": "boolean"
+        },
+        "disallowed_command_exemptions": {
+            "type": "array",
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "length": 2
+                }
+            }
         }
     }
 }
