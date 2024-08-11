@@ -636,7 +636,9 @@ async def test_command_help(setup_log, monkeypatch):
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)
     channel = discord.TextChannel()
-    await commands.handle(discord.Message("help", channel, MockUser()))
+    user = MockUser()
+    user.id = 219955313334288386
+    await commands.handle(discord.Message("help", channel, user))
     assert channel.sent_messages == ["Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:\n\n"
                                      "1. Register GitHub app with your account and repo (you likely need to be the repo owner): <https://github.com/apps/celestetas-improvements-tracker>\n"
                                      "2. Add bot to your server: <https://discord.com/oauth2/authorize?client_id=970375635027525652&scope=bot&permissions=2147560512>\n"
@@ -654,6 +656,8 @@ async def test_command_help(setup_log, monkeypatch):
                                      "`about_project`: Get the info and settings of a project.\n"
                                      "`projects`: Get the basic info and settings of all projects.\n"
                                      "`projects_admined`: List projects you're an admin of."]
+    await commands.handle(discord.Message("help", channel, MockUser()))
+    assert 'sync_log' in channel.sent_messages[1]
 
 
 @pytest.mark.asyncio

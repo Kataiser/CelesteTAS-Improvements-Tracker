@@ -102,6 +102,10 @@ async def command_help(message: discord.Message, message_split: List[str]):
         add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
         commands_available = '\n'.join([f"`{c}`: {command_functions_public[c].help.partition('\n\n  ')[2].partition('\n')[0]}" for c in command_functions_public])
 
+        if message.author.id == 219955313334288385:
+            command_functions_private = sorted([f'`{c}`' for c in kataiser_only_commands])
+            commands_available = f"{commands_available}\n\nPrivate commands:\n{', '.join(command_functions_private)}"
+
         response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                    "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
                    "<https://github.com/apps/celestetas-improvements-tracker>" \
