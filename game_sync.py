@@ -357,7 +357,7 @@ def sync_test(project_id: int, force: bool):
         new_desyncs_formatted = format_desyncs(new_desyncs)
         desyncs_formatted = format_desyncs(desyncs)
         desyncs_block = '' if desyncs == new_desyncs else f"\nAll desyncs:\n```\n{desyncs_formatted}```"
-        report_text = f"Sync check finished, {len(new_desyncs)} new desync{plural(new_desyncs)} found ({files_timed} file{plural(files_timed)} tested):" \
+        report_text = f"Sync check found {len(new_desyncs)} new desync{plural(new_desyncs)} ({files_timed} file{plural(files_timed)} tested):" \
                       f"\n```\n{new_desyncs_formatted}```{desyncs_block}"[:1900]
         stream_handler.flush()
         report_log = gzip.compress(re_redact_token.sub("'token': [REDACTED]", current_log.getvalue()).encode('UTF8'))
