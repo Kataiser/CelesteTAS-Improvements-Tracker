@@ -786,7 +786,7 @@ async def command_install_mod(message: discord.Message):
 
 
 @command(kataiser_only=True)
-async def send_file(message: discord.Message):
+async def command_send_file(message: discord.Message):
     assert message.attachments
     given_path = message.content.partition(' ')[2].strip('"')
 
@@ -801,12 +801,27 @@ async def send_file(message: discord.Message):
 
 
 @command(kataiser_only=True)
-async def get_file(message: discord.Message):
+async def command_get_file(message: discord.Message):
     given_path = message.content.partition(' ')[2].strip('"')
     assert given_path
     assert os.path.isfile(given_path)
     await message.channel.send('_ _', file=discord.File(given_path))
     log.info("Sent file")
+
+
+@command(kataiser_only=True)
+async def command_echo(message: discord.Message):
+    channel_id, _, message_text = message.content[5:].partition(' ')
+    sent_message = await client.get_channel(int(channel_id)).send(message_text)
+    await message.channel.send(sent_message.jump_url)
+
+
+@command(kataiser_only=True)
+async def command_echo_reply(message: discord.Message):
+    message_full_id, _, message_text = message.content[11:].partition(' ')
+    channel_id, message_id = message_full_id.split('-')
+    sent_message = await client.get_channel(int(channel_id)).get_partial_message(int(message_id)).reply(message_text)
+    await message.channel.send(sent_message.jump_url)
 
 
 # verify that the user editing the project is an admin (or Kataiser)
