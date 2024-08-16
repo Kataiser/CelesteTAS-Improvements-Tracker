@@ -111,7 +111,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     for line in enumerate(tas_lines):
         # validate room label indexing
         if line[1].startswith('#lvl_'):
-            line_partitioned = line[1].partition('(')
+            line_partitioned = line[1].rstrip().partition('(')
             room_name = line_partitioned[0].strip()
             room_index_str = line_partitioned[2].strip(')')
             room_index = int(room_index_str) if room_index_str.isdigit() else None
