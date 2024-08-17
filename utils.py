@@ -37,7 +37,7 @@ def log_error(message: Optional[str] = None, flash_window: bool = True) -> str:
 
 async def report_error(client: discord.Client, message: Optional[str] = None):
     error = log_error(message)
-    await (await client.fetch_user(admin_user_id)).send(f"```\n{error[-1990:]}```")
+    await (await user_from_id(client, admin_user_id)).send(f"```\n{error[-1990:]}```")
 
 
 def handle_potential_request_error(req: requests.Response, code: int):
@@ -110,6 +110,15 @@ def host() -> str:
 
 def saved_log_name(base_name: str) -> str:
     return f'{base_name}_{int(os.path.getmtime(f'{base_name}.log'))}_{socket.gethostname()}.log'
+
+
+async def user_from_id(client: discord.Client, user_id: int) -> discord.User:
+    user = client.get_user(user_id)
+
+    if user:
+        return user
+    else:
+        await client.fetch_user(user_id)
 
 
 log: Optional[logging.Logger] = None

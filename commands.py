@@ -386,7 +386,7 @@ async def command_add_mods(message: discord.Message, message_split: List[str]):
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
             mods_missing_formatted = '\n'.join(sorted(mods_missing))
-            await (await client.fetch_user(admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
+            await (await utils.user_from_id(client, admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
             await message.channel.send(f"The following mod(s) are not currently prepared for sync testing (Kataiser has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
 
     if not project_mods_added:
@@ -507,7 +507,7 @@ async def command_edit_admin(message: discord.Message, message_split: List[str])
             continue
 
         try:
-            edited_admin = await client.fetch_user(admin_id)
+            edited_admin = await utils.user_from_id(client, admin_id)
         except discord.NotFound:
             await utils.report_error(client, f"User {admin_id} not found")
             await message.channel.send(f"User with ID {admin_id} could not be found.")
@@ -638,7 +638,7 @@ async def command_about_project(message: discord.Message, message_split: List[st
 
         repo = project['repo']
         subdir = project['subdir']
-        admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
+        admins = [utils.detailed_user(user=await utils.user_from_id(client, admin)) for admin in project['admins']]
         text_out = text.format(project['name'],
                                f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}',
                                project['project_id'],
@@ -692,7 +692,7 @@ async def command_projects(message: discord.Message):
 
         repo = project['repo']
         subdir = project['subdir']
-        admins = [utils.detailed_user(user=await client.fetch_user(admin)) for admin in project['admins']]
+        admins = [utils.detailed_user(user=await utils.user_from_id(client, admin)) for admin in project['admins']]
         repo_url = f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}'
 
         spreadsheet_line = ""
@@ -842,7 +842,7 @@ async def is_admin(message: discord.Message, project: dict):
 async def report_command_used(command_name: str, message: discord.Message):
     try:
         if command_name in report_commands and message.author.id != admin_user_id:
-            await (await client.fetch_user(admin_user_id)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
+            await (await utils.user_from_id(client, admin_user_id)).send(f"Handling {command_name} from {utils.detailed_user(message)}: `{message.content}`")
             log.info("Reported command usage to Kataiser")
     except Exception as error:
         utils.log_error(f"Couldn't report command usage to Kataiser: {repr(error)}")

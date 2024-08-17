@@ -258,7 +258,7 @@ async def taser_status(interaction: discord.Interaction, taser: str):
     log.info(f"Spreadsheet: {utils.detailed_user(user=interaction.user)} is checking status for TASer \"{taser}\"")
 
     if re_ping.match(taser):
-        taser = utils.nickname(await client.fetch_user(int(taser[2:-1])))
+        taser = utils.nickname(await utils.user_from_id(client, int(taser[2:-1])))
         log.info(f"Converted ping to name: {taser}")
 
     sheet_beg = read_sheet(SJ_SHEET_ID, 'Beginner!A2:E24', multiple_rows=True)

@@ -461,7 +461,7 @@ async def handle_game_sync_results():
         except db.DBKeyError:
             log.info(f"Reporting sync check error: {sync_result}")
             assert sync_result['reported_error']
-            await (await client.fetch_user(admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
+            await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
             db.sync_results.delete_item(project_id)
             continue
 
@@ -499,7 +499,7 @@ async def handle_no_game_sync_results():
         time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
 
         if time_since_last_game_sync_result > 86400:
-            await (await client.fetch_user(admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result, 1)} days ago")
+            await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result, 1)} days ago")
 
 
 def update_contributors(contributor: discord.User, project_id: int, project: dict):
