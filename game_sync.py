@@ -467,7 +467,7 @@ def wait_for_game_load(mods: set, project_name: str):
         try:
             scaled_sleep(5)
             requests.get('http://localhost:32270/', timeout=2)
-        except requests.Timeout:
+        except requests.RequestException:
             current_time = time.perf_counter()
 
             if current_time - last_game_loading_notify > 60:

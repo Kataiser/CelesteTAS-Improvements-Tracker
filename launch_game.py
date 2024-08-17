@@ -7,9 +7,9 @@ from utils import plural
 def main():
     mods_input = input("\n: ")
 
-    mods = set(mods_input.split())
+    mods = set(mods_input.split()) | {'TASRecorder', 'InputHistory'}
     replacements = {'sj': 'StrawberryJam2021', 'ssc2': 'SecretSanta2023', 'sc': 'SpringCollab2020', 'wc': 'WinterCollab2021', 'itj': 'Into The Jungle', 'dsides': 'Monika\'s D-Sides',
-                    'flp': 'The Frogeline Project', 'mwc': 'MidwayContest2022', 'flcc': 'FLCCcollab', 'egc': 'EGCPACK', 'dmr': 'darkmoonruins', 'ac': 'AnarchyCollab2022'}
+                    'flp': 'The Frogeline Project', 'mwc': 'MidwayContest2022', 'flcc': 'FLCCcollab', 'egc': 'EGCPACK', 'dmr': 'darkmoonruins', 'ac': 'AnarchyCollab2022', 'ssc3': 'SecretSantaCollab2024'}
 
     for replacement in replacements:
         if replacement in mods:
