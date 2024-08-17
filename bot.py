@@ -156,7 +156,7 @@ async def on_message(message: discord.Message):
     if re_1984_vamp.findall(message_lower):
         user_ids.add(234520815658336258)
 
-    if message.channel.id == 403698615446536203 and re_1984_bot.findall(message_lower):
+    if message.guild.id != 403698615446536203 and re_1984_bot.findall(message_lower):
         user_ids.add(219955313334288385)
 
     if message.reference:
