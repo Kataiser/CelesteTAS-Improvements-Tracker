@@ -115,10 +115,10 @@ def saved_log_name(base_name: str) -> str:
 async def user_from_id(client: discord.Client, user_id: int) -> discord.User:
     user = client.get_user(user_id)
 
-    if user:
-        return user
-    else:
-        await client.fetch_user(user_id)
+    if not user:
+        user = await client.fetch_user(user_id)
+
+    return user
 
 
 log: Optional[logging.Logger] = None
