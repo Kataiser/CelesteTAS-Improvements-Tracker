@@ -1,7 +1,6 @@
 import base64
 import dataclasses
 import datetime
-import gzip
 import io
 import logging
 import os
@@ -12,7 +11,7 @@ import time
 import urllib.parse
 import zipfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import discord
 import requests
@@ -630,7 +629,7 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
     return logger
 
 
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 headers = None
 login_time = None
 client: Optional[discord.Client] = None

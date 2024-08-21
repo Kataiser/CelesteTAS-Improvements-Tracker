@@ -1,7 +1,7 @@
 import datetime
 import logging
 import time
-from typing import Optional, Union
+from typing import Union
 
 import jwt
 import requests
@@ -110,7 +110,7 @@ class InstallationOwnerMissingError(Exception):
 
 
 tokens_local = {}
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 
 
 if __name__ == '__main__':

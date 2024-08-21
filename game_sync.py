@@ -717,7 +717,7 @@ def log_error(message: Optional[str] = None):
     db.sync_results.set(int(time.time()), {'reported_error': True, 'error': error[-1950:]})
 
 
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 re_redact_token = re.compile(r"'token': '[^']*'")
 game_sync_hash = None
 

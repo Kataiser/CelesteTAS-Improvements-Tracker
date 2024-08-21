@@ -441,7 +441,7 @@ class SheetReadError(Exception):
 
 
 client: Optional[discord.Client] = None
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 SJ_SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
 creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()

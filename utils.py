@@ -3,6 +3,7 @@ import functools
 import logging
 import os
 import socket
+import sys
 import time
 import traceback
 from typing import Optional, Sized, Union, Tuple
@@ -119,6 +120,28 @@ async def user_from_id(client: discord.Client, user_id: int) -> discord.User:
         user = await client.fetch_user(user_id)
 
     return user
+
+
+class LogPlaceholder:
+    @staticmethod
+    def debug(msg):
+        print("DEBUG:", msg)
+
+    @staticmethod
+    def info(msg):
+        print("INFO:", msg)
+
+    @staticmethod
+    def warning(msg):
+        print("WARNING:", msg, file=sys.stderr)
+
+    @staticmethod
+    def error(msg):
+        print("ERROR:", msg, file=sys.stderr)
+
+    @staticmethod
+    def critical(msg):
+        print("CRITICAL:", msg, file=sys.stderr)
 
 
 log: Optional[logging.Logger] = None

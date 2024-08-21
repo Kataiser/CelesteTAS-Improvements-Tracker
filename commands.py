@@ -6,7 +6,7 @@ import re
 import subprocess
 import time
 from operator import itemgetter
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import discord
 import requests
@@ -742,7 +742,7 @@ async def command_projects_admined(message: discord.Message):
             projects_admined_names.append(project['name'])
 
     projects_admined_names.sort()
-    log.debug(f"Projects admined: {projects_admined_names}")
+    log.info(f"Projects admined: {projects_admined_names}")
 
     if projects_admined_names:
         await message.channel.send('\n'.join(projects_admined_names))
@@ -849,7 +849,7 @@ async def report_command_used(command_name: str, message: discord.Message):
 
 
 client: Optional[discord.Client] = None
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 re_command_split = re.compile(r' (?=(?:[^"]|"[^"]*")*$)')
 re_combine_whitespace = re.compile(r'\s+')
 re_google_sheet_id = re.compile(r'(?:https://docs.google.com/spreadsheets/d/)?([0-9a-zA-Z-_]+).*')

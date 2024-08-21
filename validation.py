@@ -2,11 +2,12 @@ import dataclasses
 import enum
 import logging
 import re
-from typing import List, Optional, Tuple, Callable, Union
+from typing import List, Optional, Callable, Union
 
 import discord
 
 import db
+import utils
 
 
 @dataclasses.dataclass
@@ -450,7 +451,7 @@ re_remove_punctuation = re.compile(r'\W')
 re_remove_non_digits = re.compile(r'[^\d.:]')
 re_check_space_command = re.compile(r'^[^,]+?\s+[^,]')
 re_markdown_link = re.compile(r'\[([^]]+)]\([^)]+\)')
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 
 analog_modes = (('ignore', 'circle', 'square', 'precise'), "Ignore, Circle, Square, or Precise")
 assert_conditions = (('equal', 'notequal', 'contain', 'notcontain', 'startwith', 'notstartwith', 'endwith', 'notendwith'),
