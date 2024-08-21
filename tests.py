@@ -107,15 +107,14 @@ class MockMessage:
 
 
 class MockClient:
-    async def get_user(self, user_id: int) -> MockUser:
+    def get_user(self, user_id: int) -> MockUser:
         mock_users = {219955313334288385: MockUser(),
                       234520815658336258: MockUser(234520815658336258, 'Vamp', 'vampire_flower')}
 
         return mock_users[user_id]
 
     async def fetch_user(self, user_id: int) -> MockUser:
-        user = await self.get_user(user_id)
-        return user
+        return self.get_user(user_id)
 
     def get_channel(self, id_: int) -> MockChannel:
         return MockChannel(id_)
