@@ -450,12 +450,14 @@ async def command_rename_file(message: discord.Message, message_split: List[str]
 
         # commit 2: create new file (or overwrite)
         log.info("Performing recreate commit")
-        file_path_after = file_path.replace(filename_before, filename_after)
         data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
         if filename_after in path_cache:
+            file_path_after = path_cache[filename_after]
+            log.info(f"Overwriting, file should already exist at {file_path_after}")
             data['sha'] = main.get_sha(repo, file_path_after)
             expected_status = 200
         else:
+            file_path_after = file_path.replace(filename_before, filename_after)
             expected_status = 201
         if user_github_account:
             data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
