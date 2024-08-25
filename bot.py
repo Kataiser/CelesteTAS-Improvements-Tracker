@@ -136,27 +136,27 @@ async def on_message(message: discord.Message):
         subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
         time.sleep(60)
 
-    message_lower = message.content.lower()
+    message_search = re_non_ascii.subn('', message.content.lower())[0]
     user_ids = set()
 
-    if re_1984.findall(message_lower):
+    if re_1984.findall(message_search):
         user_ids.add(219955313334288385)
-    elif re_1984_music.findall(message_lower):
-        message_split = re.findall(r'\w+|[^\w\s]', message_lower)
+    elif re_1984_music.findall(message_search):
+        message_split = re.findall(r'\w+|[^\w\s]', message_search)
 
         if 'music' in message_split or 'song' in message_split:
             user_ids.add(219955313334288385)
 
-    if re_1984_hydro.findall(message_lower):
+    if re_1984_hydro.findall(message_search):
         user_ids.add(236760821286436865)
 
-    if re_1984_cabob.findall(message_lower):
+    if re_1984_cabob.findall(message_search):
         user_ids.add(256796503530536970)
 
-    if re_1984_vamp.findall(message_lower):
+    if re_1984_vamp.findall(message_search):
         user_ids.add(234520815658336258)
 
-    if message.guild and message.guild.id != 403698615446536203 and re_1984_bot.findall(message_lower):
+    if message.guild and message.guild.id != 403698615446536203 and re_1984_bot.findall(message_search):
         user_ids.add(219955313334288385)
 
     if message.reference:
@@ -339,6 +339,7 @@ re_1984_hydro = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrin
 re_1984_cabob = re.compile(r'\bcabob\b')
 re_1984_vamp = re.compile(r'\bvamp\b')
 re_1984_bot = re.compile(r'\bbot\b|\btracker\b')
+re_non_ascii = re.compile(r'[^\x00-\x7F]')
 
 if __name__ == '__main__':
     start()
