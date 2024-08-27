@@ -85,7 +85,7 @@ def command(format_regex: Optional[re.Pattern] = None, report_usage: bool = Fals
 
 
 @command()
-async def command_help(message: discord.Message, message_split: List[str]):
+async def command_help(interaction: discord.Interaction, command_name: Optional[str] = None):
     """
     help COMMAND
 
@@ -96,13 +96,13 @@ async def command_help(message: discord.Message, message_split: List[str]):
 
     command_functions_public = {c: command_functions[c] for c in command_functions if c not in kataiser_only_commands}
 
-    if len(message_split) > 1 and message_split[1] in command_functions_public:
-        await message.channel.send(command_functions_public[message_split[1]].help)
+    if command_name and command_name in command_functions_public:
+        await interaction.response.send_message(command_functions_public[command_name].help)
     else:
         add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
         commands_available = '\n'.join([f"`{c}`: {command_functions_public[c].help.partition('\n\n  ')[2].partition('\n')[0]}" for c in command_functions_public])
 
-        if message.author.id == 219955313334288385:
+        if interaction.user.id == 219955313334288385:
             command_functions_private = sorted([f'`{c}`' for c in kataiser_only_commands])
             commands_available = f"{commands_available}\n\nPrivate commands:\n{', '.join(command_functions_private)}"
 
@@ -115,7 +115,7 @@ async def command_help(message: discord.Message, message_split: List[str]):
                    "\n\nAvailable commands:" \
                    f"\n{commands_available}"
 
-        await message.channel.send(response)
+        await interaction.response.send_message(response)
 
 
 @command(re.compile(r'(?i)register_project .+ \d+ .+ .+ [YN] [YN] [YN] [YN] [YN]'), report_usage=True)

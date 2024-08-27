@@ -185,7 +185,7 @@ async def on_message_edit(old_message: discord.Message, message: discord.Message
     if message.channel.id not in main.fast_project_ids:
         return
 
-    if not await has_bot_reaction(message, "❌"):
+    if not await has_bot_reaction(message, '❌'):
         return
 
     for reaction in message.reactions:
@@ -299,6 +299,11 @@ async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
 
+@command_tree.command(description="Get bot installation instructions, or the info for a command.")
+async def help(interaction, command_name: str = ''):
+    await commands.command_help(interaction, command_name)
+
+
 @progress.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
     return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
@@ -313,7 +318,7 @@ def remove_project_log(message: discord.Message):
 
 async def has_bot_reaction(message: discord.Message, emoji: str):
     for reaction in message.reactions:
-        if reaction.emoji == '❌':
+        if reaction.emoji == emoji:
             async for user in reaction.users():
                 if user.id == client.user.id:
                     return True
