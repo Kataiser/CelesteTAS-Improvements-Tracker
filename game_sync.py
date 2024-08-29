@@ -683,7 +683,8 @@ def gb_mod_versions() -> Optional[dict]:
 
 @functools.cache
 def mods_dir() -> Path:
-    mod_paths = (Path('G:/celeste/Mods'),
+    mod_paths = (Path('D:/celeste/Mods'),
+                 Path('G:/celeste/Mods'),
                  Path('C:/Users/Administrator/Desktop/mods'),
                  Path('C:/Users/Bob/Documents/Celeste Itch/Mods'),
                  Path('C:/Users/Vamp/Documents/celeste/Mods'))
@@ -697,7 +698,8 @@ def mods_dir() -> Path:
 
 @functools.cache
 def game_dir() -> Path:
-    game_dirs = (Path('G:/celeste'),
+    game_dirs = (Path('D:/celeste'),
+                 Path('G:/celeste'),
                  Path('C:/Users/Bob/Documents/Celeste Itch'),
                  Path('C:/Users/Vamp/Documents/celeste'))
 
