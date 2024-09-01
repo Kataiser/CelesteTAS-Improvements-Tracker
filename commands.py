@@ -830,6 +830,12 @@ async def command_echo_reply(message: discord.Message):
     await message.channel.send(sent_message.jump_url)
 
 
+@command(kataiser_only=True)
+async def command_open_url(message: discord.Message, message_split: List[str]):
+    url = message_split[1]
+    webbrowser.open(url)
+
+
 # verify that the user editing the project is an admin (or Kataiser)
 async def is_admin(message: discord.Message, project: dict):
     if message.author.id in (*project['admins'], admin_user_id):
