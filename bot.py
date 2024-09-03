@@ -303,7 +303,8 @@ async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
 
-@command_tree.command(description="Get bot installation instructions, or the info for a command")
+@command_tree.command(description="Get bot installation instructions")
+@app_commands.dm_only()
 async def help(interaction):
     await commands.command_help(interaction)
 
