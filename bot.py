@@ -2,9 +2,10 @@ import argparse
 import re
 import subprocess
 import time
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 import discord
+from discord import app_commands
 
 import commands
 import db
@@ -21,7 +22,7 @@ intents.reactions = True
 intents.message_content = True
 
 client = discord.Client(intents=intents)
-command_tree = discord.app_commands.CommandTree(client)
+command_tree = app_commands.CommandTree(client)
 
 debug = False
 safe_mode = False
@@ -72,7 +73,7 @@ def start():
 async def on_ready():
     log.info(f"Logged in as {client.user}")
     main.login_time = time.time()
-    [await command_tree.sync(guild=server) for server in slash_command_servers]
+    await command_tree.sync()
     log.info(f"Servers: {[g.name for g in client.guilds]}")
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else projects_startup
@@ -110,9 +111,13 @@ async def on_ready():
 
     if not main.handle_game_sync_results.is_running():
         main.handle_game_sync_results.start()
+    else:
+        log.warning("Didn't start handle_game_sync_results task")
 
     if not main.handle_no_game_sync_results.is_running():
         main.handle_no_game_sync_results.start()
+    else:
+        log.warning("Didn't start handle_no_game_sync_results task")
 
 
 @client.event
@@ -120,8 +125,7 @@ async def on_message(message: discord.Message):
     if message.author == client.user:
         return
     elif not message.guild:
-        await client.wait_until_ready()
-        await commands.handle(message)
+        await commands.handle_direct_dm(message)
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
@@ -264,12 +268,12 @@ async def on_error(*args):
     await utils.report_error(client)
 
 
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
+@app_commands.check(spreadsheet.sj_command_allowed)
 async def draft(interaction, map_name: str):
     await spreadsheet.draft(interaction, map_name)
 
 
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
+@app_commands.check(spreadsheet.sj_command_allowed)
 async def update_progress(interaction, map_name: str, note: str):
     await spreadsheet.update_progress(interaction, map_name, note)
 
@@ -279,17 +283,17 @@ async def progress(interaction, map_name: str):
     await spreadsheet.progress(interaction, map_name)
 
 
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
+@app_commands.check(spreadsheet.sj_command_allowed)
 async def drop(interaction, map_name: str, reason: str):
     await spreadsheet.drop(interaction, map_name, reason)
 
 
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
+@app_commands.check(spreadsheet.sj_command_allowed)
 async def complete(interaction, map_name: str):
     await spreadsheet.complete(interaction, map_name)
 
 
-@discord.app_commands.check(spreadsheet.sj_command_allowed)
+@app_commands.check(spreadsheet.sj_command_allowed)
 async def undraft(interaction, map_name: str):
     await spreadsheet.undraft(interaction, map_name)
 
@@ -299,14 +303,89 @@ async def taser_status(interaction, taser: str):
     await spreadsheet.taser_status(interaction, taser)
 
 
-@command_tree.command(description="Get bot installation instructions, or the info for a command.")
-async def help(interaction, command_name: str = ''):
-    await commands.command_help(interaction, command_name)
+@command_tree.command(description="Get bot installation instructions, or the info for a command")
+async def help(interaction):
+    await commands.command_help(interaction)
+
+
+@command_tree.command(description="Add or edit a project (improvements channel)")
+@app_commands.describe(name="The name or ID of the project")
+@app_commands.describe(improvements_channel="The channel for posting improvments, drafts, etc.")
+@app_commands.describe(repository="Either as OWNER/REPO, or as OWNER/REPO/PROJECT if you have multiple projects in a repo")
+@app_commands.describe(account="Your GitHub account name")
+@app_commands.describe(commit_drafts="Automatically commit drafts to the root directory")
+@app_commands.describe(is_lobby="Whether this channel is for a lobby, which handles file validation differently")
+@app_commands.describe(ensure_level="Whether to make sure the level's name is in the message when validating a posted file")
+@app_commands.describe(use_contributors_file="Save a Contributors.txt file")
+@app_commands.describe(do_sync_check="Do regular sync tests of all your files by actually running the game (highly recommended)")
+@app_commands.guild_only()
+async def register_project(interaction, name: str, improvements_channel: discord.TextChannel, repository: str, account: str, commit_drafts: bool, is_lobby: bool, ensure_level: bool,
+                               use_contributors_file: bool, do_sync_check: bool):
+        await commands.command_register_project(interaction, name, improvements_channel, repository, account, commit_drafts, is_lobby, ensure_level, use_contributors_file, do_sync_check)
+
+
+@command_tree.command(description="Link a lobby project to a routing table, so that improvements will automatically be written to it")
+@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(sheet="The link to your spreadsheet, e.g. https://docs.google.com/spreadsheets/d/1xY9W_fvKyYYz7E-t_t5UXSpqxECUil2mLY7PdB-ifLc")
+@app_commands.describe(cell="The location where the 0-0 connection of the table is, e.g. C2, Beginner!C2 or Beginner Lobby!C2")
+@app_commands.dm_only()
+async def link_lobby_sheet(interaction, project_name: str, sheet: str, cell: str):
+    await commands.command_link_lobby_sheet(interaction, project_name, sheet, cell)
+
+
+@command_tree.command(description="Set the game mods a sync check needs to load")
+@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(mods="The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, \"Monika's D-Sides\"")
+@app_commands.dm_only()
+async def add_mods(interaction, project_name: str, mods: str):
+    await commands.command_add_mods(interaction, project_name, mods)
+
+
+@command_tree.command(description="Rename a file in the repo of a project, recommended over manually committing")
+@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(filename_before="The current name of the TAS file you want to rename (with .tas)")
+@app_commands.describe(filename_after="What you want the TAS file to be renamed to (with .tas)")
+@app_commands.dm_only()
+async def rename_file(interaction, project_name: str, filename_before: str, filename_after: str):
+    await commands.command_rename_file(interaction, project_name, filename_before, filename_after)
+
+
+@command_tree.command(description="Rename a file in the repo of a project, recommended over manually committing")
+@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(edited_admin="The user you're adding or removing")
+@app_commands.describe(edit="Whether to add or remove them from admin")
+async def edit_admin(interaction, project_name: str, edited_admin: discord.User, edit: Literal["Add", "Remove"]):
+    await commands.command_edit_admin(interaction, project_name, edited_admin, edit)
+
+
+@command_tree.command(description="Get bot info and status")
+@app_commands.dm_only()
+async def about(interaction):
+    await commands.command_about(interaction)
+
+
+@command_tree.command(description="Get the info and settings of a project")
+@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.dm_only()
+async def about_project(interaction, project_name: str):
+    await commands.command_about_project(interaction, project_name)
+
+
+@command_tree.command(description="Get the basic info and settings of all projects")
+@app_commands.dm_only()
+async def projects(interaction):
+    await commands.command_projects(interaction)
+
+
+@command_tree.command(description="List projects you're an admin of")
+@app_commands.dm_only()
+async def projects_admined(interaction):
+    await commands.command_projects_admined(interaction)
 
 
 @progress.autocomplete('map_name')
-async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice[str]]:
-    return [discord.app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
+async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    return [app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]
 
 
 def remove_project_log(message: discord.Message):
