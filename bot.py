@@ -109,15 +109,7 @@ async def on_ready():
     if set_default_status:
         await main.set_status()
 
-    if not main.handle_game_sync_results.is_running():
-        main.handle_game_sync_results.start()
-    else:
-        log.warning("Didn't start handle_game_sync_results task")
-
-    if not main.handle_no_game_sync_results.is_running():
-        main.handle_no_game_sync_results.start()
-    else:
-        log.warning("Didn't start handle_no_game_sync_results task")
+    main.start_tasks()
 
 
 @client.event

@@ -681,7 +681,12 @@ async def command_echo_reply(message: discord.Message):
 @kataiser_command()
 async def command_open_url(message: discord.Message):
     url = message.content.split()[1]
-    webbrowser.open(url)
+    await message.channel.send(webbrowser.open(url))
+
+
+@kataiser_command()
+async def command_restart_tasks(message: discord.Message):
+    await message.channel.send(main.start_tasks())
 
 
 async def handle_direct_dm(message: discord.Message):

@@ -501,6 +501,23 @@ async def handle_no_game_sync_results():
             await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result, 1)} days ago")
 
 
+def start_tasks() -> tuple[bool, bool]:
+    handle_game_sync_results_running = handle_game_sync_results.is_running()
+    handle_no_game_sync_results_running = handle_no_game_sync_results.is_running()
+
+    if not handle_game_sync_results_running:
+        handle_game_sync_results.start()
+    else:
+        log.warning("Didn't start handle_game_sync_results task")
+
+    if not handle_no_game_sync_results_running:
+        handle_no_game_sync_results.start()
+    else:
+        log.warning("Didn't start handle_no_game_sync_results task")
+
+    return handle_game_sync_results_running, handle_no_game_sync_results_running
+
+
 def update_contributors(contributor: discord.User, project_id: int, project: dict):
     try:
         project_contributors = db.contributors.get(project_id, keep_primary_key=False)
