@@ -52,9 +52,6 @@ def command(report_usage: bool = False, slow_start: bool = False):
 
 def kataiser_command():
     def outer(func: callable):
-        # async def inner(interaction: discord.Interaction, *args):
-        #     return await func(interaction, *args)
-
         kataiser_commands[func.__name__.removeprefix('command_')] = func
         return func
 
@@ -64,6 +61,10 @@ def kataiser_command():
 @command()
 async def command_help(interaction: discord.Interaction):
     add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
+    kataiser_commands_formatted = ""
+
+    if interaction.user.id == 219955313334288385:
+        kataiser_commands_formatted = f"\n\n{', '.join(sorted([f'`{c}`' for c in kataiser_commands]))}"
 
     response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
@@ -72,7 +73,7 @@ async def command_help(interaction: discord.Interaction):
                "\n3. Run the `/register_project` command. You can also use this to edit existing projects." \
                "\n4. (Optional) Add other admins with `/edit_admins`, and add mod(s) for sync testing with `/add_mods`." \
                "\n\nThere are many other commands available, to assist with managing projects and more. Many commands are only visible and available in bot DMs, with the exception of "\
-               "`/register_project` and `/edit_admin`."
+               f"`/register_project` and `/edit_admin`.{kataiser_commands_formatted}"
 
     await respond(interaction, response)
 
