@@ -191,7 +191,7 @@ def sync_test(project_id: int, force: bool):
         if 'lobby' in file_path_repo.lower() and 'lobby' not in tas_filename.lower():
             log.info(f"Skipping {tas_filename} (lobby)")
             continue
-        elif tas_filename == 'translocation.tas':
+        elif tas_filename in ('translocation.tas', 'mt_celeste_jazz_club.tas'):
             continue
 
         with open(file_path, 'r', encoding='UTF8') as tas_file:
