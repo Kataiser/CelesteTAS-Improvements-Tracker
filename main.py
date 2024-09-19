@@ -507,13 +507,11 @@ def start_tasks() -> tuple[bool, bool]:
 
     if not handle_game_sync_results_running:
         handle_game_sync_results.start()
-    else:
-        log.warning("Didn't start handle_game_sync_results task")
+        log.info("Started handle_game_sync_results task")
 
     if not handle_no_game_sync_results_running:
         handle_no_game_sync_results.start()
-    else:
-        log.warning("Didn't start handle_no_game_sync_results task")
+        log.info("Started handle_no_game_sync_results task")
 
     return handle_game_sync_results_running, handle_no_game_sync_results_running
 

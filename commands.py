@@ -685,11 +685,6 @@ async def command_open_url(message: discord.Message):
     await message.channel.send(webbrowser.open(url))
 
 
-@kataiser_command()
-async def command_restart_tasks(message: discord.Message):
-    await message.channel.send(main.start_tasks())
-
-
 async def handle_direct_dm(message: discord.Message):
     if message.content.lower() in ('ok', 'hi', 'hello'):
         await message.channel.send(message.content)
