@@ -14,16 +14,16 @@ import requests
 import strip_markdown
 import ujson
 
+import constants
 import db
 import game_sync
 import gen_token
 import main
 import spreadsheet
 import utils
-from constants import admin_user_id
 from utils import plural
 
-kataiser_commands = {}
+admin_commands = {}
 
 
 def command(report_usage: bool = False, slow_start: bool = False):
@@ -31,13 +31,13 @@ def command(report_usage: bool = False, slow_start: bool = False):
         command_name = func.__name__.removeprefix('command_')
 
         async def inner(interaction: discord.Interaction, *args):
-            if report_usage and interaction.user.id != admin_user_id:
+            if report_usage and interaction.user.id != constants.admin_user_id:
                 try:
-                    await (await utils.user_from_id(client, admin_user_id)).send(f"Handling /{command_name} from {utils.detailed_user(user=interaction.user)}: ```"
+                    await (await utils.user_from_id(client, constants.admin_user_id)).send(f"Handling /{command_name} from {utils.detailed_user(user=interaction.user)}: ```"
                                                                                  f"\n{pprint.pformat(interaction.data)}```")
-                    log.info("Reported command usage to Kataiser")
+                    log.info("Reported command usage to bot admin")
                 except Exception as error:
-                    utils.log_error(f"Couldn't report command usage to Kataiser: {repr(error)}")
+                    utils.log_error(f"Couldn't report command usage to bot admin: {repr(error)}")
 
             if slow_start:
                 await interaction.response.defer()
@@ -50,9 +50,9 @@ def command(report_usage: bool = False, slow_start: bool = False):
     return outer
 
 
-def kataiser_command():
+def admin_command():
     def outer(func: callable):
-        kataiser_commands[func.__name__.removeprefix('command_')] = func
+        admin_commands[func.__name__.removeprefix('command_')] = func
         return func
 
     return outer
@@ -61,10 +61,10 @@ def kataiser_command():
 @command()
 async def command_help(interaction: discord.Interaction):
     add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
-    kataiser_commands_formatted = ""
+    admin_commands_formatted = ""
 
     if interaction.user.id == 219955313334288385:
-        kataiser_commands_formatted = f"\n\n{', '.join(sorted([f'`{c}`' for c in kataiser_commands]))}"
+        admin_commands_formatted = f"\n\n{', '.join(sorted([f'`{c}`' for c in admin_commands]))}"
 
     response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
                "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
@@ -73,7 +73,7 @@ async def command_help(interaction: discord.Interaction):
                "\n3. Run the `/register_project` command. You can also use this to edit existing projects." \
                "\n4. (Optional) Add other admins with `/edit_admins`, and add mod(s) for sync testing with `/add_mods`." \
                "\n\nThere are many other commands available, to assist with managing projects and more. Many commands are only visible and available in bot DMs, with the exception of "\
-               f"`/register_project` and `/edit_admin`.{kataiser_commands_formatted}"
+               f"`/register_project` and `/edit_admin`.{admin_commands_formatted}"
 
     await respond(interaction, response)
 
@@ -87,7 +87,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     editing = improvements_channel.id in projects
 
     if editing:
-        if not await is_admin(interaction, projects[improvements_channel.id]):
+        if not await is_project_admin(interaction, projects[improvements_channel.id]):
             return
 
         log.info("This project already exists, preserving some keys")
@@ -234,7 +234,7 @@ async def command_link_lobby_sheet(interaction: discord.Interaction, project_nam
         await respond(interaction, "No projects (with sync checking enabled) matching that name or ID found.")
 
     for project in projects:
-        if not await is_admin(interaction, project):
+        if not await is_project_admin(interaction, project):
             break
         if not project['is_lobby']:
             log.warning(f"Trying to link sheet to non-lobby project {project['name']}")
@@ -260,7 +260,7 @@ async def command_add_mods(interaction: discord.Interaction, project_name: str, 
     project_mods_added = False
 
     for project in db.projects.get_by_name_or_id(project_name):
-        if not await is_admin(interaction, project):
+        if not await is_project_admin(interaction, project):
             break
         elif not (project['do_run_validation'] or project['sync_check_timed_out']):
             log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
@@ -298,9 +298,9 @@ async def command_add_mods(interaction: discord.Interaction, project_name: str, 
         if mods_missing:
             log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
             mods_missing_formatted = '\n'.join(sorted(mods_missing))
-            await (await utils.user_from_id(client, admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
-            await respond(interaction,
-                           f"The following mod(s) are not currently prepared for sync testing (Kataiser has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
+            await (await utils.user_from_id(client, constants.admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
+            await respond(interaction, f"The following mod(s) are not currently prepared for sync testing "
+                                       f"({constants.admin_name} has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
 
     if not project_mods_added:
         log.warning(f"No projects found matching: {project_name}")
@@ -394,7 +394,7 @@ async def command_edit_admin(interaction: discord.Interaction, project_name: str
     adding = edit == "Add"
 
     for project in matching_projects:
-        if not await is_admin(interaction, project):
+        if not await is_project_admin(interaction, project):
             continue
 
         if adding:
@@ -601,7 +601,7 @@ async def command_projects_admined(interaction: discord.Interaction):
         await respond(interaction, "You're not an admin of any projects.")
 
 
-@kataiser_command()
+@admin_command()
 async def command_log(message: discord.Message):
     log.handlers[0].flush()
     time.sleep(0.2)
@@ -613,7 +613,7 @@ async def command_log(message: discord.Message):
         await message.channel.send(f'`{end_text}`', file=discord.File(bot_log, filename=utils.saved_log_name('bot')))
 
 
-@kataiser_command()
+@admin_command()
 async def command_sync_log(message: discord.Message):
     with open('game_sync.log', 'rb') as sync_log:
         log_bytes = sync_log.read()
@@ -622,25 +622,25 @@ async def command_sync_log(message: discord.Message):
         await message.channel.send(f'`{end_text}`', file=discord.File(sync_log, filename=utils.saved_log_name('game_sync')))
 
 
-@kataiser_command()
+@admin_command()
 async def command_die(message: discord.Message):
     await message.channel.send("https://cdn.discordapp.com/attachments/972366104204812338/1179648390649360454/wqovpsazm7z61.png")
     raise SystemExit("guess I'll die")
 
 
-@kataiser_command()
+@admin_command()
 async def command_run_cmd(message: discord.Message):
     process = subprocess.Popen(message.content.partition(' ')[2], creationflags=0x00000010)
     await message.channel.send(f"`{process.pid}`")
 
 
-@kataiser_command()
+@admin_command()
 async def command_install_mod(message: discord.Message):
     install_log = subprocess.check_output(f'mons mods add itch {message.content.partition(' ')[2]} --force')
     await message.channel.send(install_log.decode('UTF8'))
 
 
-@kataiser_command()
+@admin_command()
 async def command_send_file(message: discord.Message):
     assert message.attachments
     given_path = message.content.partition(' ')[2].strip('"')
@@ -655,7 +655,7 @@ async def command_send_file(message: discord.Message):
         log.info(f"Saved to {full_path}")
 
 
-@kataiser_command()
+@admin_command()
 async def command_get_file(message: discord.Message):
     given_path = message.content.partition(' ')[2].strip('"')
     assert given_path
@@ -664,14 +664,14 @@ async def command_get_file(message: discord.Message):
     log.info("Sent file")
 
 
-@kataiser_command()
+@admin_command()
 async def command_echo(message: discord.Message):
     channel_id, _, message_text = message.content[5:].partition(' ')
     sent_message = await client.get_channel(int(channel_id)).send(message_text)
     await message.channel.send(sent_message.jump_url)
 
 
-@kataiser_command()
+@admin_command()
 async def command_echo_reply(message: discord.Message):
     message_full_id, _, message_text = message.content[11:].partition(' ')
     channel_id, message_id = message_full_id.split('-')
@@ -679,7 +679,7 @@ async def command_echo_reply(message: discord.Message):
     await message.channel.send(sent_message.jump_url)
 
 
-@kataiser_command()
+@admin_command()
 async def command_open_url(message: discord.Message):
     url = message.content.split()[1]
     await message.channel.send(webbrowser.open(url))
@@ -702,9 +702,9 @@ async def handle_direct_dm(message: discord.Message):
         await message.channel.send("DM commands are now slash commands, run `/help` for more info.")
 
 
-# verify that the user editing the project is an admin (or Kataiser)
-async def is_admin(interaction: discord.Interaction, project: dict):
-    if interaction.user.id in (*project['admins'], admin_user_id):
+# verify that the user editing the project is an admin (or is the bot admin)
+async def is_project_admin(interaction: discord.Interaction, project: dict):
+    if interaction.user.id in (*project['admins'], constants.admin_user_id):
         return True
     else:
         log.warning("Not project admin")
@@ -718,8 +718,8 @@ async def respond(interaction: discord.Interaction, message: str):
     else:
         await interaction.followup.send(message)
 
-    if interaction.extras['report_usage'] and interaction.user.id != admin_user_id:
-        await (await utils.user_from_id(client, admin_user_id)).send(f"`{message}`")
+    if interaction.extras['report_usage'] and interaction.user.id != constants.admin_user_id:
+        await (await utils.user_from_id(client, constants.admin_user_id)).send(f"`{message}`")
 
 
 client: Optional[discord.Client] = None

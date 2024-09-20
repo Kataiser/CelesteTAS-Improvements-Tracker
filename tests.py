@@ -203,7 +203,7 @@ def test_generate_path_cache(setup_log):
 
 
 def test_get_sha(setup_log):
-    assert main.get_sha('Kataiser/improvements-bot-testing', 'journey.tas') == '7e0291c78555e7fa856f8f2cb9ec4483df6a10be'
+    assert main.get_sha('Kataiser/improvements-bot-testing', 'The_Mines_Kataiser.tas') == '62f18d8398a0e1bddf7e8283e61b8c6d33fdb16f'
     assert main.get_sha('Kataiser/improvements-bot-testing', 'subproject/glitchy_-_Copy.tas') == 'd3a5291ad1119f376cd0a77bd9cf9bcfb112ed7b'
 
 
@@ -617,10 +617,10 @@ async def test_is_admin(setup_log, monkeypatch):
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)
     channel = discord.TextChannel()
-    assert await commands.is_admin(discord.Message('', channel, MockUser()), {'admins': ()})
-    assert await commands.is_admin(discord.Message('', channel, MockUser(id=651190712288935939)), {'admins': (403759119758131211, 651190712288935939)})
+    assert await commands.is_project_admin(discord.Message('', channel, MockUser()), {'admins': ()})
+    assert await commands.is_project_admin(discord.Message('', channel, MockUser(id=651190712288935939)), {'admins': (403759119758131211, 651190712288935939)})
     assert not channel.sent_messages
-    assert not await commands.is_admin(discord.Message('', channel, MockUser(id=651190712288935939)), {'admins': ()})
+    assert not await commands.is_project_admin(discord.Message('', channel, MockUser(id=651190712288935939)), {'admins': ()})
     assert channel.sent_messages == ["Not allowed, you are not a project admin."]
 
 
@@ -629,8 +629,8 @@ async def test_dm_echo(setup_log, monkeypatch):
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)
     channel = discord.TextChannel()
-    await commands.handle(discord.Message("ok", channel, MockUser()))
-    await commands.handle(discord.Message("hello", channel, MockUser()))
+    await commands.handle_direct_dm(discord.Message("ok", channel, MockUser()))
+    await commands.handle_direct_dm(discord.Message("hello", channel, MockUser()))
     assert channel.sent_messages == ["ok", "hello"]
 
 
