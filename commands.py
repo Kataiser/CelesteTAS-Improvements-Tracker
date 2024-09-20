@@ -691,13 +691,14 @@ async def handle_direct_dm(message: discord.Message):
         return
 
     command_name = message.content.partition(' ')[0].lower()
+    sent_by_admin = message.author.id == constants.admin_user_id
 
-    if command_name in kataiser_commands:
-        if message.author.id == admin_user_id:
-            await kataiser_commands[command_name](message)
+    if command_name in admin_commands:
+        if sent_by_admin:
+            await admin_commands[command_name](message)
         else:
-            await message.channel.send("Not allowed, you are not Kataiser.")
-    else:
+            await message.channel.send(f"Not allowed, you are not {constants.admin_name}.")
+    elif sent_by_admin:
         await message.channel.send("DM commands are now slash commands, run `/help` for more info.")
 
 
