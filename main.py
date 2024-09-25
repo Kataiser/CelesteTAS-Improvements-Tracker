@@ -30,6 +30,8 @@ from utils import plural
 
 # process a message posted in a registered improvements channel
 async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False) -> bool:
+    start_tasks()
+
     if not project:
         project = db.projects.get(message.channel.id)
 

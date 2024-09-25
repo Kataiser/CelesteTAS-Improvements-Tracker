@@ -118,6 +118,7 @@ async def on_message(message: discord.Message):
         return
     elif not message.guild:
         await commands.handle_direct_dm(message)
+        main.start_tasks()
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
