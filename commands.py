@@ -63,7 +63,7 @@ async def command_help(interaction: discord.Interaction):
     add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
     admin_commands_formatted = ""
 
-    if interaction.user.id == 219955313334288385:
+    if interaction.user.id in (constants.admin_user_id, 234520815658336258):
         admin_commands_formatted = f"\n\n{', '.join(sorted([f'`{c}`' for c in admin_commands]))}"
 
     response = "Alright, looks you want to add your TAS project to this bot (or are just curious about what the help command says). Awesome! So, steps:" \
@@ -691,7 +691,7 @@ async def handle_direct_dm(message: discord.Message):
         return
 
     command_name = message.content.partition(' ')[0].lower()
-    sent_by_admin = message.author.id == constants.admin_user_id
+    sent_by_admin = message.author.id in (constants.admin_user_id, 234520815658336258)
 
     if command_name in admin_commands:
         if sent_by_admin:
