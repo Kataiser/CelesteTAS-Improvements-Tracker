@@ -499,8 +499,8 @@ async def handle_no_game_sync_results():
     if not db.sync_results.size():
         time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
 
-        if time_since_last_game_sync_result > 86400:
-            await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result, 1)} days ago")
+        if time_since_last_game_sync_result > 86400:  # 24 hours
+            await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago")
 
 
 def start_tasks() -> tuple[bool, bool]:
