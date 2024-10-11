@@ -632,7 +632,7 @@ def update_everest():
 
 def consider_disabling_after_inactivity(project: dict, reference_time: Union[int, float], from_abandoned: bool) -> Optional[str]:
     time_since_last_commit = int(reference_time) - int(project['last_commit_time'])
-    disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, rerun the `register_project` command. "
+    disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, rerun the `/register_project` command. "
                      "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
 
     if time_since_last_commit > 2629800 and project['do_run_validation']:
