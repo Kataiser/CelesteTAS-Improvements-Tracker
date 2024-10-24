@@ -153,6 +153,9 @@ async def on_message(message: discord.Message):
     if re_1984_vamp.findall(message_search):
         user_ids.add(234520815658336258)
 
+    if re_1984_cirion.findall(message_search):
+        user_ids.add(243310302995677184)
+
     if message.guild and message.guild.id != 403698615446536203 and re_1984_bot.findall(message_search):
         user_ids.add(219955313334288385)
 
@@ -416,6 +419,7 @@ re_1984_music = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrin
 re_1984_hydro = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984_hydro) + r'|\bss\+(?=\b|\W|$)')
 re_1984_cabob = re.compile(r'\bcabob\b')
 re_1984_vamp = re.compile(r'\bvamp\b')
+re_1984_cirion = re.compile(r'\bsussy\b')
 re_1984_bot = re.compile(r'\bbot\b|\btracker\b')
 re_non_ascii = re.compile(r'[^\x00-\x7F]')
 
