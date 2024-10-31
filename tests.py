@@ -368,6 +368,17 @@ def test_validate(setup_log, monkeypatch):
     assert (validation.validate(Path('test_tases\\room indexes\\the_lab inconsistent index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) ==
             result_inconsistent_room_label)
 
+    result_last_room_label = validation.ValidationResult(valid_tas=False, finaltime='4:01.145', finaltime_frames=14185,
+                                                         warning_text=["The file's ChapterTime (4:01.145) is missing in your message, please add it and post again.",
+                                                                       "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) "
+                                                                       "and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.",
+                                                                       "The level name is missing in your message, please add it and post again."],
+                                                         log_text=["ChapterTime (4:01.145) missing in message content",
+                                                                           "no \"draft\" text in message",
+                                                                   "level name (area36) missing in message content"])
+    assert (validation.validate(Path('test_tases\\room indexes\\area_36.tas').read_bytes(), 'area_36.tas', message, None, test_project, False) ==
+            result_last_room_label)
+
     result_disallowed_command = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
                                                             warning_text=["Incorrect `ExitGame` command usage on line 3575: ExitGame command is not allowed.", "Since this is a draft, "
                                                                           "please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. If it "
