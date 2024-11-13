@@ -151,7 +151,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     accessible_repos = [i['full_name'] for i in ujson.loads(r.content)['repositories']]
     if repo not in accessible_repos:
         await utils.report_error(client, f"Repo {repo} not in accessible to installation: {accessible_repos}")
-        await respond(interaction, f"Github app instllation cannot access the repo.")
+        await respond(interaction, f"Github app installation cannot access the repo.")
         return
 
     # verify not adding run sync check to a lobby
