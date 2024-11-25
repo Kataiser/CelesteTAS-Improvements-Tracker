@@ -210,7 +210,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     if editing:
         await respond(interaction, "Successfully verified and edited project.")
     else:
-        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the command `/add_mods`." if do_sync_check.lower() == 'y' else ""
+        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the DM command `/add_mods`." if do_sync_check.lower() == 'y' else ""
         lobby_sheet_text = " If you want to automatically update lobby connection times on a google sheet, run `/link_lobby_sheet`." if registered_project['is_lobby'] else ""
         await respond(interaction, "Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")

@@ -547,7 +547,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
     else:
         contributors_txt_path = f"{project['subdir']}/Contributors.txt"
 
-    contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
+    db_contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
     repo = project['repo']
     r = requests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
     r_json = ujson.loads(r.content)
@@ -556,23 +556,24 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
         commit_message = "Created Contributors.txt"
         created_file = True
         do_commit = True
+        repo_contributors = db_contributor_names
     else:
         utils.handle_potential_request_error(r, 200)
-        existing_contributors = base64.b64decode(r_json['content']).decode('UTF8').splitlines()
+        repo_contributors = base64.b64decode(r_json['content']).decode('UTF8').splitlines()
         contributors_added = []
         created_file = False
         do_commit = False
 
-        for db_contributor in contributor_names:
-            if db_contributor not in existing_contributors:
-                existing_contributors.append(db_contributor)
+        for db_contributor in db_contributor_names:
+            if db_contributor not in repo_contributors:
+                repo_contributors.append(db_contributor)
                 contributors_added.append(db_contributor)
                 do_commit = True
 
         commit_message = f"Added {', '.join(sorted(contributors_added, key=str.casefold))} to Contributors.txt"
 
     if do_commit:
-        file_data = '\n'.join(sorted(contributor_names, key=str.casefold)).encode('UTF8')
+        file_data = '\n'.join(sorted(repo_contributors, key=str.casefold)).encode('UTF8')
         commit_data = {'content': base64.b64encode(file_data).decode('UTF8'), 'message': commit_message}
 
         if not created_file:
