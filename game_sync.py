@@ -18,6 +18,7 @@ from typing import Optional, Union
 import dateutil.parser
 import requests
 import ujson
+from deepdiff import DeepDiff
 
 import db
 import main
@@ -118,6 +119,7 @@ def sync_test(project_id: int, force: bool):
         consider_disabling_after_inactivity(project, time.time(), True)
         return
 
+    log.info(f"Environment state changes: {DeepDiff(prev_environment_state, environment_state, ignore_order=True, ignore_numeric_type_changes=True, verbose_level=2)}")
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
