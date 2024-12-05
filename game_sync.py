@@ -12,6 +12,7 @@ import stat
 import subprocess
 import time
 import zipfile
+import zlib
 from pathlib import Path
 from typing import Optional, Union
 
@@ -36,7 +37,7 @@ def run_syncs():
     cli_project = parser.parse_args().project
 
     with open('game_sync.py', 'rb') as game_sync_py:
-        game_sync_hash = hash(game_sync_py.read())
+        game_sync_hash = zlib.adler32(game_sync_py.read())
 
     if cli_project:
         if cli_project.isdigit():
