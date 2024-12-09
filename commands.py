@@ -96,11 +96,15 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
         previous = {key: projects[improvements_channel.id][key] for key in preserved_keys}
 
     # safeguard for celestecord
-    if improvements_channel.guild.id == 403698615446536203 and (interaction.user.id not in projects[1074148268407275520]['admins'] or improvements_channel.id != 1074148268407275520):
-        no = "no"
-        await utils.report_error(client, no)
-        await respond(interaction, no)
-        return
+    if improvements_channel.guild.id == 403698615446536203:
+        celestecord_admins = projects[1074148268407275520]['admins'] + projects[598945702554501130]['admins']
+        celestecord_channels = (1074148268407275520, 598945702554501130)
+
+        if interaction.user.id not in celestecord_admins or improvements_channel.id not in celestecord_channels:
+            no = "no"
+            await utils.report_error(client, no)
+            await respond(interaction, no)
+            return
 
     # verify needed permissions in improvements channel
     missing_permissions = utils.missing_channel_permissions(improvements_channel)
