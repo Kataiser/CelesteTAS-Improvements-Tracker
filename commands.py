@@ -134,7 +134,8 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
         await utils.report_error(client, f"Repo {repo_and_subdir} isn't fully qualified")
         await respond(interaction, f"Repo \"{repo_and_subdir}\" isn't fully qualified, must be OWNER/REPO or OWNER/REPO/PROJECT")
         return
-    repo_split = repo_and_subdir.rstrip('/').split('/')
+    repo_fixed = repo_and_subdir.removeprefix('https://github.com/')
+    repo_split = repo_fixed.rstrip('/').split('/')
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
     r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
