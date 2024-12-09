@@ -347,7 +347,7 @@ async def rename_file(interaction, project_name: str, filename_before: str, file
     await commands.command_rename_file(interaction, project_name, filename_before, filename_after)
 
 
-@command_tree.command(description="Rename a file in the repo of a project, recommended over manually committing")
+@command_tree.command(description="Add or remove an admin from a project")
 @app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
 @app_commands.describe(edited_admin="The user you're adding or removing")
 @app_commands.describe(edit="Whether to add or remove them from admin")
