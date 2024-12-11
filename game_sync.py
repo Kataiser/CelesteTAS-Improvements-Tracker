@@ -81,44 +81,7 @@ def sync_test(project_id: int, force: bool):
     stream_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
     log.addHandler(stream_handler)
 
-    # project = db.projects.get(project_id)
-
-    from decimal import Decimal
-    project_id = 598945702554501130
-    project = {'desyncs': [],
-               'lobby_sheet_cell': None,
-               'last_run_validation': Decimal('1728037468'),
-               'is_lobby': False,
-               'subdir': '',
-               'last_commit_time': Decimal('1725375375'),
-               'name': 'Celeste',
-               'commit_drafts': False,
-               'sync_environment_state': {'game_sync_hash': Decimal('-939547086017436112'),
-                                          'subdir': '',
-                                          'installation_owner': 'rukogit',
-                                          'repo': 'rukogit/UltraJumpTas',
-                                          'host': 'DESKTOP-2JLS64U',
-                                          'mod_versions': {'SpeedrunTool': '3.22.11', 'ExtendedVariantMode': '0.39.1', 'CelesteTAS': '3.40.3'},
-                                          'everest_version': Decimal('5034'),
-                                          'last_commit_time': Decimal('1725375375'),
-                                          'is_lobby': False,
-                                          'excluded_items': []},
-               'enabled': True,
-               'disallowed_command_exemptions': [],
-               'use_contributors_file': False,
-               'do_run_validation': True,
-               'installation_owner': 'VampireFlower',
-               'filetimes': {},
-               'sync_check_timed_out': False,
-               'admins': [Decimal('219955313334288385'), Decimal('234520815658336258')],
-               'install_time': Decimal('1695486645'),
-               'excluded_items': [],
-               'contributors_file_path': '',
-               'repo': 'VampireFlower/CelesteTAS',
-               'mods': [],
-               'pin': Decimal('1155179463391330477'),
-               'project_id': Decimal('598945702554501130'),
-               'ensure_level': True}
+    project = db.projects.get(project_id)
 
     if not project['do_run_validation'] and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to it now being disabled")
