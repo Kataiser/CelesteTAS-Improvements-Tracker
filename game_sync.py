@@ -81,7 +81,44 @@ def sync_test(project_id: int, force: bool):
     stream_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
     log.addHandler(stream_handler)
 
-    project = db.projects.get(project_id)
+    # project = db.projects.get(project_id)
+
+    from decimal import Decimal
+    project_id = 598945702554501130
+    project = {'desyncs': [],
+               'lobby_sheet_cell': None,
+               'last_run_validation': Decimal('1728037468'),
+               'is_lobby': False,
+               'subdir': '',
+               'last_commit_time': Decimal('1725375375'),
+               'name': 'Celeste',
+               'commit_drafts': False,
+               'sync_environment_state': {'game_sync_hash': Decimal('-939547086017436112'),
+                                          'subdir': '',
+                                          'installation_owner': 'rukogit',
+                                          'repo': 'rukogit/UltraJumpTas',
+                                          'host': 'DESKTOP-2JLS64U',
+                                          'mod_versions': {'SpeedrunTool': '3.22.11', 'ExtendedVariantMode': '0.39.1', 'CelesteTAS': '3.40.3'},
+                                          'everest_version': Decimal('5034'),
+                                          'last_commit_time': Decimal('1725375375'),
+                                          'is_lobby': False,
+                                          'excluded_items': []},
+               'enabled': True,
+               'disallowed_command_exemptions': [],
+               'use_contributors_file': False,
+               'do_run_validation': True,
+               'installation_owner': 'VampireFlower',
+               'filetimes': {},
+               'sync_check_timed_out': False,
+               'admins': [Decimal('219955313334288385'), Decimal('234520815658336258')],
+               'install_time': Decimal('1695486645'),
+               'excluded_items': [],
+               'contributors_file_path': '',
+               'repo': 'VampireFlower/CelesteTAS',
+               'mods': [],
+               'pin': Decimal('1155179463391330477'),
+               'project_id': Decimal('598945702554501130'),
+               'ensure_level': True}
 
     if not project['do_run_validation'] and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to it now being disabled")
@@ -89,7 +126,6 @@ def sync_test(project_id: int, force: bool):
         return
 
     log.info(f"Running sync test for project: {project['name']}")
-    project_id = project['project_id']
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -97,9 +133,10 @@ def sync_test(project_id: int, force: bool):
     filetimes = {}
     desyncs = []
     mods_to_load = set(mods)
+    mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'AltEnterFullscreen', 'HelperTestMapHider'}
     files_timed = 0
     remove_save_files()
-    queued_filetime_commits = []
+    queued_update_commits = []
     crash_logs_data = {}
     crash_logs_dir = f'{game_dir()}\\CrashLogs'
     get_mod_dependencies.cache_clear()
@@ -307,43 +344,46 @@ def sync_test(project_id: int, force: bool):
         if has_filetime:  # or tas_lines[tas_parsed.finaltime_line_num].lower().startswith('midway'):
             clear_debug_save()
 
-        if tas_parsed_new.found_finaltime:
-            frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
-            time_synced = frame_diff == 0
-
-            if not has_filetime:
-                if not tas_parsed_new.finaltime_frames:
-                    log_error(f"Couldn't parse FileTime frames for {file_path_repo}")
-                    continue
-
-                log_command = log.info if time_synced else log.warning
-                time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
-                              f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
-                log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
-
-                if time_synced:
-                    if file_path_repo not in sid_cache and sid:
-                        sid_cache[file_path_repo] = sid
-                        db.sid_caches.set(project_id, sid_cache)
-                        log.info(f"Cached SID for {file_path_repo}: {sid}")
-                    elif not sid:
-                        log.warning(f"Running {file_path_repo} yielded no SID")
-                else:
-                    desyncs.append((tas_filename, time_delta))
-            else:
-                log.info(f"Time: {tas_parsed_new.finaltime_trimmed}")
-                filetimes[tas_filename] = tas_parsed_new.finaltime_trimmed
-
-                if not time_synced:
-                    new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
-                    tas_lines_og[tas_parsed.finaltime_line_num] = new_time_line
-                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                    queued_filetime_commits.append((file_path_repo, tas_lines_og, commit_message))
-                    # don't commit now, since there may be desyncs
-        else:
+        if not tas_parsed_new.found_finaltime:
             log.warning(f"Desynced (no {finaltime_line_blank.partition(':')[0]})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append((tas_filename, None))
+            break
+
+        frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
+        time_synced = frame_diff == 0
+
+        if has_filetime or project_id == 598945702554501130:
+            log.info(f"Time: {tas_parsed_new.finaltime_trimmed}")
+
+            if has_filetime:
+                filetimes[tas_filename] = tas_parsed_new.finaltime_trimmed
+
+            if not time_synced:
+                new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
+                tas_lines_og[tas_parsed.finaltime_line_num] = new_time_line
+                commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
+                queued_update_commits.append((file_path_repo, tas_lines_og, commit_message))
+                # don't commit now, since there may be desyncs
+        else:
+            if not tas_parsed_new.finaltime_frames:
+                log_error(f"Couldn't parse FileTime frames for {file_path_repo}")
+                continue
+
+            log_command = log.info if time_synced else log.warning
+            time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
+                          f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
+            log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
+
+            if time_synced:
+                if file_path_repo not in sid_cache and sid:
+                    sid_cache[file_path_repo] = sid
+                    db.sid_caches.set(project_id, sid_cache)
+                    log.info(f"Cached SID for {file_path_repo}: {sid}")
+                elif not sid:
+                    log.warning(f"Running {file_path_repo} yielded no SID")
+            else:
+                desyncs.append((tas_filename, time_delta))
 
     close_game()
     project = db.projects.get(project_id)  # update this, in case it has changed since starting
@@ -371,7 +411,7 @@ def sync_test(project_id: int, force: bool):
     log.info("Wrote sync result to DB")
 
     # commit updated fullgame files
-    for queued_commit in queued_filetime_commits:
+    for queued_commit in queued_update_commits:
         file_path_repo, lines, commit_message = queued_commit
         lines_joined = ''.join(lines)
         desyncs_found = [d for d in desyncs if d[0][:-4] in lines_joined]
@@ -420,11 +460,10 @@ def format_desyncs(desyncs: list) -> str:
 
 def generate_blacklist(mods_to_load: set):
     installed_mods = [item for item in os.listdir(f'{game_dir()}\\Mods') if item.endswith('.zip')]
-    always_mods = ('CelesteTAS.zip', 'SpeedrunTool.zip', 'AltEnterFullscreen.zip', 'HelperTestMapHider.zip')
     blacklist = []
 
     for installed_mod in installed_mods:
-        if installed_mod.removesuffix('.zip') not in mods_to_load and installed_mod not in always_mods:
+        if installed_mod.removesuffix('.zip') not in mods_to_load:
             blacklist.append(installed_mod)
 
     with open(f'{game_dir()}\\Mods\\blacklist.txt', 'w') as blacklist_txt:
@@ -610,10 +649,8 @@ def generate_environment_state(project: dict, mods: set) -> dict:
 
         state['mod_versions'][mod] = mod_gb['Version']
 
-    state['mod_versions']['CelesteTAS'] = gb_mods['CelesteTAS']['Version']
-    state['mod_versions']['SpeedrunTool'] = gb_mods['SpeedrunTool']['Version']
     log.info(f"Done: {state}")
-    assert len(state['mod_versions']) == len(mods) + 2
+    assert len(state['mod_versions']) == len(mods)
     return state
 
 
