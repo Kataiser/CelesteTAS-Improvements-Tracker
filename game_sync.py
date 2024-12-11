@@ -208,20 +208,18 @@ def sync_test(project_id: int, force: bool):
             has_filetime = finaltime_line_lower.startswith('filetime')
             finaltime_is_midway = finaltime_line_lower.startswith('midway')
             finaltime_line_blank = f'{tas_lines[tas_parsed.finaltime_line_num].partition(' ')[0]} \n'
+            tas_lines_og = tas_lines.copy()
+            tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
 
             if has_filetime or finaltime_is_midway:
                 clear_debug_save()
 
             if has_filetime:
-                tas_lines_og = tas_lines.copy()
-                tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
                 has_console_load = [line for line in tas_lines if line.startswith('console load')] != []
 
                 if not has_console_load:
                     # if it starts from begin, then menu there. doesn't change mod
                     tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 20\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n', '14\n']
-            else:
-                tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
         else:
             log.info(f"{tas_filename} has no final time")
             continue
@@ -399,12 +397,12 @@ def sync_test(project_id: int, force: bool):
 
 def clear_debug_save():
     try:
-        requests.post('http://localhost:32270/console?command=overworld', timeout=2)
-        scaled_sleep(5)
-        requests.post('http://localhost:32270/console?command=clrsav', timeout=2)
-        scaled_sleep(5)
+        requests.post('http://localhost:32270/console?command=overworld', timeout=10)
+        scaled_sleep(4)
+        requests.post('http://localhost:32270/console?command=clrsav', timeout=10)
+        scaled_sleep(4)
         log.info("Cleared debug save")
-        scaled_sleep(5)
+        scaled_sleep(4)
     except (requests.Timeout, requests.ConnectionError):
         pass
 

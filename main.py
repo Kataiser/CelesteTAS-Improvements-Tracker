@@ -349,9 +349,11 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
         filetimes = dict(sorted(project['filetimes'].items()))
 
         if project['project_id'] == 598945702554501130:
-            for file in filetimes:
-                if not file.startswith('0 - '):
-                    del filetimes[file]
+            for file in tuple(filetimes.keys()):
+                if file.startswith('0 - '):
+                    filetimes[file.removeprefix('0 - ')] = filetimes[file]
+
+                del filetimes[file]
 
         if last_run:
             sync_timestamp = f"<t:{last_run}> (<t:{last_run}:R>)"
