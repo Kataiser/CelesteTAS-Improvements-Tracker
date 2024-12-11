@@ -420,9 +420,7 @@ def time_to_frames(time: str) -> int:
 
 
 def as_lines(tas: bytes) -> List[str]:
-    lines = tas.decode('UTF8').splitlines()
-    log.info(f"Converted {len(tas)} bytes to {len(lines)} TAS lines")
-    return lines
+    return tas.decode('UTF8').splitlines()
 
 
 def filter_out_links(text: str):

@@ -322,7 +322,7 @@ def sync_test(project_id: int, force: bool):
 
             if not time_synced:
                 new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
-                tas_lines_og[tas_parsed.finaltime_line_num] = new_time_line
+                tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
                 commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
                 queued_update_commits.append((file_path_repo, tas_lines_og, commit_message))
                 # don't commit now, since there may be desyncs
