@@ -168,7 +168,8 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     log.info("Verification successful")
 
     current_time = int(time.time())
-    registered_project = {'name': strip_markdown.strip_markdown(name.replace('"', '')),
+    registered_project = {'project_id': improvements_channel.id,
+                          'name': strip_markdown.strip_markdown(name.replace('"', '')),
                           'repo': repo,
                           'installation_owner': github_account,
                           'admins': (interaction.user.id,),
@@ -215,7 +216,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     if editing:
         await respond(interaction, "Successfully verified and edited project.")
     else:
-        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the DM command `/add_mods`." if do_sync_check.lower() == 'y' else ""
+        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the DM command `/add_mods`." if do_sync_check else ""
         lobby_sheet_text = " If you want to automatically update lobby connection times on a google sheet, run `/link_lobby_sheet`." if registered_project['is_lobby'] else ""
         await respond(interaction, "Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
@@ -691,6 +692,8 @@ async def command_open_url(message: discord.Message):
 
 
 async def handle_direct_dm(message: discord.Message):
+    log.info(f"Received DM from {utils.detailed_user(message)}: `{message.content}`")
+
     if message.content.lower() in ('ok', 'hi', 'hello'):
         await message.channel.send(message.content)
         return
