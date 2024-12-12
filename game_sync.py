@@ -25,6 +25,7 @@ import db
 import main
 import utils
 import validation
+from constants import admin_user_id
 from utils import plural
 
 
@@ -309,7 +310,7 @@ def sync_test(project_id: int, force: bool):
             log.warning(f"Desynced (no {finaltime_line_blank.partition(':')[0]})")
             log.info(session_data.partition('<pre>')[2].partition('</pre>')[0])
             desyncs.append((tas_filename, None))
-            break
+            continue
 
         frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
         time_synced = frame_diff == 0
@@ -391,6 +392,7 @@ def sync_test(project_id: int, force: bool):
         utils.handle_potential_request_error(r, 200)
         commit_url = ujson.loads(r.content)['commit']['html_url']
         log.info(f"Successfully committed: {commit_url}")
+        db.sync_results.set(int(time.time()), {'user_ids': (admin_user_id, 234520815658336258), 'message': f"Committed `{commit_message}` {commit_url}"})
 
     log.info(f"Sync check time: {format_elapsed_time(start_time)}")
 

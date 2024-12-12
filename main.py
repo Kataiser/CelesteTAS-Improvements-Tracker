@@ -467,9 +467,13 @@ async def handle_game_sync_results():
         try:
             project = db.projects.get(project_id)
         except db.DBKeyError:
-            log.info(f"Reporting sync check error: {sync_result}")
-            assert sync_result['reported_error']
-            await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
+            if 'reported_error' in sync_result:
+                log.info(f"Reporting sync check error: {sync_result}")
+                await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
+            else:
+                for user_id in sync_result['user_ids']:
+                    await (await utils.user_from_id(client, user_id)).send(sync_result['message'])
+
             db.sync_results.delete_item(project_id)
             continue
 
