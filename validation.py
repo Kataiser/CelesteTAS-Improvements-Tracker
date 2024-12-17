@@ -278,11 +278,18 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate level
     if project['ensure_level']:
-        filename_level = re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')
+        filenames_level = [re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')]
         message_level = re_remove_punctuation.subn('', filter_out_links(message_lowercase))[0].replace('_', '')
 
-        if filename_level not in message_level:
-            validation_result.emit_failed_check("The level name is missing in your message, please add it and post again.", f"level name ({filename_level}) missing in message content")
+        # aliases for maingame
+        if project['project_id'] == 598945702554501130:
+            if filename.startswith('9'):
+                filenames_level.append("farewell")
+            elif filenames_level[0][-1].isdigit():
+                filenames_level.append(filenames_level[0][:-1])
+
+        if not [f for f in filenames_level if f in message_level]:
+            validation_result.emit_failed_check("The level name is missing in your message, please add it and post again.", f"level name {filenames_level} missing in message content")
 
     if got_timesave:
         timesave = str(time_saved_messages[0]) if time_saved_messages else None

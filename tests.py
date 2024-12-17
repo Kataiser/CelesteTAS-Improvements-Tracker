@@ -264,7 +264,7 @@ def test_validate(setup_log, monkeypatch):
                 '1k_Kataiser.tas': 'subproject/1k_Kataiser.tas', 'royal_gardens_renamed.tas': 'subproject/royal_gardens_renamed.tas',
                 'glitchy.tas': 'sync_testing/glitchy.tas', 'glitchy_-_Copy.tas': 'sync_testing/glitchy_-_Copy.tas'}
 
-    test_project = {'is_lobby': False, 'excluded_items': (), 'ensure_level': True, 'disallowed_command_exemptions': []}
+    test_project = {'project_id': 0, 'is_lobby': False, 'excluded_items': (), 'ensure_level': True, 'disallowed_command_exemptions': []}
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(db.path_caches, 'get', mock_path_caches_get)
     ehs_valid = Path('test_tases\\expert_heartside.tas').read_bytes()
@@ -327,7 +327,7 @@ def test_validate(setup_log, monkeypatch):
                                                                         "duplicate room label #lvl_hub on line 521 in the_lab.tas",
                                                                         "ChapterTime (1:32.871) missing in message content",
                                                                         "no \"draft\" text in message",
-                                                                        "level name (lab) missing in message content"])
+                                                                        "level name ['lab'] missing in message content"])
     assert validation.validate(Path('test_tases\\room indexes\\the_lab not indexed.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_duplicate_room_label
 
     result_missing_room_label = validation.ValidationResult(valid_tas=False, finaltime='1:32.871', finaltime_frames=5463,
@@ -339,7 +339,7 @@ def test_validate(setup_log, monkeypatch):
                                                             log_text=["missing room label #lvl_hub on line 521 in the_lab.tas",
                                                                       "ChapterTime (1:32.871) missing in message content",
                                                                       "no \"draft\" text in message",
-                                                                      "level name (lab) missing in message content"])
+                                                                      "level name ['lab'] missing in message content"])
     assert validation.validate(Path('test_tases\\room indexes\\the_lab unfinished index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_missing_room_label
 
     result_disordered_room_label = validation.ValidationResult(valid_tas=False, finaltime='1:32.871', finaltime_frames=5463,
@@ -351,7 +351,7 @@ def test_validate(setup_log, monkeypatch):
                                                                log_text=["out of order room label #lvl_hub (2) on line 521 in the_lab.tas",
                                                                          "ChapterTime (1:32.871) missing in message content",
                                                                          "no \"draft\" text in message",
-                                                                         "level name (lab) missing in message content"])
+                                                                         "level name ['lab'] missing in message content"])
     assert validation.validate(Path('test_tases\\room indexes\\the_lab disordered index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_disordered_room_label
 
     result_inconsistent_room_label = validation.ValidationResult(valid_tas=False, finaltime='1:32.871', finaltime_frames=5463,
@@ -364,7 +364,7 @@ def test_validate(setup_log, monkeypatch):
                                                                  log_text=["incorrect initial room label #lvl_start-04-Radley (1) on line 80 in the_lab.tas",
                                                                            "ChapterTime (1:32.871) missing in message content",
                                                                            "no \"draft\" text in message",
-                                                                           "level name (lab) missing in message content"])
+                                                                           "level name ['lab'] missing in message content"])
     assert (validation.validate(Path('test_tases\\room indexes\\the_lab inconsistent index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) ==
             result_inconsistent_room_label)
 
@@ -375,7 +375,7 @@ def test_validate(setup_log, monkeypatch):
                                                                        "The level name is missing in your message, please add it and post again."],
                                                          log_text=["ChapterTime (4:01.145) missing in message content",
                                                                            "no \"draft\" text in message",
-                                                                   "level name (area36) missing in message content"])
+                                                                   "level name ['area36'] missing in message content"])
     assert (validation.validate(Path('test_tases\\room indexes\\area_36.tas').read_bytes(), 'area_36.tas', message, None, test_project, False) ==
             result_last_room_label)
 
@@ -398,7 +398,7 @@ def test_validate(setup_log, monkeypatch):
                                                                        "incorrect command argument in nyoom.tas: Set, Set command is not allowed",
                                                                        "ChapterTime (45.016) missing in message content",
                                                                        "no \"draft\" text in message",
-                                                                       "level name (nyoom) missing in message content"])
+                                                                       "level name ['nyoom'] missing in message content"])
     assert validation.validate(Path('test_tases\\nyoom.tas').read_bytes(), 'nyoom.tas', message, None, test_project, False) == result_disallowed_command2
 
     result_wrong_command_args = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
@@ -473,14 +473,27 @@ def test_validate(setup_log, monkeypatch):
                                                   warning_text=["Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post "
                                                                 "again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo (did you mean "
                                                                 "`grandmaster_heartside.tas`?).", "The level name is missing in your message, please add it and post again."],
-                                                  log_text=["no \"draft\" text in message", "level name (grandmasterheartside2) missing in message content"])
+                                                  log_text=["no \"draft\" text in message", "level name ['grandmasterheartside2'] missing in message content"])
     assert validation.validate(ehs_valid, 'grandmaster_heartside2.tas', message, None, test_project, False) == result_no_draft
 
     message_no_levelname = discord.Message("-229f (7:54.929)", MockChannel(), mock_kataiser)
     result_no_levelname = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937, timesave='-229f',
                                                       warning_text=["The level name is missing in your message, please add it and post again."],
-                                                      log_text=["level name (expertheartside) missing in message content"])
+                                                      log_text=["level name ['expertheartside'] missing in message content"])
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_levelname, ehs_old, test_project, False) == result_no_levelname
+
+    test_project['project_id'] = 598945702554501130
+    message_maingame_levelname = discord.Message("-0f Farewell 8:04.177(28481)", MockChannel(), mock_kataiser)
+    result_maingame_levelname = validation.ValidationResult(valid_tas=True, finaltime='8:04.177', finaltime_frames=28481, timesave='-0f', warning_text=[], log_text=[])
+    farewell = Path('test_tases\\9.tas').read_bytes()
+    farewell_prev = Path('test_tases\\9_prev.tas').read_bytes()
+    assert validation.validate(farewell, '9.tas', message_maingame_levelname, farewell_prev, test_project, False) == result_maingame_levelname
+
+    message_maingame_levelname2 = discord.Message("-1f 4SH (3:24.867 → 3:24.850)", MockChannel(), mock_kataiser)
+    result_maingame_levelname2 = validation.ValidationResult(valid_tas=True, finaltime='3:24.850', finaltime_frames=12050, timesave='-1f', warning_text=[], log_text=[])
+    ridge_sh = Path('test_tases\\4SH0.tas').read_bytes()
+    ridge_sh_prev = Path('test_tases\\4SH0_prev.tas').read_bytes()
+    assert validation.validate(ridge_sh, '4SH0.tas', message_maingame_levelname2, ridge_sh_prev, test_project, False) == result_maingame_levelname2
 
 
 def test_parse_tas_file(setup_log):
