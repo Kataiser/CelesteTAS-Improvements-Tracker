@@ -35,7 +35,9 @@ def run_syncs():
     log = main.create_logger('game_sync')
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
+    parser.add_argument('--all', action='store_true', help="Run all sync checks", default=False)
     cli_project = parser.parse_args().project
+    force_run_all = parser.parse_args().all
 
     with open('game_sync.py', 'rb') as game_sync_py:
         game_sync_hash = zlib.adler32(game_sync_py.read())
@@ -58,13 +60,13 @@ def run_syncs():
                 test_project_ids.append(project_id)
 
         all_sync_tests = {project_id: projects[project_id]['name'] for project_id in test_project_ids}
-        log.info(f"Running all sync tests: {all_sync_tests}")
+        log.info(f"Running all sync tests: {all_sync_tests} (forcing all: {force_run_all})")
 
     update_everest()
 
     try:
         for project_id in test_project_ids:
-            sync_test(project_id, cli_project)
+            sync_test(project_id, cli_project or force_run_all)
     except Exception:
         log_error()
         close_game()
