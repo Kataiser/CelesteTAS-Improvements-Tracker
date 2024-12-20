@@ -201,10 +201,11 @@ def sync_test(project_id: int, force: bool):
         elif tas_filename in ('translocation.tas', 'mt_celeste_jazz_club.tas'):
             continue
 
-        with open(file_path, 'r', encoding='UTF8') as tas_file:
-            tas_lines = tas_file.readlines()
+        with open(file_path, 'rb') as tas_file:
+            tas_file_raw = tas_file.read()
 
         # set up tas file
+        tas_lines = tas_file_raw.decode('UTF8').splitlines()
         tas_parsed = validation.parse_tas_file(tas_lines, False, False)
 
         if tas_parsed.found_finaltime:
@@ -386,11 +387,16 @@ def sync_test(project_id: int, force: bool):
             log.info(f"Not committing updated fullgame file {file_path_repo} due to desyncs: {desyncs_found}")
             continue
 
+        log.info(f"Committing updated fullgame file: \"{commit_message}\"")
+
+        if tas_file_raw.count(b'\r\n') >= tas_file_raw.count(b'\n'):  # if raw uses crlf
+            log.info("Converted it to CRLF")
+            lines_joined = lines_joined.replace('\n', '\r\n')
+
         main.generate_request_headers(project['installation_owner'], 300)
         commit_data = {'content': base64.b64encode(lines_joined.encode('UTF8')).decode('UTF8'),
                        'sha': main.get_sha(repo, file_path_repo),
                        'message': commit_message}
-        log.info(f"Committing updated fullgame file: \"{commit_data['message']}\"")
         r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_repo}', headers=main.headers, data=ujson.dumps(commit_data))
         utils.handle_potential_request_error(r, 200)
         commit_url = ujson.loads(r.content)['commit']['html_url']
