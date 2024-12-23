@@ -205,7 +205,7 @@ def sync_test(project_id: int, force: bool):
             tas_file_raw = tas_file.read()
 
         # set up tas file
-        tas_lines = tas_file_raw.decode('UTF8').splitlines()
+        tas_lines = tas_file_raw.replace(b'\r\n', b'\n').decode('UTF8').splitlines(keepends=True)
         tas_parsed = validation.parse_tas_file(tas_lines, False, False)
 
         if tas_parsed.found_finaltime:
