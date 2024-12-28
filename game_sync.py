@@ -329,7 +329,8 @@ def sync_test(project_id: int, force: bool):
                 new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
                 tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
                 commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                queued_update_commits.append((file_path_repo, tas_lines_og, commit_message))
+                raw_uses_crlf = tas_file_raw.count(b'\r\n') >= tas_file_raw.count(b'\n')
+                queued_update_commits.append((file_path_repo, tas_lines_og, raw_uses_crlf, commit_message))
                 # don't commit now, since there may be desyncs
         else:
             if not tas_parsed_new.finaltime_frames:
@@ -378,7 +379,7 @@ def sync_test(project_id: int, force: bool):
 
     # commit updated fullgame files
     for queued_commit in queued_update_commits:
-        file_path_repo, lines, commit_message = queued_commit
+        file_path_repo, lines, uses_crlf, commit_message = queued_commit
         lines_joined = ''.join(lines)
         desyncs_found = [d for d in desyncs if d[0][:-4] in lines_joined]
 
@@ -388,13 +389,14 @@ def sync_test(project_id: int, force: bool):
             continue
 
         log.info(f"Committing updated fullgame file: \"{commit_message}\"")
+        lines_encoded = lines_joined.encode('UTF8')
 
-        if tas_file_raw.count(b'\r\n') >= tas_file_raw.count(b'\n'):  # if raw uses crlf
+        if uses_crlf:  # if raw uses crlf
             log.info("Converted it to CRLF")
-            lines_joined = lines_joined.replace('\n', '\r\n')
+            lines_encoded = lines_encoded.replace(b'\n', b'\r\n')
 
         main.generate_request_headers(project['installation_owner'], 300)
-        commit_data = {'content': base64.b64encode(lines_joined.encode('UTF8')).decode('UTF8'),
+        commit_data = {'content': base64.b64encode(lines_encoded).decode('UTF8'),
                        'sha': main.get_sha(repo, file_path_repo),
                        'message': commit_message}
         r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_repo}', headers=main.headers, data=ujson.dumps(commit_data))
