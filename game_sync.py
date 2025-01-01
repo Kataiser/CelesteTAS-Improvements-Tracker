@@ -25,7 +25,6 @@ import db
 import main
 import utils
 import validation
-from constants import admin_user_id
 from utils import plural
 
 
@@ -399,7 +398,7 @@ def sync_test(project_id: int, force: bool):
         log.info(f"Successfully committed: {commit_url}")
 
         if project_is_maingame:
-            db.sync_results.set(int(time.time()), {'user_ids': (admin_user_id, 234520815658336258), 'message': f"Committed `{commit_message}` <{commit_url}>"})
+            db.sync_results.set(int(time.time()), {'maingame_message': f"Committed `{commit_message}` <{commit_url}>"})
 
     log.info(f"Sync check time: {format_elapsed_time(start_time)}")
 

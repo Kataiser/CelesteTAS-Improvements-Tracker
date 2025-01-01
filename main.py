@@ -471,10 +471,8 @@ async def handle_game_sync_results():
                 log.info(f"Reporting sync check error: {sync_result}")
                 await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
             else:
-                for user_id in sync_result['user_ids']:
-                    informed_user = await utils.user_from_id(client, user_id)
-                    log.info(f"Reporting updated maingame time to {utils.detailed_user(user=informed_user)}: \"{sync_result['message']}\"")
-                    await informed_user.send(sync_result['message'])
+                log.info(f"Reporting updated maingame time: \"{sync_result['maingame_message']}\"")
+                await client.get_channel(1323811411226263654).send(sync_result['maingame_message'])
 
             db.sync_results.delete_item(project_id)
             continue
