@@ -11,7 +11,7 @@ import time
 import urllib.parse
 import zipfile
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 
 import discord
 import requests
@@ -514,19 +514,48 @@ async def handle_no_game_sync_results():
             await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago")
 
 
-def start_tasks() -> tuple[bool, bool]:
-    handle_game_sync_results_running = handle_game_sync_results.is_running()
-    handle_no_game_sync_results_running = handle_no_game_sync_results.is_running()
+@tasks.loop(seconds=30)
+async def alert_server_join():
+    global mc_server_log_last_update, mc_server_log_last_pos
+    log_file = Path('C:/Users/Vamp/Documents/tas_offtopic server/logs/latest.log')
+    assert log_file.is_file()
+    log_mtime = log_file.stat().st_mtime
 
-    if not handle_game_sync_results_running:
-        handle_game_sync_results.start()
-        log.info("Started handle_game_sync_results task")
+    if log_mtime == mc_server_log_last_update:
+        return
 
-    if not handle_no_game_sync_results_running:
-        handle_no_game_sync_results.start()
-        log.info("Started handle_no_game_sync_results task")
+    first_scan = not mc_server_log_last_update
+    mc_server_log_last_update = log_mtime
 
-    return handle_game_sync_results_running, handle_no_game_sync_results_running
+    with open(log_file, 'rb') as log_file_open:
+        log_file_open.seek(mc_server_log_last_pos)
+        new_lines = log_file_open.readlines()
+        mc_server_log_last_pos = log_file_open.tell()
+
+    if first_scan:
+        return
+
+    log.info("Minecraft server log has been updated")
+
+    for line in new_lines:
+        if (b"joined the game" in line or b"left the game" in line) and b"MechKataiser" not in line:
+            await (await utils.user_from_id(client, admin_user_id)).send(f"MC server: `{line.decode('UTF8').rstrip()}`")
+
+
+def start_tasks() -> dict[Callable, bool]:
+    tasks_running = {handle_game_sync_results: False,
+                     handle_no_game_sync_results: False,
+                     alert_server_join: False}
+
+    for task in tasks_running:
+        tasks_running[task] = task.is_running()
+
+        if not tasks_running[task]:
+            task.start()
+            log.info(f"Started {task._name}")
+            tasks_running[task] = True
+
+    return tasks_running
 
 
 def update_contributors(contributor: discord.User, project_id: int, project: dict):
@@ -667,3 +696,5 @@ safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976
 inaccessible_projects = set(safe_projects)
 fast_project_ids = set()
 re_lobby_filename = re.compile(r'.+_(\d+)-(\d+)\.tas')
+mc_server_log_last_update = None
+mc_server_log_last_pos = 0
