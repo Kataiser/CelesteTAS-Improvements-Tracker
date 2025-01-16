@@ -535,7 +535,7 @@ async def alert_server_join():
     if first_scan:
         return
 
-    log.info("Minecraft server log has been updated")
+    log.info(f"Minecraft server log has been updated with {len(new_lines)} lines")
 
     for line in new_lines:
         if (b"joined the game" in line or b"left the game" in line) and b"MechKataiser" not in line:
