@@ -35,8 +35,10 @@ def run_syncs():
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
     parser.add_argument('--all', action='store_true', help="Run all sync checks", default=False)
+    parser.add_argument('--safe', action='store_true', help="Disable database writes", default=False)
     cli_project = parser.parse_args().project
     force_run_all = parser.parse_args().all
+    db.writes_enabled = not parser.parse_args().safe
 
     with open('game_sync.py', 'rb') as game_sync_py:
         game_sync_hash = zlib.adler32(game_sync_py.read())
@@ -160,7 +162,7 @@ def sync_test(project_id: int, force: bool):
 
     # add asserts for cached SIDs
     try:
-        sid_cache = db.sid_caches.get(project_id, consistent_read=False)
+        sid_cache = db.sid_caches.get(project_id)
         log.info(f'Loaded {len(sid_cache)} cached SIDs')
     except db.DBKeyError:
         sid_cache = {}
@@ -591,7 +593,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
     state = {'host': socket.gethostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash,
              'excluded_items': project['excluded_items'], 'installation_owner': project['installation_owner'], 'is_lobby': project['is_lobby'], 'repo': project['repo'],
-             'subdir': project['subdir']}
+             'subdir': project['subdir'], 'sid_caches_exist': True}
 
     try:
         r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
@@ -617,6 +619,11 @@ def generate_environment_state(project: dict, mods: set) -> dict:
             mod_gb = gb_mods[mod.replace('_', ' ')]
 
         state['mod_versions'][mod] = mod_gb['Version']
+
+    try:
+        db.sid_caches.get(project['project_id'], consistent_read=False)
+    except db.DBKeyError:
+        state['sid_caches_exist'] = False
 
     log.info(f"Done: {state}")
     assert len(state['mod_versions']) == len(mods)
