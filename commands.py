@@ -607,6 +607,40 @@ async def command_projects_admined(interaction: discord.Interaction):
         await respond(interaction, "You're not an admin of any projects.")
 
 
+@command(report_usage=True)
+async def command_set_github(interaction: discord.Interaction, account_name: str, email: str):
+    r = requests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
+
+    if r.status_code != 200:
+        await utils.report_error(client, f"GitHub account {account_name} doesn't seem to exist, status code is {r.status_code}")
+        await respond(interaction, f"GitHub account \"{account_name}\" doesn't seem to exist.")
+        return
+
+    db.githubs.set(interaction.user.id, [account_name, email])
+    await respond(interaction, f"Successfully associated Github account \"{account_name}\" and email {email} with your Discord account. Can be removed with /remove_github.")
+
+
+@command(report_usage=True)
+async def command_remove_github(interaction: discord.Interaction):
+    account_name, email = db.githubs.get(interaction.user.id)
+    db.githubs.delete_item(interaction.user.id)
+    await respond(interaction, f"Successfully dissociated Github account \"{account_name}\" and email {email} from your Discord account. Can be re-added with /set_github.")
+
+
+@command()
+async def command_check_github(interaction: discord.Interaction):
+    try:
+        account_name, email = db.githubs.get(interaction.user.id)
+    except db.DBKeyError:
+        await respond("You do not have a Github account associated with your Discord account.")
+    else:
+        r = requests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
+        account_exists = r.status_code == 200
+        await respond(interaction, f"Username: {account_name}\n"
+                                   f"Email: {email}\n"
+                                   f"Exists: {account_exists}")
+
+
 @admin_command()
 async def command_log(message: discord.Message):
     log.handlers[0].flush()

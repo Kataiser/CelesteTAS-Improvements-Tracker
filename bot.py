@@ -380,6 +380,26 @@ async def projects_admined(interaction):
     await commands.command_projects_admined(interaction)
 
 
+@command_tree.command(description="Set your Github account information for commit crediting")
+@app_commands.describe(account_name="The username (not display name) of the account")
+@app_commands.describe(email="The email of the account. Will NOT be private because of how git works")
+@app_commands.dm_only()
+async def set_github(interaction, account_name: str, email: str):
+    await commands.command_set_github(interaction, account_name, email)
+
+
+@command_tree.command(description="Remove your Github account information for commit crediting")
+@app_commands.dm_only()
+async def remove_github(interaction):
+    await commands.command_remove_github(interaction)
+
+
+@command_tree.command(description="Check your Github account information for commit crediting")
+@app_commands.dm_only()
+async def check_github(interaction):
+    await commands.command_check_github(interaction)
+
+
 @progress.autocomplete('map_name')
 async def map_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
     return [app_commands.Choice(name=sj_map, value=sj_map) for sj_map in spreadsheet.sj_fuzzy_match(current.lower())]

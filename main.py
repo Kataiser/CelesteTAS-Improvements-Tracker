@@ -518,7 +518,10 @@ async def handle_no_game_sync_results():
 async def alert_server_join():
     global mc_server_log_last_update, mc_server_log_last_pos
     log_file = Path('C:/Users/Vamp/Documents/tas_offtopic server/logs/latest.log')
-    assert log_file.is_file()
+
+    if not log_file.is_file():
+        return
+
     log_mtime = log_file.stat().st_mtime
 
     if log_mtime == mc_server_log_last_update:
