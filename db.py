@@ -45,6 +45,9 @@ class Table:
         return result
 
     def set(self, key: Union[str, int], value: Any, get_previous: bool = False) -> Any:
+        if not writes_enabled:
+            return
+
         added_primary = False
 
         if isinstance(value, dict):
@@ -85,6 +88,9 @@ class Table:
         return items_dict
 
     def delete_item(self, key: Union[str, int]):
+        if not writes_enabled:
+            return
+
         key_type = 'S' if isinstance(key, str) else 'N'
         client.delete_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}})
 
@@ -203,6 +209,7 @@ atexit.register(client.close)
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
 always_inconsistent_read = False
+writes_enabled = True
 
 if __name__ == '__main__':
     print(projects.metadata())
