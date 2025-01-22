@@ -87,7 +87,8 @@ def missing_channel_permissions(channel: discord.TextChannel) -> list:
                           'Send Messages': improvements_channel_permissions.send_messages,
                           'Read Messages': improvements_channel_permissions.read_messages,
                           'Read Message History': improvements_channel_permissions.read_message_history,
-                          'Add Reactions': improvements_channel_permissions.add_reactions}
+                          'Add Reactions': improvements_channel_permissions.add_reactions,
+                          'Manage Messages': improvements_channel_permissions.manage_messages}
 
     return [perm for perm in permissions_needed if not permissions_needed[perm]]
 

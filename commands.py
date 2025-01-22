@@ -34,10 +34,10 @@ def command(report_usage: bool = False, slow_start: bool = False):
             if report_usage and interaction.user.id != constants.admin_user_id:
                 try:
                     await (await utils.user_from_id(client, constants.admin_user_id)).send(f"Handling /{command_name} from {utils.detailed_user(user=interaction.user)}: ```"
-                                                                                 f"\n{pprint.pformat(interaction.data)}```")
+                                                                                 f"\n{pprint.pformat(interaction.data)[:1800]}```")
                     log.info("Reported command usage to bot admin")
                 except Exception as error:
-                    utils.log_error(f"Couldn't report command usage to bot admin: {repr(error)}")
+                    utils.log_error(f"Couldn't report /{command_name} usage to bot admin: {repr(error)}")
 
             if slow_start:
                 await interaction.response.defer()
