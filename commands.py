@@ -634,7 +634,7 @@ async def command_check_github(interaction: discord.Interaction):
     try:
         account_name, email = db.githubs.get(interaction.user.id)
     except db.DBKeyError:
-        await respond("You do not have a Github account associated with your Discord account.")
+        await respond(interaction, "You do not have a Github account associated with your Discord account.")
     else:
         r = requests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
         account_exists = r.status_code == 200
