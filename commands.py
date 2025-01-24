@@ -31,10 +31,12 @@ def command(report_usage: bool = False, slow_start: bool = False):
         command_name = func.__name__.removeprefix('command_')
 
         async def inner(interaction: discord.Interaction, *args):
+            interaction_data_log = f"Handling /{command_name} from {utils.detailed_user(user=interaction.user)}: ```\n{pprint.pformat(interaction.data)}```"
+            log.info(interaction_data_log)
+
             if report_usage and interaction.user.id != constants.admin_user_id:
                 try:
-                    await (await utils.user_from_id(client, constants.admin_user_id)).send(f"Handling /{command_name} from {utils.detailed_user(user=interaction.user)}: ```"
-                                                                                 f"\n{pprint.pformat(interaction.data)[:1800]}```")
+                    await (await utils.user_from_id(client, constants.admin_user_id)).send(f'{interaction_data_log[:-3][:1950]}```')  # trim for message length limit
                     log.info("Reported command usage to bot admin")
                 except Exception as error:
                     utils.log_error(f"Couldn't report /{command_name} usage to bot admin: {repr(error)}")
