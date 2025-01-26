@@ -408,7 +408,7 @@ def download_old_file(project_id: int, repo: str, filename: str, path_cache: Opt
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
         r_json = ujson.loads(r.content)
 
-        if r.status_code == 404 and 'message' in r_json and r_json['message'] in ("Not Found", "This repository is empty."):
+        if r.status_code == 404 and 'message' in r_json:
             if path_cache is None:
                 log.warning("File existed in path cache but doesn't seem to exist in repo. Retrying download with updated path cache")
                 new_path_cache = generate_path_cache(project_id)
