@@ -263,12 +263,15 @@ def sync_test(project_id: int, force: bool):
 
             try:
                 scaled_sleep(20 if has_filetime else 5)
-                session_data = requests.get('http://localhost:32270/tas/info', timeout=2).text
+                session_data = requests.get('http://localhost:32270/tas/info?forceAllowCodeExecution=true', timeout=2).text
             except requests.RequestException:
                 if not game_process.is_running():
                     game_crashed = True
             else:
-                tas_finished = 'Running: False' in session_data
+                tas_running = 'Running: True' in session_data
+                session_current_frames = session_data.partition('CurrentFrame: ')[2].partition('<')[0]
+                session_total_frames = session_data.partition('TotalFrames: ')[2].partition('<')[0]
+                tas_finished = not tas_running or session_current_frames == session_total_frames
 
                 if not has_filetime:
                     sid = session_data.partition('SID: ')[2].partition(' (')[0]
@@ -343,7 +346,7 @@ def sync_test(project_id: int, force: bool):
             log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
 
             if time_synced:
-                if file_path_repo not in sid_cache and sid:
+                if file_path_repo not in sid_cache and sid not in ('', 'null'):
                     sid_cache[file_path_repo] = sid
                     db.sid_caches.set(project_id, sid_cache)
                     log.info(f"Cached SID for {file_path_repo}: {sid}")
