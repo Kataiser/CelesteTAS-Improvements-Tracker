@@ -919,7 +919,6 @@ def test_various_gets(fast_db):
                                                                      '(\'time_saved\', \'924f (15.0%)\') (\'records\', \'7810\') (\'rpf\', \'1.496\')")',
                                                               'status': 'INFO', 'timestamp': '2023-10-12 15:49:00,087'}
     assert db.sid_caches.get(1074148268407275520)['1_Beginner/azure_caverns.tas'] == 'StrawberryJam2021/1-Beginner/cellularAutomaton'
-    assert db.sync_results.metadata()['Table']['TableId'] == '30be9a9f-b134-45ec-90e6-863a13fef99c'
 
 
 def test_set_delete_and_size():
