@@ -189,6 +189,7 @@ def sync_test(project_id: int, force: bool):
     if asserts_added:
         log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
 
+    log.info(f"Previous desyncs: {previous_desyncs}")
     game_process = wait_for_game_load(mods_to_load, project['name'])
 
     for tas_filename in path_cache:
@@ -377,7 +378,7 @@ def sync_test(project_id: int, force: bool):
 
     disabled_text = consider_disabling_after_inactivity(project, clone_time, False)
     db.projects.set(project_id, project)
-    db.sync_results.set(project_id, {'report_text': report_text, 'disabled_text': disabled_text, 'log': report_log, 'crash_logs': crash_logs_data})
+    db.send_sync_result(db.SyncResultType.NORMAL, {'project_id': project_id, 'report_text': report_text, 'disabled_text': disabled_text, 'log': report_log, 'crash_logs': crash_logs_data})
     log.info("Wrote sync result to DB")
 
     # commit updated fullgame files
@@ -403,7 +404,7 @@ def sync_test(project_id: int, force: bool):
         log.info(f"Successfully committed: {commit_url}")
 
         if project_is_maingame:
-            db.sync_results.set(int(time.time()), {'maingame_message': f"Committed `{commit_message}` <{commit_url}>"})
+            db.send_sync_result(db.SyncResultType.MAINGAME_COMMIT, {'maingame_message': f"Committed `{commit_message}` <{commit_url}>"})
 
     log.info(f"Sync check time: {format_elapsed_time(start_time)}")
 
@@ -661,7 +662,7 @@ def consider_disabling_after_inactivity(project: dict, reference_time: Union[int
 
         if from_abandoned:
             db.projects.set(project['project_id'], project)
-            db.sync_results.set(project['project_id'], {'report_text': None, 'disabled_text': disabled_text})
+            db.send_sync_result(db.SyncResultType.AUTO_DISABLE, {'project_id': project['project_id'], 'disabled_text': disabled_text})
         else:
             # don't need to return projects since it's mutable
             return disabled_text
@@ -735,7 +736,7 @@ def scaled_sleep(seconds: float):
 
 def log_error(message: Optional[str] = None):
     error = utils.log_error(message)
-    db.sync_results.set(int(time.time()), {'reported_error': True, 'error': error[-1950:]})
+    db.send_sync_result(db.SyncResultType.REPORTED_ERROR, {'time': int(time.time()), 'error': error[-1950:]})
 
 
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()

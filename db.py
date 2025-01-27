@@ -1,5 +1,8 @@
 import atexit
+import dataclasses
 import decimal
+import enum
+import json
 import os
 from operator import itemgetter
 from typing import Union, Any
@@ -13,6 +16,7 @@ from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 class Table:
     def __init__(self, table_name: str, primary_key: str):
         self.table_name = table_name
+        self.table_full_name = f'CelesteTAS-Improvement-Tracker_{self.table_name}'
         self.primary_key = primary_key
         self.caching = False
         self.cache = {}
@@ -23,12 +27,12 @@ class Table:
 
         key_type = 'S' if isinstance(key, str) else 'N'
         actual_consistent_read = False if always_inconsistent_read else consistent_read
-        item = client.get_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}}, ConsistentRead=actual_consistent_read)
+        item = dynamodb_client.get_item(TableName=self.table_full_name, Key={self.primary_key: {key_type: str(key)}}, ConsistentRead=actual_consistent_read)
 
         if 'Item' in item:
             item_deserialized = deserializer.deserialize({'M': item['Item']})
         else:
-            raise DBKeyError(f"'{key}' not found in table 'CelesteTAS-Improvement-Tracker_{self.table_name}'")
+            raise DBKeyError(f"'{key}' not found in table '{self.table_full_name}'")
 
         if '_value' in item_deserialized:
             result = item_deserialized['_value']
@@ -58,7 +62,7 @@ class Table:
             value = {self.primary_key: key, '_value': value}
 
         return_values = 'ALL_OLD' if get_previous else 'NONE'
-        response = client.put_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Item=serializer.serialize(value)['M'], ReturnValues=return_values)
+        response = dynamodb_client.put_item(TableName=self.table_full_name, Item=serializer.serialize(value)['M'], ReturnValues=return_values)
 
         if added_primary:
             del value[self.primary_key]
@@ -73,7 +77,7 @@ class Table:
 
     def get_all(self, consistent_read: bool = True) -> list:
         actual_consistent_read = False if always_inconsistent_read else consistent_read
-        items = client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', ConsistentRead=actual_consistent_read)
+        items = dynamodb_client.scan(TableName=self.table_full_name, ConsistentRead=actual_consistent_read)
         return [deserializer.deserialize({'M': item}) for item in items['Items']]
 
     def dict(self, consistent_read: bool = True) -> dict:
@@ -92,16 +96,16 @@ class Table:
             return
 
         key_type = 'S' if isinstance(key, str) else 'N'
-        client.delete_item(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Key={self.primary_key: {key_type: str(key)}})
+        dynamodb_client.delete_item(TableName=self.table_full_name, Key={self.primary_key: {key_type: str(key)}})
 
     def metadata(self) -> dict:
-        return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')
+        return dynamodb_client.describe_table(TableName=self.table_full_name)
 
     def size(self, consistent_read: bool = True) -> int:
         if consistent_read:
-            return client.scan(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}', Select='COUNT', ConsistentRead=True)['Count']
+            return dynamodb_client.scan(TableName=self.table_full_name, Select='COUNT', ConsistentRead=True)['Count']
         else:
-            return client.describe_table(TableName=f'CelesteTAS-Improvement-Tracker_{self.table_name}')['Table']['ItemCount']
+            return dynamodb_client.describe_table(TableName=self.table_full_name)['Table']['ItemCount']
 
     def enable_cache(self):
         self.caching = True
@@ -186,6 +190,49 @@ def add_project_key(key: str, value: Any):
     print(f"Added `{key}: {value}` to {len(projects_)} projects, be sure to update command_register_project")
 
 
+class SyncResultType(enum.StrEnum):
+    NORMAL = enum.auto()
+    MAINGAME_COMMIT = enum.auto()
+    AUTO_DISABLE = enum.auto()
+    REPORTED_ERROR = enum.auto()
+
+
+@dataclasses.dataclass
+class SyncResult:
+    type: SyncResultType
+    data: dict
+    receipt_handle: str
+
+    def __str__(self) -> str:
+        return f"SyncResult type={str(self.type).upper()} data={self.data}"
+
+
+def send_sync_result(result_type: SyncResultType, data: dict):
+    payload = {'type': str(result_type), 'data': data}
+    sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=ujson.dumps(payload, ensure_ascii=False), MessageGroupId=str(result_type))
+
+
+def get_sync_results() -> list[SyncResult]:
+    results = []
+    response = sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=10)
+
+    if 'Messages' not in response and response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        return results
+
+    for message in response['Messages']:
+        body = json.loads(message['Body'])
+        results.append(SyncResult(type=SyncResultType(body['type']),
+                                  data=body['data'],
+                                  receipt_handle=message['ReceiptHandle']))
+
+    return results
+
+
+def delete_sync_result(sync_result: SyncResult):
+    sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=sync_result.receipt_handle)
+    del sync_result
+
+
 class DBKeyError(Exception):
     pass
 
@@ -196,7 +243,6 @@ installations = Table('installations', 'github_username')
 project_logs = Table('project_logs', 'project_id')
 sheet_writes = Table('sheet_writes', 'timestamp')
 logs = Table('logs', 'time')
-sync_results = Table('sync_results', 'project_id')
 misc = Table('misc', 'key')
 contributors = Table('contributors', 'project_id')
 sid_caches = Table('sid_caches', 'project_id')
@@ -204,8 +250,10 @@ tokens = Table('tokens', 'installation_owner')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 
-client = boto3.client('dynamodb')
-atexit.register(client.close)
+dynamodb_client = boto3.client('dynamodb')
+sqs_client = boto3.client('sqs')
+sqs_queue_url = sqs_client.get_queue_url(QueueName='CelesteTAS-Improvement-Tracker_sync_results.fifo')['QueueUrl']
+atexit.register(dynamodb_client.close)
 serializer = TypeSerializer()
 deserializer = TypeDeserializer()
 always_inconsistent_read = False
@@ -240,7 +288,7 @@ if __name__ == '__main__':
         project_logs.set(int(project_log_name.removesuffix('.json')), project_log_loaded)
 
     print(project_logs.get(970380662907482142))
-    print(client.describe_table(TableName='CelesteTAS-Improvement-Tracker_installations'))
+    print(dynamodb_client.describe_table(TableName='CelesteTAS-Improvement-Tracker_installations'))
     print(installations.metadata())
 
     with open('sync\\installations.json', 'r', encoding='UTF8') as installations_json:
@@ -292,4 +340,4 @@ if __name__ == '__main__':
         sid_caches.set(int(project_id), sid_caches_loaded[project_id])
 
     print(sid_caches.get(1180581916529922188))
-    client.close()
+    dynamodb_client.close()

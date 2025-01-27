@@ -454,64 +454,55 @@ def convert_line_endings(tas: bytes, old_tas: Optional[bytes]) -> bytes:
 
 @tasks.loop(minutes=1)
 async def handle_game_sync_results():
-    sync_results_found = db.sync_results.get_all()
+    sync_results = db.get_sync_results()
 
-    if not sync_results_found:
+    if not sync_results:
         return
 
     global client
 
-    for sync_result in sync_results_found:
-        project_id = int(sync_result['project_id'])
+    for sync_result in sync_results:
+        log.info(f"Handling {str(sync_result)}")
+        db.delete_sync_result(sync_result)
 
-        try:
+        if sync_result.type in (db.SyncResultType.NORMAL, db.SyncResultType.AUTO_DISABLE):
+            project_id = sync_result.data['project_id']
             project = db.projects.get(project_id)
-        except db.DBKeyError:
-            if 'reported_error' in sync_result:
-                log.info(f"Reporting sync check error: {sync_result}")
-                await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{project_id}:R>\n```\n{sync_result['error']}```")
-            else:
-                log.info(f"Reporting updated maingame time: \"{sync_result['maingame_message']}\"")
-                await client.get_channel(1323811411226263654).send(sync_result['maingame_message'])
+            project_name = project['name']
+            improvements_channel = client.get_channel(project_id)
+            await edit_pin(improvements_channel)
 
-            db.sync_results.delete_item(project_id)
-            continue
-
-        project_name = project['name']
-        log.info(f"Handling game sync result for project {project_name}")
-        report_text = sync_result['report_text']
-        disabled_text = sync_result['disabled_text']
-        improvements_channel = client.get_channel(project_id)
-        await edit_pin(improvements_channel)
-
-        if report_text:
-            if sync_result['log']:
+        match sync_result.type:
+            case db.SyncResultType.NORMAL:
                 sync_check_time = project['last_run_validation']
-                files = [discord.File(io.BytesIO(sync_result['log'].value), filename=f'game_sync_{project_name}_{sync_check_time}.log.gz')]
+                files = [discord.File(io.BytesIO(sync_result.data['log'].value), filename=f'game_sync_{project_name}_{sync_check_time}.log.gz')]
 
-                for crash_log_name in sync_result['crash_logs']:
-                    crash_log_data = sync_result['crash_logs'][crash_log_name].value
+                for crash_log_name in sync_result.data['crash_logs']:
+                    crash_log_data = sync_result.data['crash_logs'][crash_log_name].value
                     files.append(discord.File(io.BytesIO(crash_log_data), filename=crash_log_name))
 
-                await improvements_channel.send(report_text, files=files)
-            else:
-                await improvements_channel.send(report_text)
+                await improvements_channel.send(sync_result.data['report_text'], files=files)
 
-        if disabled_text:
-            await improvements_channel.send(disabled_text)
+            case db.SyncResultType.AUTO_DISABLE:
+                await improvements_channel.send(sync_result.data['disabled_text'])
 
-        db.sync_results.delete_item(project_id)
+            case db.SyncResultType.REPORTED_ERROR:
+                await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{sync_result.data['time']}:R>\n```\n{sync_result.data['error']}```")
+
+            case db.SyncResultType.MAINGAME_COMMIT:
+                await client.get_channel(1323811411226263654).send(sync_result.data['maingame_message'])
+
+        db.delete_sync_result(sync_result)
 
     db.misc.set('last_game_sync_result_time', int(time.time()))
 
 
 @tasks.loop(hours=2)
 async def handle_no_game_sync_results():
-    if not db.sync_results.size():
-        time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
+    time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
 
-        if time_since_last_game_sync_result > 86400:  # 24 hours
-            await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago")
+    if time_since_last_game_sync_result > 86400:  # 24 hours
+        await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago")
 
 
 @tasks.loop(seconds=30)
