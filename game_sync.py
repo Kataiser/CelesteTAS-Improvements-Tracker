@@ -300,7 +300,7 @@ def sync_test(project_id: int, force: bool):
 
             for new_crash_log_name in new_crash_logs:
                 with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'rb') as new_crash_log:
-                    crash_logs_data[f'{new_crash_log_name}.gz'] = gzip.compress(new_crash_log.read())
+                    crash_logs_data[f'{new_crash_log_name}.gz'] = b64encode(gzip.compress(new_crash_log.read()))
 
             game_process = wait_for_game_load(mods_to_load, project['name'])
             continue
@@ -374,7 +374,7 @@ def sync_test(project_id: int, force: bool):
         report_text = f"Sync check found {len(new_desyncs)} new desync{plural(new_desyncs)} ({files_timed} file{plural(files_timed)} tested):" \
                       f"\n```\n{new_desyncs_formatted}```{desyncs_block}"[:1900]
         stream_handler.flush()
-        report_log = gzip.compress(re_redact_token.sub("'token': [REDACTED]", current_log.getvalue()).encode('UTF8'))
+        report_log = b64encode(gzip.compress(re_redact_token.sub("'token': [REDACTED]", current_log.getvalue()).encode('UTF8')))
 
     disabled_text = consider_disabling_after_inactivity(project, clone_time, False)
     db.projects.set(project_id, project)
@@ -705,6 +705,7 @@ def gb_mod_versions() -> Optional[dict]:
 def mods_dir() -> Path:
     mod_paths = (Path('D:/celeste/Mods'),
                  Path('G:/celeste/Mods'),
+                 Path('C:/Users/trial/Games/celeste/Mods'),
                  Path('C:/Users/Administrator/Desktop/mods'),
                  Path('C:/Users/Bob/Documents/Celeste Itch/Mods'),
                  Path('C:/Users/Vamp/Documents/celeste/Mods'))
@@ -720,6 +721,7 @@ def mods_dir() -> Path:
 def game_dir() -> Path:
     game_dirs = (Path('D:/celeste'),
                  Path('G:/celeste'),
+                 Path('C:/Users/trial/Games/celeste'),
                  Path('C:/Users/Bob/Documents/Celeste Itch'),
                  Path('C:/Users/Vamp/Documents/celeste'))
 
@@ -737,6 +739,10 @@ def scaled_sleep(seconds: float):
 def log_error(message: Optional[str] = None):
     error = utils.log_error(message)
     db.send_sync_result(db.SyncResultType.REPORTED_ERROR, {'time': int(time.time()), 'error': error[-1950:]})
+
+
+def b64encode(data: bytes) -> str:
+    return base64.b64encode(data).decode('UTF8')
 
 
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()

@@ -208,8 +208,9 @@ class SyncResult:
 
 
 def send_sync_result(result_type: SyncResultType, data: dict):
-    payload = {'type': str(result_type), 'data': data}
-    sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=ujson.dumps(payload, ensure_ascii=False), MessageGroupId=str(result_type))
+    if writes_enabled:
+        payload = {'type': str(result_type), 'data': data}
+        sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=ujson.dumps(payload, ensure_ascii=False), MessageGroupId=str(result_type))
 
 
 def get_sync_results() -> list[SyncResult]:
@@ -229,8 +230,9 @@ def get_sync_results() -> list[SyncResult]:
 
 
 def delete_sync_result(sync_result: SyncResult):
-    sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=sync_result.receipt_handle)
-    del sync_result
+    if writes_enabled:
+        sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=sync_result.receipt_handle)
+        del sync_result
 
 
 class DBKeyError(Exception):
