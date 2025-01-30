@@ -463,7 +463,6 @@ async def handle_game_sync_results():
 
     for sync_result in sync_results:
         log.info(f"Handling {str(sync_result)}")
-        db.delete_sync_result(sync_result)
 
         if sync_result.type in (db.SyncResultType.NORMAL, db.SyncResultType.AUTO_DISABLE):
             project_id = sync_result.data['project_id']
@@ -475,7 +474,11 @@ async def handle_game_sync_results():
         match sync_result.type:
             case db.SyncResultType.NORMAL:
                 sync_check_time = project['last_run_validation']
-                files = [discord.File(io.BytesIO(base64.b64decode(sync_result.data['log'])), filename=f'game_sync_{project_name}_{sync_check_time}.log.gz')]
+                game_log = sync_result.data['log']
+                files = []
+
+                if game_log:
+                    files.append(discord.File(io.BytesIO(base64.b64decode(sync_result.data['log'])), filename=f'game_sync_{project_name}_{sync_check_time}.log.gz'))
 
                 for crash_log_name in sync_result.data['crash_logs']:
                     crash_log_data = sync_result.data['crash_logs'][crash_log_name]
@@ -529,7 +532,7 @@ async def alert_server_join():
         new_lines = log_file_open.readlines()
         mc_server_log_last_pos = log_file_open.tell()
 
-    if first_scan:
+    if first_scan or not new_lines:
         return
 
     log.info(f"Minecraft server log has been updated with {len(new_lines)} lines")
