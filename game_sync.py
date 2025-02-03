@@ -378,7 +378,9 @@ def sync_test(project_id: int, force: bool):
 
     disabled_text = consider_disabling_after_inactivity(project, clone_time, False)
     db.projects.set(project_id, project)
-    db.send_sync_result(db.SyncResultType.NORMAL, {'project_id': project_id, 'report_text': report_text, 'disabled_text': disabled_text, 'log': report_log, 'crash_logs': crash_logs_data})
+    crash_logs_data_report = crash_logs_data if report_text else {}
+    db.send_sync_result(db.SyncResultType.NORMAL, {'project_id': project_id, 'report_text': report_text, 'disabled_text': disabled_text,
+                                                   'log': report_log, 'crash_logs': crash_logs_data_report})
     log.info("Wrote sync result to DB")
 
     # commit updated fullgame files
@@ -662,7 +664,7 @@ def consider_disabling_after_inactivity(project: dict, reference_time: Union[int
 
         if from_abandoned:
             db.projects.set(project['project_id'], project)
-            db.send_sync_result(db.SyncResultType.AUTO_DISABLE, {'project_id': project['project_id'], 'disabled_text': disabled_text})
+            db.send_sync_result(db.SyncResultType.AUTO_DISABLE, {'project_id': int(project['project_id']), 'disabled_text': disabled_text})
         else:
             # don't need to return projects since it's mutable
             return disabled_text

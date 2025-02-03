@@ -480,11 +480,11 @@ async def handle_game_sync_results():
                 if game_log:
                     files.append(discord.File(io.BytesIO(base64.b64decode(sync_result.data['log'])), filename=f'game_sync_{project_name}_{sync_check_time}.log.gz'))
 
-                for crash_log_name in sync_result.data['crash_logs']:
-                    crash_log_data = sync_result.data['crash_logs'][crash_log_name]
-                    files.append(discord.File(io.BytesIO(base64.b64decode(crash_log_data)), filename=crash_log_name))
+                    for crash_log_name in sync_result.data['crash_logs']:
+                        crash_log_data = sync_result.data['crash_logs'][crash_log_name]
+                        files.append(discord.File(io.BytesIO(base64.b64decode(crash_log_data)), filename=crash_log_name))
 
-                await improvements_channel.send(sync_result.data['report_text'], files=files)
+                    await improvements_channel.send(sync_result.data['report_text'], files=files)
 
                 if sync_result.data['disabled_text']:
                     await improvements_channel.send(sync_result.data['disabled_text'])
@@ -498,7 +498,13 @@ async def handle_game_sync_results():
             case db.SyncResultType.MAINGAME_COMMIT:
                 await client.get_channel(1323811411226263654).send(sync_result.data['maingame_message'])
 
-        db.delete_sync_result(sync_result)
+        try:
+            db.delete_sync_result(sync_result)
+        except Exception as e:
+            if "The receipt handle has expired" in str(e):
+                utils.log_error()
+            else:
+                raise
 
     db.misc.set('last_game_sync_result_time', int(time.time()))
 

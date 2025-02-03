@@ -202,9 +202,10 @@ class SyncResult:
     type: SyncResultType
     data: dict
     receipt_handle: str
+    id: str
 
     def __str__(self) -> str:
-        return f"SyncResult type={str(self.type).upper()} data={self.data}"
+        return f"SyncResult type={str(self.type).upper()} id={self.id} data={self.data}"
 
 
 def send_sync_result(result_type: SyncResultType, data: dict):
@@ -224,7 +225,8 @@ def get_sync_results() -> list[SyncResult]:
         body = json.loads(message['Body'])
         results.append(SyncResult(type=SyncResultType(body['type']),
                                   data=body['data'],
-                                  receipt_handle=message['ReceiptHandle']))
+                                  receipt_handle=message['ReceiptHandle'],
+                                  id=message['MessageId']))
 
     return results
 
