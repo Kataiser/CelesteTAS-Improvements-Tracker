@@ -1,4 +1,5 @@
 import atexit
+import copy
 import dataclasses
 import decimal
 import enum
@@ -205,7 +206,16 @@ class SyncResult:
     id: str
 
     def __str__(self) -> str:
-        return f"SyncResult type={str(self.type).upper()} id={self.id} data={self.data}"
+        data_for_str = self.truncate_dict(copy.copy(self.data))
+        return f"SyncResult type={str(self.type).upper()} id={self.id} data={data_for_str}"
+
+    def truncate_dict(self, data):
+        if isinstance(data, dict):
+            return {k: self.truncate_dict(v) for k, v in data.items()}
+        elif isinstance(data, str) and len(data) > 1000:
+            return f'{data[:40]}…'
+        else:
+            return data
 
 
 def send_sync_result(result_type: SyncResultType, data: dict):
