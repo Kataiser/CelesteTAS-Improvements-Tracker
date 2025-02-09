@@ -705,33 +705,24 @@ def gb_mod_versions() -> Optional[dict]:
 
 @functools.cache
 def mods_dir() -> Path:
-    mod_paths = (Path('D:/celeste/Mods'),
-                 Path('G:/celeste/Mods'),
-                 Path('C:/Users/trial/Games/celeste/Mods'),
-                 Path('C:/Users/Administrator/Desktop/mods'),
-                 Path('C:/Users/Bob/Documents/Celeste Itch/Mods'),
-                 Path('C:/Users/Vamp/Documents/celeste/Mods'))
+    mods_path = Path('Mods')
+    mods_path_resolved = mods_path.resolve()
 
-    for mod_path in mod_paths:
-        if mod_path.is_dir():
-            return mod_path
-
-    raise FileNotFoundError("ok where'd my mods go")
+    if not mods_path.is_dir() or not mods_path_resolved.is_dir() or not (mods_path_resolved / 'CelesteTAS.zip').is_file():
+        raise FileNotFoundError("ok where'd my mods go")
+    else:
+        return mods_path_resolved
 
 
 @functools.cache
 def game_dir() -> Path:
-    game_dirs = (Path('D:/celeste'),
-                 Path('G:/celeste'),
-                 Path('C:/Users/trial/Games/celeste'),
-                 Path('C:/Users/Bob/Documents/Celeste Itch'),
-                 Path('C:/Users/Vamp/Documents/celeste'))
+    game_path = Path('celeste')
+    game_path_resolved = game_path.resolve()
 
-    for possible_game_dir in game_dirs:
-        if possible_game_dir.is_dir():
-            return possible_game_dir
-
-    raise FileNotFoundError("ok where'd the game go")
+    if not game_path.is_dir() or not game_path_resolved.is_dir() or not (game_path_resolved / 'Celeste.exe').is_file():
+        raise FileNotFoundError("ok where'd the game go")
+    else:
+        return game_path_resolved
 
 
 def scaled_sleep(seconds: float):
