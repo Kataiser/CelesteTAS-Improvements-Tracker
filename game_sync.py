@@ -100,7 +100,7 @@ def sync_test(project_id: int, force: bool):
     filetimes = {}
     desyncs = []
     mods_to_load = set(mods)
-    mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'AltEnterFullscreen', 'HelperTestMapHider'}
+    mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'AltEnterFullscreen', 'HelperTestMapHider', 'OverworldAA'}
     files_timed = 0
     remove_save_files()
     queued_update_commits = []
