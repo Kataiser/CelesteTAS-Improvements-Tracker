@@ -22,6 +22,7 @@ import ujson
 from deepdiff import DeepDiff
 
 import db
+import gen_token
 import main
 import utils
 import validation
@@ -143,21 +144,7 @@ def sync_test(project_id: int, force: bool):
         return
 
     # clone repo
-    repo_cloned = repo.partition('/')[2]
-    repo_path = f'{game_dir()}\\repos\\{repo_cloned}'
-
-    if not os.path.isdir(f'{game_dir()}\\repos'):
-        os.mkdir(f'{game_dir()}\\repos')
-    elif os.path.isdir(repo_path):
-        shutil.rmtree(repo_path, onexc=del_rw)
-
-    time.sleep(0.1)
-    cwd = os.getcwd()
-    os.chdir(f'{game_dir()}\\repos')
-    clone_time = time.time()
-    subprocess.run(f'git clone --depth=1 --recursive https://github.com/{repo}', capture_output=True)
-    os.chdir(cwd)
-    log.info(f"Cloned repo to {repo_path}")
+    clone_time, repo_path = clone_repo(repo)
     asserts_added = {}
     sid_cache_files_removed = []
 
@@ -347,7 +334,7 @@ def sync_test(project_id: int, force: bool):
                 new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
                 tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
                 commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                queued_update_commits.append((file_path_repo, tas_lines_og, tas_file_raw, commit_message))
+                queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
                 # don't commit now, since there may be desyncs
         else:
             if not tas_parsed_new.finaltime_frames:
@@ -395,33 +382,79 @@ def sync_test(project_id: int, force: bool):
     db.send_sync_result(db.SyncResultType.NORMAL, {'project_id': project_id, 'report_text': report_text, 'disabled_text': disabled_text,
                                                    'log': report_log, 'crash_logs': crash_logs_data_report})
     log.info("Wrote sync result to DB")
+    update_commit_files_changed = 0
+    update_commit_single_commit_message = None
 
     # commit updated fullgame files
+    if queued_update_commits:
+        log.info(f"Potentially committing updated fullgame files: \"{[i[0] for i in queued_update_commits]}\"")
+        clone_repo(repo, gen_token.access_token(project['installation_owner'], 300))
+
     for queued_commit in queued_update_commits:
-        file_path_repo, lines, raw_file, commit_message = queued_commit
+        file_path, lines, raw_file, commit_message = queued_commit
         lines_joined = ''.join(lines)
         desyncs_found = [d for d in desyncs if d[0][:-4] in lines_joined]
 
         # but only if all the files in them sync
         if desyncs_found:
-            log.info(f"Not committing updated fullgame file {file_path_repo} due to desyncs: {desyncs_found}")
+            log.info(f"Not committing updated fullgame file {file_path} due to desyncs: {desyncs_found}")
             continue
 
-        log.info(f"Committing updated fullgame file: \"{commit_message}\"")
+        log.info(f"Preparing to commit updated fullgame file: \"{commit_message}\"")
         lines_encoded = main.convert_line_endings(lines_joined.encode('UTF8'), raw_file)
-        main.generate_request_headers(project['installation_owner'], 300)
-        commit_data = {'content': base64.b64encode(lines_encoded).decode('UTF8'),
-                       'sha': main.get_sha(repo, file_path_repo),
-                       'message': commit_message}
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_repo}', headers=main.headers, data=ujson.dumps(commit_data))
-        utils.handle_potential_request_error(r, 200)
-        commit_url = ujson.loads(r.content)['commit']['html_url']
+        update_commit_files_changed += 1
+        update_commit_single_commit_message = commit_message
+
+        with open(file_path, 'wb') as tas_file:
+            tas_file.truncate()
+            tas_file.write(lines_encoded)
+
+    if update_commit_files_changed:
+        if update_commit_files_changed == 1:
+            commit_message = update_commit_single_commit_message
+        else:
+            commit_message = f"Updated {update_commit_files_changed} fullgame files"
+
+        log.info("Committing updated fullgame file(s)")
+        time.sleep(0.2)
+        subprocess.run(f'cd {repo_path}')
+        subprocess.run('git add .')
+        subprocess.run('git -c "user.name=celestetas-improvements-tracker[bot]" -c "user.email=104732884+celestetas-improvements-tracker[bot]@users.noreply.github.com" '
+                       f'commit -m "{commit_message}"')
+        subprocess.run('git push')
+        commit_sha = subprocess.check_output('git rev-parse HEAD', encoding='UTF8').strip()
+        commit_url = f'https://github.com/{repo}/commit/{commit_sha}'
         log.info(f"Successfully committed: {commit_url}")
 
         if project_is_maingame:
             db.send_sync_result(db.SyncResultType.MAINGAME_COMMIT, {'maingame_message': f"Committed `{commit_message}` <{commit_url}>"})
 
     log.info(f"Sync check time: {format_elapsed_time(start_time)}")
+
+
+def clone_repo(repo: str, access_token: str | None = None):
+    repo_cloned = repo.partition('/')[2]
+    repo_path = f'{game_dir()}\\repos\\{repo_cloned}'
+
+    if not os.path.isdir(f'{game_dir()}\\repos'):
+        os.mkdir(f'{game_dir()}\\repos')
+    elif os.path.isdir(repo_path):
+        shutil.rmtree(repo_path, onexc=del_rw)
+
+    time.sleep(0.1)
+    cwd = os.getcwd()
+    os.chdir(f'{game_dir()}\\repos')
+    clone_time = time.time()
+
+    if access_token:
+        clone_url = f'https://x-access-token:{access_token}@github.com/{repo}'
+    else:
+        clone_url = f'https://github.com/{repo}'
+
+    subprocess.run(f'git clone --depth=1 --recursive {clone_url}', capture_output=True)
+    os.chdir(cwd)
+    log.info(f"Cloned repo to {repo_path}")
+    return clone_time, repo_path
 
 
 def clear_debug_save():
