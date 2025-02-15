@@ -203,7 +203,7 @@ def test_generate_path_cache(setup_log):
 
 
 def test_get_sha(setup_log):
-    assert main.get_sha('Kataiser/improvements-bot-testing', 'The_Mines_Kataiser.tas') == '62f18d8398a0e1bddf7e8283e61b8c6d33fdb16f'
+    assert main.get_sha('Kataiser/improvements-bot-testing', 'The_Mines_Kataiser.tas') == 'f434b8ca2104111bec514c8c875f3e8beb9d3340'
     assert main.get_sha('Kataiser/improvements-bot-testing', 'subproject/glitchy_-_Copy.tas') == 'd3a5291ad1119f376cd0a77bd9cf9bcfb112ed7b'
 
 
