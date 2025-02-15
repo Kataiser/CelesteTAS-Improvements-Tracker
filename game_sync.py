@@ -417,12 +417,14 @@ def sync_test(project_id: int, force: bool):
 
         log.info("Committing updated fullgame file(s)")
         time.sleep(0.2)
-        subprocess.run(f'cd {repo_path}')
+        base_dir = os.getcwd()
+        os.chdir(repo_path)
         subprocess.run('git add .')
         subprocess.run('git -c "user.name=celestetas-improvements-tracker[bot]" -c "user.email=104732884+celestetas-improvements-tracker[bot]@users.noreply.github.com" '
                        f'commit -m "{commit_message}"')
         subprocess.run('git push')
         commit_sha = subprocess.check_output('git rev-parse HEAD', encoding='UTF8').strip()
+        os.chdir(base_dir)
         commit_url = f'https://github.com/{repo}/commit/{commit_sha}'
         log.info(f"Successfully committed: {commit_url}")
 

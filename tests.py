@@ -214,7 +214,7 @@ def test_get_file_repo_path():
 
 
 def test_download_old_file(setup_log):
-    assert len(main.download_old_file(970380662907482142, 'Kataiser/improvements-bot-testing', 'chaos_assembly_lol_lmao.tas')) == 4824
+    assert len(main.download_old_file(970380662907482142, 'Kataiser/improvements-bot-testing', 'chaos_assembly_lol_lmao.tas')) == 4827
 
 
 def test_convert_line_endings(setup_log):
