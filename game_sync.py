@@ -159,6 +159,7 @@ def sync_test(project_id: int, force: bool):
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
     asserts_added = {}
+    sid_cache_files_removed = []
 
     # add asserts for cached SIDs
     try:
@@ -172,9 +173,14 @@ def sync_test(project_id: int, force: bool):
         file_path_repo = path_cache[tas_filename]
 
         if file_path_repo in sid_cache:
+            sid = sid_cache[file_path_repo]
+
+            if not sid_is_valid(sid):
+                sid_cache_files_removed.append(file_path_repo)
+                continue
+
             with open(f'{repo_path}\\{file_path_repo}'.replace('/', '\\'), 'r+') as tas_file:
                 tas_lines = tas_file.readlines()
-                sid = sid_cache[file_path_repo]
 
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
@@ -188,6 +194,13 @@ def sync_test(project_id: int, force: bool):
 
     if asserts_added:
         log.info(f"Added SID assertions to {len(asserts_added)} file{plural(asserts_added)}: {asserts_added}")
+
+    if sid_cache_files_removed:
+        for removed_file in sid_cache_files_removed:
+            del sid_cache[removed_file]
+
+        db.sid_caches.set(project_id, sid_cache)
+        log.warning(f"Removed {len(sid_cache_files_removed)} invalid cached SIDs: {sid_cache_files_removed}")
 
     log.info(f"Previous desyncs: {previous_desyncs}")
     game_process = wait_for_game_load(mods_to_load, project['name'])
@@ -347,7 +360,7 @@ def sync_test(project_id: int, force: bool):
             log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
 
             if time_synced:
-                if file_path_repo not in sid_cache and sid not in ('', 'null') and 'Cannot access instance field' not in sid:
+                if file_path_repo not in sid_cache and sid_is_valid(sid):
                     sid_cache[file_path_repo] = sid
                     db.sid_caches.set(project_id, sid_cache)
                     log.info(f"Cached SID for {file_path_repo}: {sid}")
@@ -736,6 +749,10 @@ def log_error(message: Optional[str] = None):
 
 def b64encode(data: bytes) -> str:
     return base64.b64encode(data).decode('UTF8')
+
+
+def sid_is_valid(sid: str) -> bool:
+    return sid not in ('', 'null') and 'Cannot access instance field' not in sid
 
 
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
