@@ -347,7 +347,7 @@ def sync_test(project_id: int, force: bool):
             log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
 
             if time_synced:
-                if file_path_repo not in sid_cache and sid not in ('', 'null'):
+                if file_path_repo not in sid_cache and sid not in ('', 'null') and 'Cannot access instance field' not in sid:
                     sid_cache[file_path_repo] = sid
                     db.sid_caches.set(project_id, sid_cache)
                     log.info(f"Cached SID for {file_path_repo}: {sid}")
