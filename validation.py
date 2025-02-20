@@ -471,7 +471,7 @@ command_rules = {'analogmode': (lambda mode: True if mode.lower() in analog_mode
                  'play': (True, OptionalArg(lambda wait_frames: True if wait_frames.isdigit() else f"wait frames must be a number, you used \"{wait_frames}\"")),
                  'repeat': (lambda count: True if count.isdigit() else f"count must be a number, you used \"{count}\"",),
                  'endrepeat': (),
-                 'console': (lambda command: True if command.lower() == 'load' else "Console command is not allowed",
+                 'console': (lambda command: True if command.lower() in ('load', 'hard', 'rmx2') else "Console command is not allowed",
                              OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg(), OptionalArg()),
                  'set': (lambda field: True if field.lower() in set_exceptions else "Set command is not allowed", OptionalArg(), OptionalArg(), OptionalArg()),
                  'invoke': "Invoke command is not allowed",
