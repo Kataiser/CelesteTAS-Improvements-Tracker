@@ -89,7 +89,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     projects = db.projects.dict()
 
     if improvements_channel.id in projects:
-        await respond(interaction, "This project already exists, please use `\edit_project` instead.")
+        await respond(interaction, "This project already exists, please use `/edit_project` instead.")
         return
 
     # safeguard for celestecord
