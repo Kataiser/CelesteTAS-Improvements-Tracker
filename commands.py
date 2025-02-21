@@ -87,16 +87,10 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     log.info("Verifying project")
     await respond(interaction, "Verifying...")
     projects = db.projects.dict()
-    editing = improvements_channel.id in projects
 
-    if editing:
-        if not await is_project_admin(interaction, projects[improvements_channel.id]):
-            return
-
-        log.info("This project already exists, preserving some keys")
-        preserved_keys = ('install_time', 'pin', 'mods', 'last_run_validation', 'admins', 'desyncs', 'filetimes', 'last_commit_time', 'excluded_items',
-                          'sync_environment_state', 'contributors_file_path', 'disallowed_command_exemptions')
-        previous = {key: projects[improvements_channel.id][key] for key in preserved_keys}
+    if improvements_channel.id in projects:
+        await respond(interaction, "This project already exists, please use `\edit_project` instead.")
+        return
 
     # safeguard for celestecord
     if improvements_channel.guild.id == 403698615446536203:
@@ -197,32 +191,22 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
                           'enabled': True,
                           'disallowed_command_exemptions': []}
 
-    if not editing:
-        # await respond(interaction, "Generating path cache...")
-        main.generate_path_cache(improvements_channel.id, registered_project)
-        pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)
-        await pinned_message.pin()
-        registered_project['pin'] = pinned_message.id
-        db.project_logs.set(improvements_channel.id, [])
-    else:
-        for previous_key in previous:
-            registered_project[previous_key] = previous[previous_key]
-
-        await main.edit_pin(improvements_channel)
+    main.generate_path_cache(improvements_channel.id, registered_project)
+    pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)
+    await pinned_message.pin()
+    registered_project['pin'] = pinned_message.id
+    db.project_logs.set(improvements_channel.id, [])
 
     db.projects.set(improvements_channel.id, registered_project)
     main.fast_project_ids.add(improvements_channel.id)
-    project_added_log = f"{'Edited' if editing else 'Added'} project {improvements_channel.id}: {registered_project}"
+    project_added_log = f"Added project {improvements_channel.id}: {registered_project}"
     log.info(project_added_log)
     db.history_log.set(utils.log_timestamp(), project_added_log)
 
-    if editing:
-        await respond(interaction, "Successfully verified and edited project.")
-    else:
-        add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the DM command `/add_mods`." if do_sync_check else ""
-        lobby_sheet_text = " If you want to automatically update lobby connection times on a Google Sheet, run `/link_lobby_sheet`." if registered_project['is_lobby'] else ""
-        await respond(interaction, "Successfully verified and added project! If you want to change your project's settings, "
-                                   f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
+    add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the DM command `/add_mods`." if do_sync_check else ""
+    lobby_sheet_text = " If you want to automatically update lobby connection times on a Google Sheet, run `/link_lobby_sheet`." if registered_project['is_lobby'] else ""
+    await respond(interaction, "Successfully verified and added project! If you want to change your project's settings, "
+                               f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
 
 
 @command(report_usage=True)
