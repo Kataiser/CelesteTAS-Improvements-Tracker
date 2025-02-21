@@ -11,6 +11,7 @@ from discord import app_commands
 import commands
 import db
 import main
+import project_editor
 import spreadsheet
 import utils
 from constants import admin_user_id, slash_command_servers
@@ -325,6 +326,13 @@ async def register_project(interaction, name: str, improvements_channel: discord
         await commands.command_register_project(interaction, name, improvements_channel, repository, account, commit_drafts, is_lobby, ensure_level, use_contributors_file, do_sync_check)
 
 
+@command_tree.command(description="Edit a project (improvements channel)")
+@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will only update the first")
+@app_commands.dm_only()
+async def edit_project(interaction, project_name: str):
+    await commands.command_edit_project(interaction, project_name)
+
+
 @command_tree.command(description="Link a lobby project to a routing table, so that improvements will automatically be written to it")
 @app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
 @app_commands.describe(sheet="The link to your spreadsheet, e.g. https://docs.google.com/spreadsheets/d/1xY9W_fvKyYYz7E-t_t5UXSpqxECUil2mLY7PdB-ifLc")
@@ -427,6 +435,7 @@ async def has_bot_reaction(message: discord.Message, emoji: str):
 
 def share_client(client_: discord.Client):
     commands.client = client_
+    project_editor.client = client_
     spreadsheet.client = client_
     main.client = client_
 

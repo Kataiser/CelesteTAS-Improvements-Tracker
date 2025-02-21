@@ -19,6 +19,7 @@ import db
 import game_sync
 import gen_token
 import main
+import project_editor
 import spreadsheet
 import utils
 from utils import plural
@@ -219,10 +220,21 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
         await respond(interaction, "Successfully verified and edited project.")
     else:
         add_mods_text = " Since you are doing sync checking, be sure to add mods (if need be) with the DM command `/add_mods`." if do_sync_check else ""
-        lobby_sheet_text = " If you want to automatically update lobby connection times on a google sheet, run `/link_lobby_sheet`." if registered_project['is_lobby'] else ""
+        lobby_sheet_text = " If you want to automatically update lobby connection times on a Google Sheet, run `/link_lobby_sheet`." if registered_project['is_lobby'] else ""
         await respond(interaction, "Successfully verified and added project! If you want to change your project's settings, "
                                    f"run the command again and it will overwrite what was there before.{add_mods_text}{lobby_sheet_text}")
 
+
+@command(report_usage=True)
+async def command_edit_project(interaction: discord.Interaction, project_name: str):
+    projects = db.projects.get_by_name_or_id(project_name)  # don't even try to handle multiple projects with the same name lol
+
+    if not projects:
+        await respond(interaction, "No project matching that name or ID found.")
+    elif not await is_project_admin(interaction, projects[0]):
+        await respond(interaction, "You are not an admin of this project.")
+    else:
+        await interaction.response.send_message(await project_editor.ProjectEditor.generate_message(projects[0]), view=project_editor.ProjectEditor(projects[0], interaction))
 
 @command(report_usage=True, slow_start=True)
 async def command_link_lobby_sheet(interaction: discord.Interaction, project_name: str, sheet: str, cell: str):
@@ -230,7 +242,7 @@ async def command_link_lobby_sheet(interaction: discord.Interaction, project_nam
 
     if not sheet_match:
         log.warning(f"Invalid sheet: \"{sheet}\"")
-        await respond(interaction, f"Could not understand google sheet link \"{sheet}\", try pasting only the ID part after https://docs.google.com/spreadsheets/d/")
+        await respond(interaction, f"Could not understand Google Sheet link \"{sheet}\", try pasting only the ID part after https://docs.google.com/spreadsheets/d/")
 
     spreadsheet_id = sheet_match[1]
     lobby_sheet_cell = f"{spreadsheet_id}/{cell}"

@@ -21,6 +21,7 @@ from discord.ext import tasks
 import commands
 import db
 import gen_token
+import project_editor
 import spreadsheet
 import utils
 import validation
@@ -688,6 +689,7 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
     utils.log = logger
     commands.log = logger
     spreadsheet.log = logger
+    project_editor.log = logger
 
     logger.info(f"Log created, host = {utils.host()}")
     return logger
