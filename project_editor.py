@@ -20,7 +20,7 @@ class ProjectEditor(discord.ui.View):
                                 discord.SelectOption(label="Run sync checks", value='do_run_validation'),
                                 discord.SelectOption(label="Project enabled", value='enabled')]
 
-        super().__init__(timeout=300)
+        super().__init__(timeout=600)  # 10 mins
         self.project = project
         self.project_original = copy.deepcopy(project)
         self.base_interaction = base_interaction
@@ -29,31 +29,38 @@ class ProjectEditor(discord.ui.View):
         self.project_options_boolean_select = ProjectOptionsBooleanSelect(self)
         self.add_item(self.project_options_boolean_select)
         self.add_item(self.boolean_select)
-        self.add_item(EditDetailsButton(self))
-        self.add_item(SubmitButton(self))
+        self.add_item(EditDetails1Button(self))
+        self.add_item(EditDetails2Button(self))
+        self.add_item(SaveButton(self))
 
     @staticmethod
     async def generate_message(project: dict):
-        admins = [utils.detailed_user(user=await utils.user_from_id(client, admin)) for admin in project['admins']]
+        admins = [(await utils.user_from_id(client, admin)).display_name for admin in project['admins']]
         subdir_display = f"`{project['subdir']}`" if project['subdir'] else "None"
         mods_display = f"`{', '.join([mod for mod in project['mods']])}`" if project['mods'] else "None"
         contributors_file_path_display = f"`{project['contributors_file_path']}`" if project['contributors_file_path'] else "Root"
         excluded_items_display = f"`{', '.join([item for item in project['excluded_items']])}`" if project['excluded_items'] else "None"
 
-        return (f"Editing TAS project **{project['name']}**\n\n"
-                f"Repo: `{project['repo']}`\n"
-                f"Subdirectory: {subdir_display}\n"
-                f"Github installation owner: `{project['installation_owner']}`\n"
-                f"Admins: `{', '.join(admins)}` (edit with `/edit_admin`)\n"
-                f"Mods: {mods_display} (edit with `/add_mods`)\n"
-                f"Excluded items: {excluded_items_display}\n"
-                f"Contributors file path: {contributors_file_path_display}\n\n"
-                f"Commit drafts: `{project['commit_drafts']}`\n"
-                f"Is lobby: `{project['is_lobby']}`\n"
-                f"Ensure level name in posts: `{project['ensure_level']}`\n"
-                f"Use contributors file: `{project['use_contributors_file']}`\n"
-                f"Run sync checks: `{project['do_run_validation']}`\n"
-                f"Project enabled: `{project['enabled']}`")
+        return (f"- Details 1\n"
+                f"  - Name: `{project['name']}`\n"
+                f"  - Repo: `{project['repo']}`\n"
+                f"  - Subdirectory: {subdir_display}\n"
+                f"  - Excluded items: {excluded_items_display}\n"
+                f"  - Contributors file path: {contributors_file_path_display}\n"
+
+                f"- Details 2\n"
+                f"  - Github installation owner: `{project['installation_owner']}`\n"
+                f"  - Admins: `{', '.join(admins)}` (edit with `/edit_admin`)\n"
+                f"  - Mods: {mods_display}\n"
+                f"  - Lobby sheet cell: {project['lobby_sheet_cell']} (edit with `/link_lobby_sheet`)\n"
+                
+                f"- Settings\n"
+                f"  - Commit drafts: `{project['commit_drafts']}`\n"
+                f"  - Is lobby: `{project['is_lobby']}`\n"
+                f"  - Ensure level name in posts: `{project['ensure_level']}`\n"
+                f"  - Use contributors file: `{project['use_contributors_file']}`\n"
+                f"  - Run sync checks: `{project['do_run_validation']}`\n"
+                f"  - Project enabled: `{project['enabled']}`")
 
     async def update_message(self):
         await self.base_interaction.edit_original_response(content=await self.generate_message(self.project))
@@ -89,31 +96,43 @@ class BooleanSelect(discord.ui.Select):
         await self.editor.update_message()
 
 
-class EditDetailsButton(discord.ui.Button):
+class EditDetails1Button(discord.ui.Button):
     def __init__(self, editor: ProjectEditor):
-        super().__init__(label="Edit details", style=discord.ButtonStyle.secondary)
+        super().__init__(label="Edit details 1", style=discord.ButtonStyle.secondary)
         self.editor = editor
 
     async def callback(self, interaction: discord.Interaction):
-        log.info("Opening project details editor modal")
-        await interaction.response.send_modal(ProjectEditorModal(self.editor))
+        log.info("Opening project details 1 editor modal")
+        await interaction.response.send_modal(ProjectEditorModal1(self.editor))
 
 
-class SubmitButton(discord.ui.Button):
+class EditDetails2Button(discord.ui.Button):
     def __init__(self, editor: ProjectEditor):
-        super().__init__(label="Submit", style=discord.ButtonStyle.primary)
+        super().__init__(label="Edit details 2", style=discord.ButtonStyle.secondary)
+        self.editor = editor
+
+    async def callback(self, interaction: discord.Interaction):
+        log.info("Opening project details 2 editor modal")
+        await interaction.response.send_modal(ProjectEditorModal2(self.editor))
+
+
+class SaveButton(discord.ui.Button):
+    def __init__(self, editor: ProjectEditor):
+        super().__init__(label="Save", style=discord.ButtonStyle.primary)
         self.editor = editor
 
     async def callback(self, interaction: discord.Interaction):
         project = self.editor.project
-        log.info(f"Submitted, changes: {DeepDiff(self.editor.project_original, project, ignore_order=True, verbose_level=2)}")
+        deep_diff = DeepDiff(self.editor.project_original, project, ignore_order=True, verbose_level=2)
+        log.info(f"Saved, changes: {deep_diff}")
         db.projects.set(project['project_id'], project)
         await main.edit_pin(client.get_channel(project['project_id']))
-        await interaction.response.send_message("Saved.")
+        changes_made_count = len(deep_diff.pretty().splitlines())
+        await interaction.response.send_message(f"Saved {changes_made_count} changes." if changes_made_count else "Saved, no changes made.")
         self.editor.stop()
 
 
-class ProjectEditorModal(discord.ui.Modal, title="Edit project details"):
+class ProjectEditorModal1(discord.ui.Modal, title="Edit project details 1"):
     def __init__(self, base_editor: ProjectEditor):
         super().__init__()
         self.base_editor = base_editor
@@ -121,7 +140,6 @@ class ProjectEditorModal(discord.ui.Modal, title="Edit project details"):
 
         self.field_name.default = project['name']
         self.field_repo.default = project['repo']
-        # self.field_installation_owner.default = project['installation_owner']
         self.field_subdir.default = project['subdir']
         self.field_contributors_file_path.default = project['contributors_file_path']
         self.field_excluded_items.default = ', '.join(project['excluded_items'])
@@ -129,23 +147,48 @@ class ProjectEditorModal(discord.ui.Modal, title="Edit project details"):
     field_name = discord.ui.TextInput(label="Name")
     field_repo = discord.ui.TextInput(label="Repo")
     field_subdir = discord.ui.TextInput(label="Subdirectory (project root folder in repo)", required=False)
-    # field_installation_owner = discord.ui.TextInput(label="Github installation owner")
     field_contributors_file_path = discord.ui.TextInput(label="Contributors file path", required=False)
     field_excluded_items = discord.ui.TextInput(label="Excluded items", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
-        log.info("Submitted modal")
+        log.info("Submitted modal 1")
         project = self.base_editor.project
 
         project['name'] = self.field_name.value
         project['repo'] = self.field_repo.value
-        # project['installation_owner'] = self.field_installation_owner.value
         project['subdir'] = self.field_subdir.value
         project['contributors_file_path'] = self.field_contributors_file_path.value
-        project['excluded_items'] = [item.strip() for item in self.field_excluded_items.value.split(',')]
+        project['excluded_items'] = split_items(self.field_excluded_items)
 
         await interaction.response.defer()
         await self.base_editor.update_message()
+
+
+class ProjectEditorModal2(discord.ui.Modal, title="Edit project details 2"):
+    def __init__(self, base_editor: ProjectEditor):
+        super().__init__()
+        self.base_editor = base_editor
+        project = base_editor.project
+
+        self.field_installation_owner.default = project['installation_owner']
+        self.field_mods.default = ', '.join(project['mods'])
+
+    field_installation_owner = discord.ui.TextInput(label="Github installation owner")
+    field_mods = discord.ui.TextInput(label="Mods (for sync check, filenames without .zip)", required=False)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        log.info("Submitted modal 2")
+        project = self.base_editor.project
+
+        project['installation_owner'] = self.field_installation_owner.value
+        project['mods'] = split_items(self.field_mods)
+
+        await interaction.response.defer()
+        await self.base_editor.update_message()
+
+
+def split_items(field: discord.ui.TextInput) -> list[str]:
+    return [item.strip() for item in field.value.split(',')]
 
 
 client: Optional[discord.Client] = None
