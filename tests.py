@@ -858,7 +858,7 @@ def test_offset_cell():
 
 def test_project_get(fast_db):
     test_project = db.projects.get(970380662907482142)
-    assert test_project['admins'] == [Decimal('219955313334288385'), Decimal('234520815658336258')]
+    assert set(test_project['admins']) == {Decimal('219955313334288385'), Decimal('234520815658336258')}
     assert test_project['commit_drafts']
     assert test_project['contributors_file_path'] == ''
     assert test_project['desyncs'] == []

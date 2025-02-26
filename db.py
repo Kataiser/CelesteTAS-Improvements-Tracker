@@ -10,7 +10,7 @@ from typing import Union, Any
 
 import boto3
 import fastjsonschema
-import ujson
+import orjson
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
 
@@ -141,8 +141,8 @@ class Projects(Table):
     def __init__(self, table_name: str, primary_key: str):
         super().__init__(table_name, primary_key)
 
-        with open('project_schema.json', 'r') as projects_schema_file:
-            self.validate_project_schema = fastjsonschema.compile(ujson.load(projects_schema_file))
+        with open('project_schema.json', 'rb') as projects_schema_file:
+            self.validate_project_schema = fastjsonschema.compile(orjson.loads(projects_schema_file.read()))
 
     def set(self, project_id: Union[str, int], project: dict, get_previous: bool = False) -> Any:
         self.validate_project_schema(project, get_previous)
@@ -221,7 +221,7 @@ class SyncResult:
 def send_sync_result(result_type: SyncResultType, data: dict):
     if writes_enabled:
         payload = {'type': str(result_type), 'data': data}
-        sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=ujson.dumps(payload, ensure_ascii=False), MessageGroupId=str(result_type))
+        sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=orjson.dumps(payload, ensure_ascii=False), MessageGroupId=str(result_type))
 
 
 def get_sync_results() -> list[SyncResult]:
@@ -275,83 +275,10 @@ writes_enabled = True
 
 if __name__ == '__main__':
     print(projects.metadata())
-
-    with open('sync\\projects.json', 'r', encoding='UTF8') as projects_json:
-        projects_loaded = ujson.load(projects_json)
-        projects_fixed = {int(k): projects_loaded[k] for k in projects_loaded}
-
-    for project_id in projects_fixed:
-        projects.set(project_id, projects_fixed[project_id])
-
-    print(projects.get(970380662907482142))
     print(path_caches.metadata())
-
-    with open('sync\\path_caches.json', 'r', encoding='UTF8') as path_caches_json:
-        path_caches_loaded = ujson.load(path_caches_json)
-
-    for project_id in path_caches_loaded:
-        path_caches.set(int(project_id), path_caches_loaded[project_id])
-
-    print(path_caches.get(970380662907482142))
     print(project_logs.metadata())
-
-    for project_log_name in os.listdir('sync\\project_logs'):
-        with open(f'sync\\project_logs\\{project_log_name}', 'r', encoding='UTF8') as project_log:
-            project_log_loaded = ujson.load(project_log)
-
-        project_logs.set(int(project_log_name.removesuffix('.json')), project_log_loaded)
-
-    print(project_logs.get(970380662907482142))
-    print(dynamodb_client.describe_table(TableName='CelesteTAS-Improvement-Tracker_installations'))
     print(installations.metadata())
-
-    with open('sync\\installations.json', 'r', encoding='UTF8') as installations_json:
-        installations_loaded = ujson.load(installations_json)
-
-    for github_username in installations_loaded:
-        installations.set(github_username, installations_loaded[github_username])
-
-    print(installations.get('Kataiser'))
     print(githubs.metadata())
-
-    with open('sync\\githubs.json', 'r', encoding='UTF8') as githubs_json:
-        githubs_loaded = ujson.load(githubs_json)
-
-    for discord_id in githubs_loaded:
-        installations.set(int(discord_id), githubs_loaded[discord_id])
-
-    print(githubs.get(219955313334288385))
     print(sheet_writes.metadata())
-
-    with open('sync\\sheet_writes.log', 'r', encoding='UTF8') as sheet_writes_file:
-        for line in sheet_writes_file:
-            if line.startswith('2023-02-09'):
-                continue
-
-            line_partitioned = line.partition(': ')
-            line_partitioned2 = line_partitioned[0].rpartition(':')
-            timestamp = line_partitioned2[0]
-            status = line_partitioned2[2]
-            data = eval(line_partitioned[2][:-1])
-            sheet_writes.set(timestamp, {'status': status, 'log': data})
-
-    print(sheet_writes.get('2023-07-07 07:31:27,264'))
     print(history_log.metadata())
-
-    with open('sync\\history.log', 'r', encoding='UTF8') as history_log_file:
-        for line in history_log_file:
-            line_partitioned = line.partition(': ')
-            timestamp = line_partitioned[0].replace(':history', '').rpartition(':')[0]
-            history_log.set(timestamp, line_partitioned[2][:-1])
-
-    print(history_log.get('2023-03-06 20:31:44,890'))
     print(sid_caches.metadata())
-
-    with open('sid_caches.json', 'r', encoding='UTF8') as sid_caches_json:
-        sid_caches_loaded = ujson.load(sid_caches_json)
-
-    for project_id in sid_caches_loaded:
-        sid_caches.set(int(project_id), sid_caches_loaded[project_id])
-
-    print(sid_caches.get(1180581916529922188))
-    dynamodb_client.close()

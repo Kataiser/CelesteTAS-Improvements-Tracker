@@ -15,7 +15,7 @@ from typing import Optional, Union, Callable
 
 import discord
 import requests
-import ujson
+import orjson
 from discord.ext import tasks
 
 import commands
@@ -225,9 +225,9 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
         log.info(f"Set commit author to {data['author']}")
 
     log.info(f"Set commit message to \"{data['message'].partition('\n')[0]}\" (truncated)")
-    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=ujson.dumps(data))
+    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=orjson.dumps(data))
     utils.handle_potential_request_error(r, 201 if draft else 200)
-    commit_url = ujson.loads(r.content)['commit']['html_url']
+    commit_url = orjson.loads(r.content)['commit']['html_url']
     log.info(f"Successfully committed: {commit_url}")
     return data['message'], commit_url
 
@@ -255,7 +255,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
     log.info(f"Caching {repo} structure ({project_subdir=})")
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
-    contents_json = ujson.loads(r.content)
+    contents_json = orjson.loads(r.content)
     path_cache = {}  # always start from scratch
 
     if excluded_items:
@@ -274,7 +274,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
                 r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
                 utils.handle_potential_request_error(r, 200)
 
-                for subitem in ujson.loads(r.content)['tree']:
+                for subitem in orjson.loads(r.content)['tree']:
                     if subitem['type'] == 'blob':
                         subitem_name = subitem['path'].split('/')[-1]
                         subitem_full_path = f"{item['name']}/{subitem['path']}"
@@ -294,7 +294,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
 def get_sha(repo: str, file_path: str) -> str:
     r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers)
     utils.handle_potential_request_error(r, 200)
-    repo_contents = ujson.loads(r.content)
+    repo_contents = orjson.loads(r.content)
     log.info(f"Found SHA of {file_path}: {repo_contents['sha']}")
     return repo_contents['sha']
 
@@ -407,7 +407,7 @@ def download_old_file(project_id: int, repo: str, filename: str, path_cache: Opt
             log.info("Downloading old version of file, for time reference")
 
         r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
-        r_json = ujson.loads(r.content)
+        r_json = orjson.loads(r.content)
 
         if r.status_code == 404 and 'message' in r_json:
             if path_cache is None:
@@ -597,7 +597,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
     db_contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
     repo = project['repo']
     r = requests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
-    r_json = ujson.loads(r.content)
+    r_json = orjson.loads(r.content)
 
     if r.status_code == 404 and 'message' in r_json and r_json['message'] in ("Not Found", "This repository is empty."):
         commit_message = "Created Contributors.txt"
@@ -627,7 +627,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
             commit_data['sha'] = get_sha(repo, contributors_txt_path)
 
         log.info(commit_message)
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers, data=ujson.dumps(commit_data))
+        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers, data=orjson.dumps(commit_data))
         utils.handle_potential_request_error(r, 201 if created_file else 200)
 
 

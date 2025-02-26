@@ -16,6 +16,8 @@ google-auth-oauthlib==1.2.1
 google-auth==2.38.0
 googleapis-common-protos==1.67.0
 mons==2.0.0
+orjson==3.10.15
+protobuf==5.28.2
 psutil==7.0.0
 pytest-asyncio==0.25.3
 pytest==8.3.4
@@ -24,5 +26,4 @@ python-dateutil==2.9.0.post0
 pywin32==308
 requests==2.32.3
 strip-markdown==1.3
-ujson==5.10.0
 urllib3==2.3.0

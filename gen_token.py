@@ -5,7 +5,7 @@ from typing import Union
 
 import jwt
 import requests
-import ujson
+import orjson
 
 import db
 import utils
@@ -44,7 +44,7 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
         r = requests.get('https://api.github.com/app/installations', headers=headers, timeout=30)
         utils.handle_potential_request_error(r, 200)
-        installations = ujson.loads(r.content)
+        installations = orjson.loads(r.content)
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
 
         for installation in installations:
@@ -58,7 +58,7 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
 
     r = requests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers, timeout=30)
     utils.handle_potential_request_error(r, 201)
-    access_token_data = ujson.loads(r.content)
+    access_token_data = orjson.loads(r.content)
     token_expiration_str = access_token_data['expires_at'][:-1]
     token_expiration = datetime.datetime.fromisoformat(f'{token_expiration_str}+00:00')
     log.info(f"Generated {installation_owner} access token: {access_token_data}")

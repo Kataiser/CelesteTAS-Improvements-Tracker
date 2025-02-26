@@ -18,7 +18,7 @@ from typing import Optional, Union
 
 import dateutil.parser
 import requests
-import ujson
+import orjson
 from deepdiff import DeepDiff
 
 import db
@@ -657,7 +657,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         return project['sync_environment_state']
 
     if r_commits.status_code == 200:
-        commit = ujson.loads(r_commits.content)
+        commit = orjson.loads(r_commits.content)
         state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
 
     state['everest_version'] = latest_everest_stable_version()
@@ -734,7 +734,7 @@ def latest_everest_stable_version() -> Optional[int]:
         log_error()
         return None
 
-    everest_builds = ujson.loads(r_everest.content)
+    everest_builds = orjson.loads(r_everest.content)
     return everest_builds['value'][0]['id'] + 700
 
 

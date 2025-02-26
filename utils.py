@@ -10,7 +10,7 @@ from typing import Optional, Sized, Union, Tuple
 
 import discord
 import requests
-import ujson
+import orjson
 
 import db
 from constants import admin_user_id
@@ -69,8 +69,8 @@ def nickname(author: discord.User) -> str:
 
 
 def load_sj_data() -> Tuple[dict, dict]:
-    with open('sj.json', 'r', encoding='UTF8') as sj_file:
-        sj_data: dict = ujson.load(sj_file)
+    with open('sj.json', 'rb') as sj_file:
+        sj_data: dict = orjson.loads(sj_file.read())
         sj_data_filenames = {sj_data[sj_map][4]: sj_map for sj_map in sj_data}
         return sj_data, sj_data_filenames
 
