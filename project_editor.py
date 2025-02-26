@@ -7,8 +7,8 @@ from deepdiff import DeepDiff
 
 import db
 import main
-
 import utils
+from utils import plural
 
 
 class ProjectEditor(discord.ui.View):
@@ -51,7 +51,7 @@ class ProjectEditor(discord.ui.View):
                 f"- Details 2\n"
                 f"  - Github installation owner: `{project['installation_owner']}`\n"
                 f"  - Admins: `{', '.join(admins)}` (edit with `/edit_admin`)\n"
-                f"  - Mods: {mods_display}\n"
+                f"  - Mods: {mods_display} (add with `/add_mods` preferably)\n"
                 f"  - Lobby sheet cell: {project['lobby_sheet_cell']} (edit with `/link_lobby_sheet`)\n"
                 
                 f"- Settings\n"
@@ -128,7 +128,7 @@ class SaveButton(discord.ui.Button):
         db.projects.set(project['project_id'], project)
         await main.edit_pin(client.get_channel(project['project_id']))
         changes_made_count = len(deep_diff.pretty().splitlines())
-        await interaction.response.send_message(f"Saved {changes_made_count} changes." if changes_made_count else "Saved, no changes made.")
+        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "Saved, no changes made.")
         self.editor.stop()
 
 
@@ -185,6 +185,58 @@ class ProjectEditorModal2(discord.ui.Modal, title="Edit project details 2"):
 
         await interaction.response.defer()
         await self.base_editor.update_message()
+
+
+# these are here for organization but actually belongs to /edit_admin, not /edit_project
+
+class AdminEditor(discord.ui.View):
+    def __init__(self, project: dict, current_admins: list[discord.User]):
+        super().__init__(timeout=600)  # 10 mins
+        self.project = project
+        self.admin_user_select = AdminUserSelect(current_admins)
+        self.add_item(self.admin_user_select)
+        self.add_item(AdminSaveButton(self))
+
+
+class AdminUserSelect(discord.ui.UserSelect):
+    def __init__(self, current_admins: list[discord.User]):
+        super().__init__(placeholder="Select admin(s)", default_values=current_admins, max_values=25)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
+
+class AdminSaveButton(discord.ui.Button):
+    def __init__(self, editor: AdminEditor):
+        super().__init__(label="Save", style=discord.ButtonStyle.primary)
+        self.editor = editor
+
+    async def callback(self, interaction: discord.Interaction):
+        project = self.editor.project
+        previous_admin_ids = project['admins']
+        new_admins_ids = [user.id for user in self.editor.admin_user_select.values]
+        deep_diff = DeepDiff(previous_admin_ids, new_admins_ids, ignore_order=True, verbose_level=2)
+        log.info(f"Saved, changes: {deep_diff}")
+        changes_made_count = len(deep_diff.pretty().splitlines())
+
+        if changes_made_count:
+            project['admins'] = new_admins_ids
+            db.projects.set(project['project_id'], project)
+            await main.edit_pin(client.get_channel(project['project_id']))
+
+        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "Saved, no changes made.", ephemeral=True)
+        self.editor.stop()
+
+        for user in self.editor.admin_user_select.values:
+            if user.id not in previous_admin_ids and user.id != interaction.user.id:
+                await user.send(f"{interaction.user.display_name} has added you as an admin to the \"{project['name']}\" TAS project.")
+                log.info(f"DM'd {utils.detailed_user(user=user)} about being added as an admin")
+
+        for user_id in previous_admin_ids:
+            if user_id not in new_admins_ids and user_id != interaction.user.id:
+                user = await utils.user_from_id(client, user_id)
+                await user.send(f"{interaction.user.display_name} has removed you as an admin from the \"{project['name']}\" TAS project.")
+                log.info(f"DM'd {utils.detailed_user(user=user)} about being removed as an admin")
 
 
 def split_items(field: discord.ui.TextInput) -> list[str]:

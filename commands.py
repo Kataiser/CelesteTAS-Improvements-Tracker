@@ -76,7 +76,7 @@ async def command_help(interaction: discord.Interaction):
                "\n3. Run the `/register_project` command. You can also use this to edit existing projects." \
                "\n4. (Optional) Add other admins with `/edit_admins`, and add mod(s) for sync testing with `/add_mods`." \
                "\n\nThere are many other commands available, to assist with managing projects and more. Many commands are only visible and available in bot DMs, with the exception of "\
-               f"`/register_project` and `/edit_admin`.{admin_commands_formatted}"
+               f"`/register_project` and `/edit_admins`.{admin_commands_formatted}"
 
     await respond(interaction, response)
 
@@ -392,49 +392,17 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
         await respond(interaction, f"{filename_before} not found in any project named `{project_name}`.")
 
 
-@command(report_usage=True, slow_start=True)
-async def command_edit_admin(interaction: discord.Interaction, project_name: str, edited_admin: discord.User, edit: Literal["Add", "Remove"]):
-    matching_projects = db.projects.get_by_name_or_id(project_name)
-    adding = edit == "Add"
+@command(report_usage=True)
+async def command_edit_admins(interaction: discord.Interaction, project_name: str):
+    project = db.projects.get_by_name_or_id(project_name)[0]
 
-    for project in matching_projects:
-        if not await is_project_admin(interaction, project):
-            continue
+    if not await is_project_admin(interaction, project):
+        log.info("Found no matching project")
+        await respond(interaction, f"Found no project matching that name or ID that you are an admin of.")
+        return
 
-        if adding:
-            if edited_admin.id in project['admins']:
-                already_admin_text = f"{utils.detailed_user(user=edited_admin)} is already an admin for project \"{project['name']}\"."
-                log.warning(already_admin_text)
-                await respond(interaction, already_admin_text)
-            else:
-                project['admins'].append(edited_admin.id)
-                db.projects.set(project['project_id'], project)
-                added_admin_text = f"Added {utils.detailed_user(user=edited_admin)} as an admin to project \"{project['name']}\"."
-                log.info(added_admin_text)
-                await respond(interaction, added_admin_text)
-                await main.edit_pin(client.get_channel(project['project_id']))
-
-                if edited_admin.id != interaction.user.id:
-                    await edited_admin.send(f"{interaction.user.global_name} has added you as an admin to the \"{project['name']}\" TAS project.")
-        else:
-            if edited_admin.id in project['admins']:
-                project['admins'].remove(edited_admin.id)
-                db.projects.set(project['project_id'], project)
-                removed_admin_text = f"Removed {utils.detailed_user(user=edited_admin)} as an admin from project \"{project['name']}\"."
-                log.info(removed_admin_text)
-                await respond(interaction, removed_admin_text)
-                await main.edit_pin(client.get_channel(project['project_id']))
-
-                if edited_admin.id != interaction.user.id:
-                    await edited_admin.send(f"{interaction.user.global_name} has removed you as an admin from the \"{project['name']}\" TAS project.")
-            else:
-                not_admin_text = f"{utils.detailed_user(user=edited_admin)} is not an admin for project \"{project['name']}\"."
-                log.warning(not_admin_text)
-                await respond(interaction, not_admin_text)
-
-    if not matching_projects:
-        log.info("Found no matching projects")
-        await respond(interaction, f"Found no projects matching that name or ID.")
+    current_admins = [await utils.user_from_id(client, admin_id) for admin_id in project['admins']]
+    await interaction.response.send_message(f"Editing admins for project **{project['name']}**", view=project_editor.AdminEditor(project, current_admins), ephemeral=True)
 
 
 @command()

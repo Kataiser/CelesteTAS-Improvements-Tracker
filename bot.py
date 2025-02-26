@@ -359,12 +359,11 @@ async def rename_file(interaction, project_name: str, filename_before: str, file
     await commands.command_rename_file(interaction, project_name, filename_before, filename_after)
 
 
-@command_tree.command(description="Add or remove an admin from a project")
+@command_tree.command(description="Add or remove admins from a project")
 @app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
-@app_commands.describe(edited_admin="The user you're adding or removing")
-@app_commands.describe(edit="Whether to add or remove them from admin")
-async def edit_admin(interaction, project_name: str, edited_admin: discord.User, edit: Literal["Add", "Remove"]):
-    await commands.command_edit_admin(interaction, project_name, edited_admin, edit)
+@app_commands.guild_only()
+async def edit_admins(interaction, project_name: str):
+    await commands.command_edit_admins(interaction, project_name)
 
 
 @command_tree.command(description="Get bot info and status")

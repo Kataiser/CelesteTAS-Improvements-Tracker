@@ -156,7 +156,7 @@ class Projects(Table):
 
         return projects_list
 
-    def get_by_name_or_id(self, name_or_id: Union[str, int], consistent_read: bool = True) -> list:
+    def get_by_name_or_id(self, name_or_id: Union[str, int], consistent_read: bool = True) -> list[dict]:
         # gave ID
         if isinstance(name_or_id, int) or name_or_id.isdigit():
             try:
