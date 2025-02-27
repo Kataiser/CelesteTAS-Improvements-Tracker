@@ -211,13 +211,11 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
 
 @command(report_usage=True)
 async def command_edit_project(interaction: discord.Interaction, project_name: str):
-    projects = db.projects.get_by_name_or_id(project_name)  # don't even try to handle multiple projects with the same name lol
+    projects = db.projects.get_by_name_or_id(project_name)
 
     if not projects:
         await respond(interaction, "No project matching that name or ID found.")
-    elif not await is_project_admin(interaction, projects[0]):
-        await respond(interaction, "You are not an admin of this project.")
-    else:
+    elif await is_project_admin(interaction, projects[0]):
         await interaction.response.send_message(await project_editor.ProjectEditor.generate_message(projects[0]), view=project_editor.ProjectEditor(projects[0], interaction))
 
 @command(report_usage=True, slow_start=True)
@@ -396,13 +394,11 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
 async def command_edit_admins(interaction: discord.Interaction, project_name: str):
     project = db.projects.get_by_name_or_id(project_name)[0]
 
-    if not await is_project_admin(interaction, project):
-        log.info("Found no matching project")
-        await respond(interaction, f"Found no project matching that name or ID that you are an admin of.")
-        return
-
-    current_admins = [await utils.user_from_id(client, admin_id) for admin_id in project['admins']]
-    await interaction.response.send_message(f"Editing admins for project **{project['name']}**", view=project_editor.AdminEditor(project, current_admins), ephemeral=True)
+    if not project:
+        await respond(interaction, "No project matching that name or ID found.")
+    elif await is_project_admin(interaction, project):
+        current_admins = [await utils.user_from_id(client, admin_id) for admin_id in project['admins']]
+        await interaction.response.send_message(f"Editing admins for project **{project['name']}**", view=project_editor.AdminEditor(project, current_admins), ephemeral=True)
 
 
 @command()
@@ -716,15 +712,15 @@ async def is_project_admin(interaction: discord.Interaction, project: dict):
         return True
     else:
         log.warning("Not project admin")
-        await respond(interaction, "Not allowed, you are not an admin for this project.")
+        await respond(interaction, "Not allowed, you are not an admin for this project.", ephemeral=True)
         return False
 
 
-async def respond(interaction: discord.Interaction, message: str):
+async def respond(interaction: discord.Interaction, message: str, ephemeral: bool = False):
     if not interaction.response.is_done():
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(message, ephemeral=ephemeral)
     else:
-        await interaction.followup.send(message)
+        await interaction.followup.send(message, ephemeral=ephemeral)
 
     if interaction.extras['report_usage'] and interaction.user.id != constants.admin_user_id:
         await (await utils.user_from_id(client, constants.admin_user_id)).send(f"`{message}`")
