@@ -13,6 +13,7 @@ import db
 import main
 import project_editor
 import spreadsheet
+import tasks
 import utils
 from constants import admin_user_id, slash_command_servers
 from utils import plural
@@ -112,7 +113,7 @@ async def on_ready():
     if set_default_status:
         await main.set_status()
 
-    main.start_tasks()
+    tasks.start_tasks()
 
 
 @client.event
@@ -121,7 +122,7 @@ async def on_message(message: discord.Message):
         return
     elif not message.guild:
         await commands.handle_direct_dm(message)
-        main.start_tasks()
+        tasks.start_tasks()
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
@@ -437,6 +438,7 @@ def share_client(client_: discord.Client):
     project_editor.client = client_
     spreadsheet.client = client_
     main.client = client_
+    tasks.client = client_
 
 
 log = main.create_logger('bot')
