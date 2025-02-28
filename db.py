@@ -218,7 +218,7 @@ class SyncResult:
 def send_sync_result(result_type: SyncResultType, data: dict):
     if writes_enabled:
         payload = {'type': str(result_type), 'data': data}
-        sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=orjson.dumps(payload), MessageGroupId=str(result_type))
+        sqs_client.send_message(QueueUrl=sqs_queue_url, MessageBody=orjson.dumps(payload).decode('UTF8'), MessageGroupId=str(result_type))
 
 
 def get_sync_results() -> list[SyncResult]:
