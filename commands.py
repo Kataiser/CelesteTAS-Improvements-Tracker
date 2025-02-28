@@ -162,11 +162,18 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
         await respond(interaction, "Enabling sync check for a lobby project is not allowed.")
         return
 
+    # verify no other projects have the same name
+    name_clean = strip_markdown.strip_markdown(name.replace('"', ''))
+    if name_clean in [p['name'] for p in projects.values()]:
+        await utils.report_error(client, "Duplicate name")
+        await respond(interaction, "An existing project already has that name.")
+        return
+
     log.info("Verification successful")
 
     current_time = int(time.time())
     registered_project = {'project_id': improvements_channel.id,
-                          'name': strip_markdown.strip_markdown(name.replace('"', '')),
+                          'name': name_clean,
                           'repo': repo,
                           'installation_owner': github_account,
                           'admins': (interaction.user.id,),
@@ -211,12 +218,13 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
 
 @command(report_usage=True)
 async def command_edit_project(interaction: discord.Interaction, project_name: str):
-    projects = db.projects.get_by_name_or_id(project_name)
+    project = db.projects.get_by_name_or_id(project_name)
 
-    if not projects:
+    if not project:
         await respond(interaction, "No project matching that name or ID found.")
-    elif await is_project_admin(interaction, projects[0]):
-        await interaction.response.send_message(await project_editor.ProjectEditor.generate_message(projects[0]), view=project_editor.ProjectEditor(projects[0], interaction))
+    elif await is_project_admin(interaction, project):
+        await interaction.response.send_message(await project_editor.ProjectEditor.generate_message(project), view=project_editor.ProjectEditor(project, interaction))
+
 
 @command(report_usage=True, slow_start=True)
 async def command_link_lobby_sheet(interaction: discord.Interaction, project_name: str, sheet: str, cell: str):
@@ -229,165 +237,161 @@ async def command_link_lobby_sheet(interaction: discord.Interaction, project_nam
     spreadsheet_id = sheet_match[1]
     lobby_sheet_cell = f"{spreadsheet_id}/{cell}"
     spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
-    projects = db.projects.get_by_name_or_id(project_name)
+    project = db.projects.get_by_name_or_id(project_name)
 
-    if not projects:
-        log.warning(f"No projects found matching: {project_name}")
-        await respond(interaction, "No projects (with sync checking enabled) matching that name or ID found.")
+    if not project:
+        log.warning(f"No project found matching: {project_name}")
+        await respond(interaction, "No project (with sync checking enabled) matching that name or ID found.")
+        return
 
-    for project in projects:
-        if not await is_project_admin(interaction, project):
-            break
-        if not project['is_lobby']:
-            log.warning(f"Trying to link sheet to non-lobby project {project['name']}")
-            await respond(interaction, "Cannot link sheet to a non-lobby project")
-            continue
+    if not await is_project_admin(interaction, project):
+        return
 
-        try:
-            spreadsheet.check_write_permission(spreadsheet_id, cell)
-        except Exception as error:
-            await utils.report_error(client,
-                                     f"Cannot write to '{spreadsheet_url}' '{cell}'. Missing write access? Error message: {error}")
-            await respond(interaction, f"Bot can't write to to `{spreadsheet_url}` at '{cell}'. Make sure to invite `{spreadsheet.service_account_email}` to the sheet.")
-            return
+    if not project['is_lobby']:
+        log.warning(f"Trying to link sheet to non-lobby project {project['name']}")
+        await respond(interaction, "Cannot link sheet to a non-lobby project")
+        return
 
-        project['lobby_sheet_cell'] = lobby_sheet_cell
-        db.projects.set(project['project_id'], project)
+    try:
+        spreadsheet.check_write_permission(spreadsheet_id, cell)
+    except Exception as error:
+        await utils.report_error(client, f"Cannot write to '{spreadsheet_url}' '{cell}'. Missing write access? Error message: {error}")
+        await respond(interaction, f"Cannot write to `{spreadsheet_url}` at '{cell}'. Make sure to invite `{spreadsheet.service_account_email}` to the sheet.")
+        return
 
-        await respond(interaction, f"Project \"{project['name']}\" is now linked to {spreadsheet_url} {cell}")
+    project['lobby_sheet_cell'] = lobby_sheet_cell
+    db.projects.set(project['project_id'], project)
+
+    await respond(interaction, f"Project \"{project['name']}\" is now linked to {spreadsheet_url} {cell}")
 
 
 @command(report_usage=True, slow_start=True)
 async def command_add_mods(interaction: discord.Interaction, project_name: str, mods: str):
-    project_mods_added = False
+    project = db.projects.get_by_name_or_id(project_name)
 
-    for project in db.projects.get_by_name_or_id(project_name):
-        if not await is_project_admin(interaction, project):
-            break
-        elif not (project['do_run_validation'] or project['sync_check_timed_out']):
-            log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
-            await respond(interaction, f"Project \"{project['name']}\" has sync checking disabled.")
-            continue
+    if not project:
+        log.warning(f"No project found matching: {project_name}")
+        await respond(interaction, "No project (with sync checking enabled) matching that name or ID found.")
 
-        log.info(f"Adding mods for project: {project['name']}")
-        project_mods_added = True
-        mods_given = [mod.replace('"', '').removesuffix('.zip') for mod in re_command_split.split(mods)]
-        project_mods = set(project['mods'])
-        log.info(f"{len(project_mods)} mod{plural(project_mods)} before adding: {project_mods}")
-        project_mods = project_mods.union(mods_given)
-        log.info(f"{len(project_mods)} mod{plural(project_mods)} after adding: {project_mods}")
-        project['mods'] = list(project_mods)
-        db.projects.set(project['project_id'], project)
-        mods_missing = set()
-        dependencies = set()
-        game_sync.get_mod_dependencies.cache_clear()
+    if not await is_project_admin(interaction, project):
+        return
 
-        for mod_given in mods_given:
-            dependencies |= game_sync.get_mod_dependencies(mod_given)
-            all_project_mods = project_mods.union(dependencies)
+    if not (project['do_run_validation'] or project['sync_check_timed_out']):
+        log.warning(f"Trying to add mods to project: {project['name']}, but run validation is disabled")
+        await respond(interaction, f"Project \"{project['name']}\" has sync checking disabled.")
+        return
 
-        log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")
-        installed_mods = [item.stem for item in game_sync.mods_dir().iterdir() if item.suffix == '.zip']
+    log.info(f"Adding mods for project: {project['name']}")
+    mods_given = [mod.replace('"', '').removesuffix('.zip') for mod in re_command_split.split(mods)]
+    project_mods = set(project['mods'])
+    log.info(f"{len(project_mods)} mod{plural(project_mods)} before adding: {project_mods}")
+    project_mods = project_mods.union(mods_given)
+    log.info(f"{len(project_mods)} mod{plural(project_mods)} after adding: {project_mods}")
+    project['mods'] = list(project_mods)
+    db.projects.set(project['project_id'], project)
+    mods_missing = set()
+    dependencies = set()
+    game_sync.get_mod_dependencies.cache_clear()
 
-        for mod in all_project_mods:
-            if mod not in installed_mods:
-                mods_missing.add(mod)
+    for mod_given in mods_given:
+        dependencies |= game_sync.get_mod_dependencies(mod_given)
+        all_project_mods = project_mods.union(dependencies)
 
-        dependency_text = 'dependency' if len(dependencies) == 1 else 'dependencies'
-        await respond(interaction, f"Project \"{project['name']}\" now has {len(mods_given)} mod{plural(mods_given)} "
-                                                f"(plus {len(dependencies)} {dependency_text}) to load for sync testing.")
+    log.info(f"{len(all_project_mods)} total mod{plural(all_project_mods)}: {all_project_mods}")
+    installed_mods = [item.stem for item in game_sync.mods_dir().iterdir() if item.suffix == '.zip']
 
-        if mods_missing:
-            log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
-            mods_missing_formatted = '\n'.join(sorted(mods_missing))
-            await (await utils.user_from_id(client, constants.admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
-            await respond(interaction, f"The following mod(s) are not currently prepared for sync testing "
-                                       f"({constants.admin_name} has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
+    for mod in all_project_mods:
+        if mod not in installed_mods:
+            mods_missing.add(mod)
 
-    if not project_mods_added:
-        log.warning(f"No projects found matching: {project_name}")
-        await respond(interaction, "No projects (with sync checking enabled) matching that name or ID found.")
+    dependency_text = 'dependency' if len(dependencies) == 1 else 'dependencies'
+    await respond(interaction, f"Project \"{project['name']}\" now has {len(mods_given)} mod{plural(mods_given)} "
+                               f"(plus {len(dependencies)} {dependency_text}) to load for sync testing.")
+
+    if mods_missing:
+        log.warning(f"Missing {len(mods_missing)} mod(s) from installed: {mods_missing}")
+        mods_missing_formatted = '\n'.join(sorted(mods_missing))
+        await (await utils.user_from_id(client, constants.admin_user_id)).send(f"hey you need to install some mods for sync testing\n```\n{mods_missing_formatted}```")
+        await respond(interaction, f"The following mod(s) are not currently prepared for sync testing "
+                                   f"({constants.admin_name} has been automatically DM'd about it):\n```\n{mods_missing_formatted}```")
 
 
 @command(report_usage=True, slow_start=True)
 async def command_rename_file(interaction: discord.Interaction, project_name: str, filename_before: str, filename_after: str):
-    matching_projects = db.projects.get_by_name_or_id(project_name)
-    renamed_file = False
+    project = db.projects.get_by_name_or_id(project_name)
 
     if filename_before == filename_after:
         await respond(interaction, "what")
         return
 
-    for project in matching_projects:
-        main.generate_request_headers(project['installation_owner'])
-        path_cache = main.generate_path_cache(project['project_id'])
+    if not project:
+        log.info("Found no matching project")
+        await respond(interaction, "Found no project matching that name or ID.")
 
-        if filename_before not in path_cache:
-            not_found_text = f"{filename_before} not in project {project['name']}."
-            log.warning(not_found_text)
-            await respond(interaction, not_found_text)
-            return
+    if not await is_project_admin(interaction, project):
+        return
 
-        renaming_text = f"Renaming `{filename_before}` to `{filename_after}` in project \"{project['name']}\"."
-        log.info(renaming_text)
-        await respond(interaction, renaming_text)
-        repo = project['repo']
-        file_path = path_cache[filename_before]
-        renamed_file = True
-        user_github_account = utils.get_user_github_account(interaction.user.id)
+    main.generate_request_headers(project['installation_owner'])
+    path_cache = main.generate_path_cache(project['project_id'])
 
-        log.info(f"Downloading {filename_before}")
-        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
-        utils.handle_potential_request_error(r, 200)
-        tas_downloaded = base64.b64decode(orjson.loads(r.content)['content'])
+    if filename_before not in path_cache:
+        not_found_text = f"{filename_before} not in project {project['name']}."
+        log.warning(not_found_text)
+        await respond(interaction, not_found_text)
+        return
 
-        # commit 1: delete old file
-        log.info("Performing delete commit")
-        data = {'message': f"Renamed {filename_before} to {filename_after} (deleting)", 'sha': main.get_sha(repo, file_path)}
-        if user_github_account:
-            data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
-            log.info(f"Setting commit author to {data['author']}")
-        r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=orjson.dumps(data))
-        utils.handle_potential_request_error(r, 200)
-        time.sleep(1)  # just to be safe
+    renaming_text = f"Renaming `{filename_before}` to `{filename_after}` in project \"{project['name']}\"."
+    log.info(renaming_text)
+    await respond(interaction, renaming_text)
+    repo = project['repo']
+    file_path = path_cache[filename_before]
+    user_github_account = utils.get_user_github_account(interaction.user.id)
 
-        # commit 2: create new file (or overwrite)
-        log.info("Performing recreate commit")
-        data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
-        if filename_after in path_cache:
-            file_path_after = path_cache[filename_after]
-            log.info(f"Overwriting, file should already exist at {file_path_after}")
-            data['sha'] = main.get_sha(repo, file_path_after)
-            expected_status = 200
-        else:
-            file_path_after = file_path.replace(filename_before, filename_after)
-            expected_status = 201
-        if user_github_account:
-            data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
-            log.info(f"Setting commit author to {data['author']}")
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_after}', headers=main.headers, data=orjson.dumps(data))
-        utils.handle_potential_request_error(r, expected_status)
+    log.info(f"Downloading {filename_before}")
+    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
+    utils.handle_potential_request_error(r, 200)
+    tas_downloaded = base64.b64decode(orjson.loads(r.content)['content'])
 
-        if r.status_code == expected_status:
-            db.path_caches.enable_cache()
-            db.path_caches.remove_file(project['project_id'], filename_before)
-            db.path_caches.add_file(project['project_id'], filename_after, file_path_after)
-            db.path_caches.disable_cache()
-            log.info("Rename successful")
-            await respond(interaction, "Rename successful.")
-            improvements_channel = client.get_channel(project['project_id'])
-            await improvements_channel.send(f"{interaction.user.mention} renamed `{filename_before}` to `{filename_after}`")
-            await main.edit_pin(improvements_channel)
-        else:
-            await utils.report_error(client, "Rename unsuccessful")
-            await respond(interaction, "Rename unsuccessful.")
+    # commit 1: delete old file
+    log.info("Performing delete commit")
+    data = {'message': f"Renamed {filename_before} to {filename_after} (deleting)", 'sha': main.get_sha(repo, file_path)}
+    if user_github_account:
+        data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
+        log.info(f"Setting commit author to {data['author']}")
+    r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=orjson.dumps(data))
+    utils.handle_potential_request_error(r, 200)
+    time.sleep(1)  # just to be safe
 
-    if not matching_projects:
-        log.info("Found no matching projects")
-        await respond(interaction, f"Found no projects matching that name or ID.")
-    elif not renamed_file:
-        log.warning("No files renamed")
-        await respond(interaction, f"{filename_before} not found in any project named `{project_name}`.")
+    # commit 2: create new file (or overwrite)
+    log.info("Performing recreate commit")
+    data = {'message': f"Renamed {filename_before} to {filename_after} (creating)", 'content': base64.b64encode(tas_downloaded).decode('UTF8')}
+    if filename_after in path_cache:
+        file_path_after = path_cache[filename_after]
+        log.info(f"Overwriting, file should already exist at {file_path_after}")
+        data['sha'] = main.get_sha(repo, file_path_after)
+        expected_status = 200
+    else:
+        file_path_after = file_path.replace(filename_before, filename_after)
+        expected_status = 201
+    if user_github_account:
+        data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
+        log.info(f"Setting commit author to {data['author']}")
+    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_after}', headers=main.headers, data=orjson.dumps(data))
+    utils.handle_potential_request_error(r, expected_status)
+
+    if r.status_code == expected_status:
+        db.path_caches.enable_cache()
+        db.path_caches.remove_file(project['project_id'], filename_before)
+        db.path_caches.add_file(project['project_id'], filename_after, file_path_after)
+        db.path_caches.disable_cache()
+        log.info("Rename successful")
+        await respond(interaction, "Rename successful.")
+        improvements_channel = client.get_channel(project['project_id'])
+        await improvements_channel.send(f"{interaction.user.mention} renamed `{filename_before}` to `{filename_after}`")
+        await main.edit_pin(improvements_channel)
+    else:
+        await utils.report_error(client, "Rename unsuccessful")
+        await respond(interaction, "Rename unsuccessful.")
 
 
 @command(report_usage=True)
@@ -445,7 +449,12 @@ async def command_about(interaction: discord.Interaction):
 
 @command(slow_start=True)
 async def command_about_project(interaction: discord.Interaction, project_name: str):
-    matching_projects = db.projects.get_by_name_or_id(project_name)
+    project = db.projects.get_by_name_or_id(project_name)
+
+    if not project:
+        log.info("Found no matching project")
+        await respond(interaction, f"Found no project matching that name or ID.")
+
     text = "Name: **{0}**" \
            "\nRepo: <{1}>" \
            "\nImprovement channel: <#{2}>" \
@@ -460,41 +469,36 @@ async def command_about_project(interaction: discord.Interaction, project_name: 
            "\nUses contributors file: `{13}`" \
            "{11}"
 
-    for project in matching_projects:
-        if project['do_run_validation']:
-            last_run = project['last_run_validation']
+    if project['do_run_validation']:
+        last_run = project['last_run_validation']
 
-            if last_run:
-                last_sync_check = f"\nLast sync check: <t:{last_run}>"
-            else:
-                last_sync_check = "\nLast sync check: `Not yet run`"
+        if last_run:
+            last_sync_check = f"\nLast sync check: <t:{last_run}>"
         else:
-            last_sync_check = ""
+            last_sync_check = "\nLast sync check: `Not yet run`"
+    else:
+        last_sync_check = ""
 
-        repo = project['repo']
-        subdir = project['subdir']
-        admins = [utils.detailed_user(user=await utils.user_from_id(client, admin)) for admin in project['admins']]
-        text_out = text.format(project['name'],
-                               f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}',
-                               project['project_id'],
-                               ', '.join(admins),
-                               project['installation_owner'],
-                               project['install_time'],
-                               client.get_channel(project['project_id']).get_partial_message(project['pin']).jump_url,
-                               project['commit_drafts'],
-                               project['is_lobby'],
-                               project['ensure_level'],
-                               project['do_run_validation'],
-                               last_sync_check,
-                               plural(admins),
-                               project['use_contributors_file'])
+    repo = project['repo']
+    subdir = project['subdir']
+    admins = [utils.detailed_user(user=await utils.user_from_id(client, admin)) for admin in project['admins']]
+    text_out = text.format(project['name'],
+                           f'https://github.com/{repo}/tree/HEAD/{subdir}' if subdir else f'https://github.com/{repo}',
+                           project['project_id'],
+                           ', '.join(admins),
+                           project['installation_owner'],
+                           project['install_time'],
+                           client.get_channel(project['project_id']).get_partial_message(project['pin']).jump_url,
+                           project['commit_drafts'],
+                           project['is_lobby'],
+                           project['ensure_level'],
+                           project['do_run_validation'],
+                           last_sync_check,
+                           plural(admins),
+                           project['use_contributors_file'])
 
-        log.info(text_out)
-        await respond(interaction, text_out)
-
-    if not matching_projects:
-        log.info("Found no matching projects")
-        await respond(interaction, f"Found no projects matching that name or ID.")
+    log.info(text_out)
+    await respond(interaction, text_out)
 
 
 @command(slow_start=True)

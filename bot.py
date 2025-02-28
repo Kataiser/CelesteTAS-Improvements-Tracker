@@ -335,7 +335,7 @@ async def edit_project(interaction, project_name: str):
 
 
 @command_tree.command(description="Link a lobby project to a routing table, so that improvements will automatically be written to it")
-@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(project_name="The name or ID of your project")
 @app_commands.describe(sheet="The link to your spreadsheet, e.g. https://docs.google.com/spreadsheets/d/1xY9W_fvKyYYz7E-t_t5UXSpqxECUil2mLY7PdB-ifLc")
 @app_commands.describe(cell="The location where the 0-0 connection of the table is, e.g. C2, Beginner!C2 or Beginner Lobby!C2")
 @app_commands.dm_only()
@@ -344,7 +344,7 @@ async def link_lobby_sheet(interaction, project_name: str, sheet: str, cell: str
 
 
 @command_tree.command(description="Set the game mods a sync check needs to load")
-@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(project_name="The name or ID of your project")
 @app_commands.describe(mods="The mod(s) used by your project, separated by spaces (dependencies are automatically handled). Ex: EGCPACK, WinterCollab2021, \"Monika's D-Sides\"")
 @app_commands.dm_only()
 async def add_mods(interaction, project_name: str, mods: str):
@@ -352,7 +352,7 @@ async def add_mods(interaction, project_name: str, mods: str):
 
 
 @command_tree.command(description="Rename a file in the repo of a project, recommended over manually committing")
-@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(project_name="The name or ID of your project")
 @app_commands.describe(filename_before="The current name of the TAS file you want to rename (with .tas)")
 @app_commands.describe(filename_after="What you want the TAS file to be renamed to (with .tas)")
 @app_commands.dm_only()
@@ -361,7 +361,7 @@ async def rename_file(interaction, project_name: str, filename_before: str, file
 
 
 @command_tree.command(description="Add or remove admins from a project")
-@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(project_name="The name or ID of your project")
 @app_commands.guild_only()
 async def edit_admins(interaction, project_name: str):
     await commands.command_edit_admins(interaction, project_name)
@@ -374,7 +374,7 @@ async def about(interaction):
 
 
 @command_tree.command(description="Get the info and settings of a project")
-@app_commands.describe(project_name="The name or ID of your project. If you have multiple improvement channels with the same project name, this will update all of them")
+@app_commands.describe(project_name="The name or ID of your project")
 @app_commands.dm_only()
 async def about_project(interaction, project_name: str):
     await commands.command_about_project(interaction, project_name)

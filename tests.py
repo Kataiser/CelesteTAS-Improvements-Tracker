@@ -893,8 +893,8 @@ def test_project_get_all(fast_db):
 
 
 def test_project_get_by_name_or_id(fast_db):
-    assert db.projects.get_by_name_or_id('Improvements bot testing')[0]['project_id'] == Decimal('970380662907482142')
-    assert db.projects.get_by_name_or_id(970380662907482142)[0]['name'] == 'Improvements bot testing'
+    assert db.projects.get_by_name_or_id('Improvements bot testing')['project_id'] == Decimal('970380662907482142')
+    assert db.projects.get_by_name_or_id(970380662907482142)['name'] == 'Improvements bot testing'
 
 
 def test_various_gets(fast_db):
