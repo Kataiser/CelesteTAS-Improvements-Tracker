@@ -396,7 +396,7 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
 
 @command(report_usage=True)
 async def command_edit_admins(interaction: discord.Interaction, project_name: str):
-    project = db.projects.get_by_name_or_id(project_name)[0]
+    project = db.projects.get_by_name_or_id(project_name)
 
     if not project:
         await respond(interaction, "No project matching that name or ID found.")
