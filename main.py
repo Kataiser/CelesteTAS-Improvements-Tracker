@@ -593,5 +593,3 @@ safe_projects = (970380662907482142, 973793458919723088, 975867007868235836, 976
 inaccessible_projects = set(safe_projects)
 fast_project_ids = set()
 re_lobby_filename = re.compile(r'.+_(\d+)-(\d+)\.tas')
-mc_server_log_last_update = None
-mc_server_log_last_pos = 0

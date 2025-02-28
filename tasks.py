@@ -15,9 +15,9 @@ from constants import admin_user_id
 
 
 def start_tasks() -> dict[Callable, bool]:
-    tasks_running = {handle_game_sync_results: False,
-                     handle_no_game_sync_results: False,
-                     alert_server_join: False}
+    tasks_running = {handle_game_sync_results_task: False,
+                     handle_no_game_sync_results_task: False,
+                     alert_server_join_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -31,6 +31,29 @@ def start_tasks() -> dict[Callable, bool]:
 
 
 @tasks.loop(minutes=1)
+async def handle_game_sync_results_task():
+    try:
+        await handle_game_sync_results()
+    except Exception:
+        await utils.report_error(client)
+
+
+@tasks.loop(hours=2)
+async def handle_no_game_sync_results_task():
+    try:
+        await handle_no_game_sync_results()
+    except Exception:
+        await utils.report_error(client)
+
+
+@tasks.loop(seconds=30)
+async def alert_server_join_task():
+    try:
+        await alert_server_join()
+    except Exception:
+        await utils.report_error(client)
+
+
 async def handle_game_sync_results():
     sync_results = db.get_sync_results()
 
@@ -87,7 +110,6 @@ async def handle_game_sync_results():
     db.misc.set('last_game_sync_result_time', int(time.time()))
 
 
-@tasks.loop(hours=2)
 async def handle_no_game_sync_results():
     time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
 
@@ -95,7 +117,6 @@ async def handle_no_game_sync_results():
         await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago")
 
 
-@tasks.loop(seconds=30)
 async def alert_server_join():
     global mc_server_log_last_update, mc_server_log_last_pos
     log_file = Path('C:/Users/Vamp/Documents/tas_offtopic server/logs/latest.log')
@@ -128,3 +149,5 @@ async def alert_server_join():
 
 client: discord.Client | None = None
 log: logging.Logger | utils.LogPlaceholder = utils.LogPlaceholder()
+mc_server_log_last_update = None
+mc_server_log_last_pos = 0
