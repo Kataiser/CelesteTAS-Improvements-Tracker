@@ -114,7 +114,9 @@ async def handle_no_game_sync_results():
     time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
 
     if time_since_last_game_sync_result > 86400:  # 24 hours
-        await (await utils.user_from_id(client, admin_user_id)).send(f"Warning: last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago")
+        warning_text = f"Last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago"
+        log.warning(warning_text)
+        await (await utils.user_from_id(client, admin_user_id)).send()
 
 
 async def alert_server_join():
