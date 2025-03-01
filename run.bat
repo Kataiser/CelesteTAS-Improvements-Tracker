@@ -1,5 +1,5 @@
 @echo off
 title bot
-python bot.py
+.venv\Scripts\python bot.py
 title dead bot
 pause
