@@ -30,17 +30,22 @@ class ProjectEditor(discord.ui.View):
         self.add_item(self.project_options_boolean_select)
         self.add_item(self.boolean_select)
 
-    @discord.ui.button(label="Edit details 1", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Edit details 1", style=discord.ButtonStyle.secondary, row=2)
     async def edit_details_1_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         log.info("Opening project details 1 editor modal")
         await interaction.response.send_modal(ProjectEditorModal1(self))
 
-    @discord.ui.button(label="Edit details 2", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Edit details 2", style=discord.ButtonStyle.secondary, row=2)
     async def edit_details_2_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         log.info("Opening project details 2 editor modal")
         await interaction.response.send_modal(ProjectEditorModal2(self))
 
-    @discord.ui.button(label="Save", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Add disallowed command exemption", style=discord.ButtonStyle.secondary, row=3)
+    async def add_disallowed_command_exemption_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        log.info("Opening disallowed command exemption modal")
+        await interaction.response.send_modal(DisallowedCommandExemptionModal(self))
+
+    @discord.ui.button(label="Save", style=discord.ButtonStyle.primary, row=3)
     async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         deep_diff = DeepDiff(self.project_original, self.project, ignore_order=True, verbose_level=2)
         log.info(f"Saved, changes: {deep_diff}")
@@ -58,19 +63,28 @@ class ProjectEditor(discord.ui.View):
         contributors_file_path_display = f"`{project['contributors_file_path']}`" if project['contributors_file_path'] else "Root"
         excluded_items_display = f"`{', '.join([item for item in project['excluded_items']])}`" if project['excluded_items'] else "None"
 
+        if not project['disallowed_command_exemptions']:
+            disallowed_command_exemptions_display = "None"
+        else:
+            exemption_bullets = []
+
+            for command, argument in project['disallowed_command_exemptions']:
+                exemption_bullets.append(f"    - Command: `{command}`, argument: {"None" if argument == '' else f"`{argument}`"}")
+
+            disallowed_command_exemptions_display = f'\n{'\n'.join(exemption_bullets)}'
+
         return (f"- Details 1\n"
                 f"  - Name: `{project['name']}`\n"
                 f"  - Repo: `{project['repo']}`\n"
                 f"  - Subdirectory: {subdir_display}\n"
                 f"  - Excluded items: {excluded_items_display}\n"
                 f"  - Contributors file path: {contributors_file_path_display}\n"
-
                 f"- Details 2\n"
                 f"  - Github installation owner: `{project['installation_owner']}`\n"
                 f"  - Admins: `{', '.join(admins)}` (edit with `/edit_admin`)\n"
                 f"  - Mods: {mods_display} (add with `/add_mods` preferably)\n"
                 f"  - Lobby sheet cell: {project['lobby_sheet_cell']} (edit with `/link_lobby_sheet`)\n"
-                
+                f"  - Disallowed command exemptions: {disallowed_command_exemptions_display}\n"
                 f"- Settings\n"
                 f"  - Commit drafts: `{project['commit_drafts']}`\n"
                 f"  - Is lobby: `{project['is_lobby']}`\n"
@@ -86,7 +100,7 @@ class ProjectEditor(discord.ui.View):
 class ProjectOptionsBooleanSelect(discord.ui.Select):
     def __init__(self, editor: ProjectEditor):
         self.editor = editor
-        super().__init__(placeholder="Project setting", options=self.editor.boolean_options)
+        super().__init__(placeholder="Project setting", options=self.editor.boolean_options, row=0)
 
     async def callback(self, interaction: discord.Interaction):
         self.editor.boolean_option_selected = self.values[0]
@@ -97,7 +111,7 @@ class BooleanSelect(discord.ui.Select):
     def __init__(self, editor: ProjectEditor):
         self.editor = editor
         options = [discord.SelectOption(label="True", value='t'), discord.SelectOption(label="False", value='f')]
-        super().__init__(placeholder="True/false", options=options)
+        super().__init__(placeholder="True/false", options=options, row=1)
 
     async def callback(self, interaction: discord.Interaction):
         chosen = self.values[0] == 't'
@@ -118,7 +132,6 @@ class ProjectEditorModal1(discord.ui.Modal, title="Edit project details 1"):
         super().__init__()
         self.base_editor = base_editor
         project = base_editor.project
-
         self.field_name.default = project['name']
         self.field_repo.default = project['repo']
         self.field_subdir.default = project['subdir']
@@ -134,13 +147,11 @@ class ProjectEditorModal1(discord.ui.Modal, title="Edit project details 1"):
     async def on_submit(self, interaction: discord.Interaction):
         log.info("Submitted modal 1")
         project = self.base_editor.project
-
         project['name'] = self.field_name.value
         project['repo'] = self.field_repo.value
         project['subdir'] = self.field_subdir.value
         project['contributors_file_path'] = self.field_contributors_file_path.value
         project['excluded_items'] = split_items(self.field_excluded_items)
-
         await interaction.response.defer()
         await self.base_editor.update_message()
 
@@ -150,7 +161,6 @@ class ProjectEditorModal2(discord.ui.Modal, title="Edit project details 2"):
         super().__init__()
         self.base_editor = base_editor
         project = base_editor.project
-
         self.field_installation_owner.default = project['installation_owner']
         self.field_mods.default = ', '.join(project['mods'])
 
@@ -160,10 +170,25 @@ class ProjectEditorModal2(discord.ui.Modal, title="Edit project details 2"):
     async def on_submit(self, interaction: discord.Interaction):
         log.info("Submitted modal 2")
         project = self.base_editor.project
-
         project['installation_owner'] = self.field_installation_owner.value
         project['mods'] = split_items(self.field_mods)
+        await interaction.response.defer()
+        await self.base_editor.update_message()
 
+
+class DisallowedCommandExemptionModal(discord.ui.Modal, title="Add disallowed command exemption"):
+    def __init__(self, base_editor: ProjectEditor):
+        super().__init__()
+        self.base_editor = base_editor
+
+    field_command = discord.ui.TextInput(label="Command")
+    field_argument = discord.ui.TextInput(label="Argument", required=False)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        log.info("Submitted command exemption modal")
+        added_command = self.field_command.value.lower()
+        added_argument = self.field_argument.value.lower()
+        self.base_editor.project['disallowed_command_exemptions'].append([added_command, added_argument])
         await interaction.response.defer()
         await self.base_editor.update_message()
 
