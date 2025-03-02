@@ -29,9 +29,26 @@ class ProjectEditor(discord.ui.View):
         self.project_options_boolean_select = ProjectOptionsBooleanSelect(self)
         self.add_item(self.project_options_boolean_select)
         self.add_item(self.boolean_select)
-        self.add_item(EditDetails1Button(self))
-        self.add_item(EditDetails2Button(self))
-        self.add_item(SaveButton(self))
+
+    @discord.ui.button(label="Edit details 1", style=discord.ButtonStyle.secondary)
+    async def edit_details_1_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        log.info("Opening project details 1 editor modal")
+        await interaction.response.send_modal(ProjectEditorModal1(self))
+
+    @discord.ui.button(label="Edit details 2", style=discord.ButtonStyle.secondary)
+    async def edit_details_2_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        log.info("Opening project details 2 editor modal")
+        await interaction.response.send_modal(ProjectEditorModal2(self))
+
+    @discord.ui.button(label="Save", style=discord.ButtonStyle.primary)
+    async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        deep_diff = DeepDiff(self.project_original, self.project, ignore_order=True, verbose_level=2)
+        log.info(f"Saved, changes: {deep_diff}")
+        db.projects.set(self.project['project_id'], self.project)
+        await main.edit_pin(client.get_channel(self.project['project_id']))
+        changes_made_count = len(deep_diff.pretty().splitlines())
+        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "Saved, no changes made.")
+        self.stop()
 
     @staticmethod
     async def generate_message(project: dict):
@@ -94,42 +111,6 @@ class BooleanSelect(discord.ui.Select):
         self.editor.boolean_option_selected = None
         await interaction.response.defer()
         await self.editor.update_message()
-
-
-class EditDetails1Button(discord.ui.Button):
-    def __init__(self, editor: ProjectEditor):
-        super().__init__(label="Edit details 1", style=discord.ButtonStyle.secondary)
-        self.editor = editor
-
-    async def callback(self, interaction: discord.Interaction):
-        log.info("Opening project details 1 editor modal")
-        await interaction.response.send_modal(ProjectEditorModal1(self.editor))
-
-
-class EditDetails2Button(discord.ui.Button):
-    def __init__(self, editor: ProjectEditor):
-        super().__init__(label="Edit details 2", style=discord.ButtonStyle.secondary)
-        self.editor = editor
-
-    async def callback(self, interaction: discord.Interaction):
-        log.info("Opening project details 2 editor modal")
-        await interaction.response.send_modal(ProjectEditorModal2(self.editor))
-
-
-class SaveButton(discord.ui.Button):
-    def __init__(self, editor: ProjectEditor):
-        super().__init__(label="Save", style=discord.ButtonStyle.primary)
-        self.editor = editor
-
-    async def callback(self, interaction: discord.Interaction):
-        project = self.editor.project
-        deep_diff = DeepDiff(self.editor.project_original, project, ignore_order=True, verbose_level=2)
-        log.info(f"Saved, changes: {deep_diff}")
-        db.projects.set(project['project_id'], project)
-        await main.edit_pin(client.get_channel(project['project_id']))
-        changes_made_count = len(deep_diff.pretty().splitlines())
-        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "Saved, no changes made.")
-        self.editor.stop()
 
 
 class ProjectEditorModal1(discord.ui.Modal, title="Edit project details 1"):
