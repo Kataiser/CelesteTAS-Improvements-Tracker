@@ -264,7 +264,7 @@ def test_validate(setup_log, monkeypatch):
                 '1k_Kataiser.tas': 'subproject/1k_Kataiser.tas', 'royal_gardens_renamed.tas': 'subproject/royal_gardens_renamed.tas',
                 'glitchy.tas': 'sync_testing/glitchy.tas', 'glitchy_-_Copy.tas': 'sync_testing/glitchy_-_Copy.tas'}
 
-    test_project = {'project_id': 0, 'is_lobby': False, 'excluded_items': (), 'ensure_level': True, 'disallowed_command_exemptions': []}
+    test_project = {'project_id': 0, 'is_lobby': False, 'excluded_items': (), 'ensure_level': True, 'disallowed_command_exemptions': [], 'room_indexing_includes_reads': False}
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(db.path_caches, 'get', mock_path_caches_get)
     ehs_valid = Path('test_tases\\expert_heartside.tas').read_bytes()
