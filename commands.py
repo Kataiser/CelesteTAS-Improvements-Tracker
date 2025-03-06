@@ -196,7 +196,8 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
                           'excluded_items': [],
                           'sync_environment_state': {'host': None, 'last_commit_time': None, 'everest_version': None, 'mod_versions': {}},
                           'enabled': True,
-                          'disallowed_command_exemptions': []}
+                          'disallowed_command_exemptions': [],
+                          'room_indexing_includes_reads': False}
 
     main.generate_path_cache(improvements_channel.id, registered_project)
     pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)

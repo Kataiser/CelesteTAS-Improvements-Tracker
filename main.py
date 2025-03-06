@@ -8,6 +8,7 @@ import random
 import re
 import sys
 import time
+import tomllib
 import urllib.parse
 import zipfile
 from pathlib import Path
@@ -256,6 +257,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
     r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
     contents_json = orjson.loads(r.content)
+    studioconfig_path = None
     path_cache = {}  # always start from scratch
 
     if excluded_items:
@@ -267,6 +269,9 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
         for item in contents_json:
             if item['name'] in excluded_items:
                 continue
+
+            if item['name'] == '.studioconfig.toml' and not project_subdir:
+                studioconfig_path = '.studioconfig.toml'
 
             if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
                 # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
@@ -282,11 +287,36 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
 
                         if subitem_name.endswith('.tas') and in_subdir and subitem_name not in excluded_items:
                             path_cache[subitem_name] = subitem_full_path
+
+                        if subitem_name == '.studioconfig.toml' and in_subdir:
+                            studioconfig_path = subitem_full_path
             elif not project_subdir and item['name'].endswith('.tas'):
                 path_cache[item['name']] = item['path']
 
     db.path_caches.set(project_id, path_cache)
     log.info(f"Cached: {path_cache}")
+    previous_room_indexing_includes_reads = project['room_indexing_includes_reads']
+    room_indexing_includes_reads = False
+
+    if studioconfig_path:
+        try:
+            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{studioconfig_path}', headers=headers)
+            r_json = orjson.loads(r.content)
+            utils.handle_potential_request_error(r, 200)
+            studioconfig_data = base64.b64decode(r_json['content']).decode('UTF8')
+            studioconfig_parsed = tomllib.loads(studioconfig_data)
+
+            if 'RoomLabelIndexing' in studioconfig_parsed and studioconfig_parsed['RoomLabelIndexing'] == 'IncludeReads':
+                log.info("Found IncludeReads RoomLabelIndexing")
+                room_indexing_includes_reads = True
+        except Exception:
+            utils.report_error(client)
+
+    if previous_room_indexing_includes_reads != room_indexing_includes_reads:
+        log.info(f"Set room_indexing_includes_reads to {room_indexing_includes_reads}")
+        project['room_indexing_includes_reads'] = room_indexing_includes_reads
+        db.projects.set(project['project_id'], project)
+
     return path_cache
 
 

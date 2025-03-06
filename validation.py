@@ -63,6 +63,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     rooms_found = {}
     uses_one_indexing = None
     found_start = False
+    room_indexing_includes_reads = project['room_indexing_includes_reads']
 
     if skip_validation or wip_in_message:
         log.info(f"Skipping validation ({wip_in_message=})")
@@ -111,7 +112,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     for line in enumerate(tas_lines):
         # validate room label indexing
-        if line[1].startswith('#lvl_'):
+        if line[1].startswith('#lvl_') and not room_indexing_includes_reads:
             line_partitioned = line[1].rstrip().rpartition('(')
             room_name = line_partitioned[0].strip() if line_partitioned[0] else line_partitioned[2].strip()
             room_index_str = line_partitioned[2].strip(')')

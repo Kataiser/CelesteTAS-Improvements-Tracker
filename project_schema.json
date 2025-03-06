@@ -112,6 +112,9 @@
                     "length": 2
                 }
             }
+        },
+        "room_indexing_includes_reads": {
+            "type": "boolean"
         }
     }
 }
