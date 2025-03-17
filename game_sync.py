@@ -705,7 +705,7 @@ def consider_disabling_after_inactivity(project: dict, reference_time: Union[int
     disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, rerun the `/register_project` command. "
                      "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
 
-    if time_since_last_commit > 2629800 and project['do_run_validation']:
+    if time_since_last_commit > 2629800 and project['do_run_validation'] and project['project_id'] != 598945702554501130:
         project['do_run_validation'] = False
         project['sync_check_timed_out'] = True
         log.warning(f"Disabled auto sync check after {time_since_last_commit} seconds of inactivity")
@@ -753,7 +753,7 @@ def gb_mod_versions() -> Optional[dict]:
 
 @functools.cache
 def mods_dir() -> Path:
-    mods_path = Path('Mods')
+    mods_path = Path('Mods')  # expects a symlink
     mods_path_resolved = mods_path.resolve()
 
     if not mods_path.is_dir() or not mods_path_resolved.is_dir() or not (mods_path_resolved / 'CelesteTAS.zip').is_file():
@@ -764,7 +764,7 @@ def mods_dir() -> Path:
 
 @functools.cache
 def game_dir() -> Path:
-    game_path = Path('celeste')
+    game_path = Path('celeste')  # expects a symlink
     game_path_resolved = game_path.resolve()
 
     if not game_path.is_dir() or not game_path_resolved.is_dir() or not (game_path_resolved / 'Celeste.exe').is_file():
