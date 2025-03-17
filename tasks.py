@@ -97,7 +97,7 @@ async def handle_game_sync_results():
                 await (await utils.user_from_id(client, admin_user_id)).send(f"<t:{sync_result.data['time']}:R>\n```\n{sync_result.data['error']}```")
 
             case db.SyncResultType.MAINGAME_COMMIT:
-                await client.get_channel(1323811411226263654).send(sync_result.data['maingame_message'])
+                await (await client.fetch_channel(1323811411226263654)).send(sync_result.data['maingame_message'])
 
         try:
             db.delete_sync_result(sync_result)
