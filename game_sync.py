@@ -787,7 +787,7 @@ def b64encode(data: bytes) -> str:
 
 
 def sid_is_valid(sid: str) -> bool:
-    return sid not in ('', 'null') and 'Cannot access instance field' not in sid
+    return sid not in ('', 'null') and 'Cannot access instance field' not in sid and 'Not found' not in sid
 
 
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
