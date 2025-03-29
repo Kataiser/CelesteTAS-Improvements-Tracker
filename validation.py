@@ -69,7 +69,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         log.info(f"Skipping validation ({wip_in_message=})")
         # ok this is really ugly, but we do need final time and timesave
 
-        if old_tas and tas_parsed.found_finaltime and not is_dash_save:
+        if old_tas and tas_parsed.found_finaltime:
             old_tas_parsed = parse_tas_file(as_lines(old_tas), False)
 
             if old_tas_parsed.found_finaltime:
@@ -205,7 +205,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     time_saved_messages: Union[None, re.Match] = None
 
     # validate chaptertime is in message content
-    if tas_parsed.finaltime and not is_dash_save:
+    if tas_parsed.finaltime:
         if project['is_lobby']:
             if tas_parsed.finaltime not in message.content:
                 validation_result.emit_failed_check(f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
@@ -221,7 +221,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         validation_result.emit_failed_check(f"No `#Start` found in file, please add one between the console load frame and the intro frames (or first room label if none) and post again.",
                                             f"no #Start in file")
 
-    if old_tas and not is_dash_save:
+    if old_tas:
         # validate timesave frames is in message content
         old_tas_parsed = parse_tas_file(as_lines(old_tas), False)
 
@@ -259,7 +259,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                         validation_result.emit_failed_check(f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_actual}\"), "
                                                             f"please fix and post again{linn_moment}. Make sure you updated the time and improved the latest version of the file.",
                                                             f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_actual}\")")
-    elif not old_tas:
+    else:
         # validate draft text
         if "draft" not in message_lowercase:
             path_cache = db.path_caches.get(message.channel.id)
