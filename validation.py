@@ -248,11 +248,10 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                                                     f"no timesave in message (should be {time_saved_options})")
             else:
                 if time_saved_num == 0:
-                    if time_saved_messages[0] not in (time_saved_minus, time_saved_plus):
-                        time_saved_options = f"{time_saved_minus}\" or \"{time_saved_plus}"
-                        validation_result.emit_failed_check(f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"{time_saved_options}\"), "
+                    if time_saved_messages[0] not in ('-0f', '+0f', '±0f'):
+                        validation_result.emit_failed_check(f"Frames saved is incorrect (you said \"{time_saved_messages[0]}\", but it seems to be \"-0f\" or \"+0f\"), "
                                                             f"please fix and post again{linn_moment}. Make sure you updated the time and improved the latest version of the file.",
-                                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"{time_saved_options}\")")
+                                                            f"incorrect time saved in message (is \"{time_saved_messages[0]}\", should be \"-0f\" or \"+0f\")")
                 else:
                     time_saved_actual = time_saved_minus if time_saved_num >= 0 else time_saved_plus
 
