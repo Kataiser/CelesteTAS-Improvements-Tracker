@@ -54,6 +54,14 @@ async def alert_server_join_task():
         await utils.report_error(client)
 
 
+@tasks.loop(minutes=2)
+async def heartbeat_task():
+    try:
+        heartbeat()
+    except Exception:
+        await utils.report_error(client)
+
+
 async def handle_game_sync_results():
     sync_results = db.get_sync_results()
 
@@ -147,6 +155,12 @@ async def alert_server_join():
     for line in new_lines:
         if (b"joined the game" in line or b"left the game" in line) and b"MechKataiser" not in line:
             await (await utils.user_from_id(client, admin_user_id)).send(f"MC server: `{line.decode('UTF8').rstrip()}`")
+
+
+def heartbeat():
+    db.misc.set('heartbeat', {'host_socket': utils.cached_hostname(),
+                              'host': utils.host(),
+                              'time': int(time.time())})
 
 
 client: discord.Client | None = None

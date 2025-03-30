@@ -645,7 +645,7 @@ def mod_versions(mods: set) -> str:
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': socket.gethostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash,
+    state = {'host': utils.cached_hostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash,
              'excluded_items': project['excluded_items'], 'installation_owner': project['installation_owner'], 'is_lobby': project['is_lobby'], 'repo': project['repo'],
              'subdir': project['subdir'], 'sid_caches_exist': True}
 
@@ -687,7 +687,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
 def update_everest():
     latest_everest = latest_everest_stable_version()
     last_everests = db.misc.get('sync_check_everest_versions')
-    host_name = socket.gethostname()
+    host_name = utils.cached_hostname()
     last_everest = last_everests[host_name] if host_name in last_everests else None
 
     if last_everest != latest_everest:
