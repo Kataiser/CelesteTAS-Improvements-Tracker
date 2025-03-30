@@ -1,9 +1,9 @@
 import base64
+import inspect
 import io
 import logging
 import time
 from pathlib import Path
-from typing import Callable
 
 import discord
 from discord.ext import tasks
@@ -14,10 +14,11 @@ import utils
 from constants import admin_user_id
 
 
-def start_tasks() -> dict[Callable, bool]:
+def start_tasks() -> dict[callable, bool]:
     tasks_running = {handle_game_sync_results_task: False,
                      handle_no_game_sync_results_task: False,
-                     alert_server_join_task: False}
+                     alert_server_join_task: False,
+                     heartbeat_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -30,36 +31,31 @@ def start_tasks() -> dict[Callable, bool]:
     return tasks_running
 
 
+async def run_and_catch_task(task_function: callable):
+    if inspect.iscoroutinefunction(task_function):
+        await task_function()
+    else:
+        task_function()
+
+
 @tasks.loop(minutes=1)
 async def handle_game_sync_results_task():
-    try:
-        await handle_game_sync_results()
-    except Exception:
-        await utils.report_error(client)
+    await run_and_catch_task(handle_game_sync_results)
 
 
 @tasks.loop(hours=2)
 async def handle_no_game_sync_results_task():
-    try:
-        await handle_no_game_sync_results()
-    except Exception:
-        await utils.report_error(client)
+    await run_and_catch_task(handle_no_game_sync_results)
 
 
 @tasks.loop(seconds=30)
 async def alert_server_join_task():
-    try:
-        await alert_server_join()
-    except Exception:
-        await utils.report_error(client)
+    await run_and_catch_task(alert_server_join)
 
 
 @tasks.loop(minutes=2)
 async def heartbeat_task():
-    try:
-        heartbeat()
-    except Exception:
-        await utils.report_error(client)
+    await run_and_catch_task(heartbeat)
 
 
 async def handle_game_sync_results():
