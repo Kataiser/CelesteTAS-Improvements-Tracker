@@ -37,7 +37,9 @@ def start():
     time_since_heartbeat = current_time - heartbeat['time']
 
     if time_since_heartbeat < 180 and heartbeat['host_socket'] != utils.cached_hostname():
-        input(f"Bot seems to be running on host {heartbeat['host_socket']} ({heartbeat['host']}), last heartbeat was {time_since_heartbeat} seconds ago. Press any key to start anyway.")
+        log.warning(f"Bot seems to be running on host {heartbeat['host_socket']} ({heartbeat['host']}), "
+                    f"last heartbeat was {time_since_heartbeat} seconds ago. Press any key to start anyway.")
+        input()
 
     global debug, projects_startup
     log.info("Bot starting")
