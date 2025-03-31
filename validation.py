@@ -150,7 +150,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         line_split = line_stripped.split() if re_check_space_command.match(line_stripped) else line_stripped.split(',')
         command = line_split[0].lower()
 
-        if not found_start and command in ('#start', '# start'):
+        if not found_start and line_stripped.lower() in ('#start', '# start'):
             found_start = True
             continue
 

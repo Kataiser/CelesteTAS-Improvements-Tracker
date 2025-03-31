@@ -449,6 +449,15 @@ def test_validate(setup_log, monkeypatch):
                                                   log_text=["no #Start in file", "no \"draft\" text in message"])
     assert validation.validate(Path('test_tases\\invalids\\ehs_no_start.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_no_start
 
+    result_space_start = validation.ValidationResult(valid_tas=False, finaltime='0:19.584', finaltime_frames=1152,
+                                                  warning_text=["The file's final time (0:19.584) is missing in your message, please add it and post again.", "Since this is a draft, "
+                                                                "please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. If it shouldn't be "
+                                                                "a draft, make sure your filename is exactly the same as in the repo.", "The level name is missing in your message, "
+                                                                "please add it and post again."],
+                                                  log_text=["final time (0:19.584) missing in message content", "no \"draft\" text in message",
+                                                            "level name ['sailorsbreak'] missing in message content"])
+    assert validation.validate(Path('test_tases\\sailorsbreak.tas').read_bytes(), 'sailorsbreak.tas', message, None, test_project, False) == result_space_start
+
     message_no_timesave = discord.Message("Expert Heartside (7:54.929)", MockChannel(), mock_kataiser)
     result_no_timesave = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
                                                      warning_text=["Please mention how many frames were saved or lost, with the text \"-229f\" (if that's correct), and post again."],
@@ -605,6 +614,7 @@ def test_time_to_frames():
     assert validation.time_to_frames('39.321') == 2313
     assert validation.time_to_frames('0:47.651') == 2803
     assert validation.time_to_frames('47.651') == 2803
+    assert validation.time_to_frames('0.000') == 0
 
 
 def test_calculate_time_difference():
