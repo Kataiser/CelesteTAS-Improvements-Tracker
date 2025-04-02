@@ -9,8 +9,8 @@ import traceback
 from typing import Optional, Sized, Union, Tuple
 
 import discord
-import requests
 import orjson
+import requests
 
 import db
 from constants import admin_user_id

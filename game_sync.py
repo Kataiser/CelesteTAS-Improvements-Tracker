@@ -7,7 +7,6 @@ import logging
 import os
 import re
 import shutil
-import socket
 import stat
 import subprocess
 import time
@@ -17,8 +16,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 import dateutil.parser
-import requests
 import orjson
+import requests
 from deepdiff import DeepDiff
 
 import db

@@ -3,7 +3,7 @@ import asyncio
 import re
 import subprocess
 import time
-from typing import List, Optional, Literal
+from typing import List, Optional
 
 import discord
 from discord import app_commands

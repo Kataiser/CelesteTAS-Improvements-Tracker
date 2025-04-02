@@ -4,8 +4,8 @@ import time
 from typing import Union
 
 import jwt
-import requests
 import orjson
+import requests
 
 import db
 import utils

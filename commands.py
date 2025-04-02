@@ -7,12 +7,12 @@ import subprocess
 import time
 import webbrowser
 from operator import itemgetter
-from typing import Optional, Union, Literal
+from typing import Optional, Union
 
 import discord
+import orjson
 import requests
 import strip_markdown
-import orjson
 
 import constants
 import db

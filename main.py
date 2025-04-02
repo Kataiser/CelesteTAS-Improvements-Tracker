@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 import discord
-import requests
 import orjson
+import requests
 
 import commands
 import db
