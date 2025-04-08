@@ -169,6 +169,9 @@ async def on_message(message: discord.Message):
     if re_1984_cirion.findall(message_search):
         user_ids.add(243310302995677184)
 
+    if re_1984_minty.findall(message_search):
+        user_ids.add(1060652582663630919)
+
     if message.guild and message.guild.id != 403698615446536203 and re_1984_bot.findall(message_search):
         user_ids.add(219955313334288385)
 
@@ -463,6 +466,7 @@ re_1984_hydro = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrin
 re_1984_cabob = re.compile(r'\bcabob\b')
 re_1984_vamp = re.compile(r'\bvamp\b')
 re_1984_cirion = re.compile(r'\bsussy\b')
+re_1984_minty = re.compile(r'\benigma\b')
 re_1984_bot = re.compile(r'\bbot\b|\btracker\b')
 re_non_ascii = re.compile(r'[^\x00-\x7F]')
 
