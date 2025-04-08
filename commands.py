@@ -73,10 +73,10 @@ async def command_help(interaction: discord.Interaction):
                "\n\n1. Register GitHub app with your account and repo (you likely need to be the repo owner): " \
                "<https://github.com/apps/celestetas-improvements-tracker>" \
                f"\n2. Add bot to your server: <{add_bot_link}>" \
-               "\n3. Run the `/register_project` command. You can also use this to edit existing projects." \
+               "\n3. Run the `/register_project` command." \
                "\n4. (Optional) Add other admins with `/edit_admins`, and add mod(s) for sync testing with `/add_mods`." \
-               "\n\nThere are many other commands available, to assist with managing projects and more. Many commands are only visible and available in bot DMs, with the exception of "\
-               f"`/register_project` and `/edit_admins`.{admin_commands_formatted}"
+               "\n\nThere are many other commands available, to assist with managing projects and more. Notably, to edit projects, use `/edit_project`. Many commands are only visible and " \
+               f"available in bot DMs, with the exception of `/register_project` and `/edit_admins`.{admin_commands_formatted}"
 
     await respond(interaction, response)
 
