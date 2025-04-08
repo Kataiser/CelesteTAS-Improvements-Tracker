@@ -669,7 +669,12 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         if mod in gb_mods:
             mod_gb = gb_mods[mod]
         else:
-            mod_gb = gb_mods[mod.replace('_', ' ')]
+            mod_spaces = mod.replace('_', ' ')
+
+            if mod_spaces in gb_mods:
+                mod_gb = gb_mods[mod_spaces]
+            else:
+                mod_gb = gb_mods[mod]
 
         state['mod_versions'][mod] = mod_gb['Version']
 
