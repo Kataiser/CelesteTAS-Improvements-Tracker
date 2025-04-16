@@ -188,6 +188,17 @@ def sync_test(project_id: int, force: bool):
         db.sid_caches.set(project_id, sid_cache)
         log.warning(f"Removed {len(sid_cache_files_removed)} invalid cached SIDs: {sid_cache_files_removed}")
 
+    global sleep_scale
+    host_sleep_scale = utils.host().sleep_scale
+
+    if host_sleep_scale:
+        log.info(f"Sleep scale will be {host_sleep_scale}")
+        sleep_scale = host_sleep_scale
+    else:
+        sleep_scale_default = 0.75
+        log.warning(f"Sleep scale defaulting to {sleep_scale_default}")
+        sleep_scale = sleep_scale_default
+
     log.info(f"Previous desyncs: {previous_desyncs}")
     game_process = wait_for_game_load(mods_to_load, project['name'])
 
@@ -778,7 +789,8 @@ def game_dir() -> Path:
 
 
 def scaled_sleep(seconds: float):
-    time.sleep(seconds * 0.75)
+    host_sleep_scale = utils.host().sleep_scale
+    time.sleep(seconds * sleep_scale)
 
 
 def log_error(message: Optional[str] = None):
@@ -797,6 +809,7 @@ def sid_is_valid(sid: str) -> bool:
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 re_redact_token = re.compile(r"'token': '[^']*'")
 game_sync_hash = None
+sleep_scale = 1.0
 
 if __name__ == '__main__':
     run_syncs()

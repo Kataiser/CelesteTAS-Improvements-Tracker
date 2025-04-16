@@ -610,7 +610,7 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
     project_editor.log = logger
     tasks.log = logger
 
-    logger.info(f"Log created, host = {utils.host()}")
+    logger.info(f"Log created, host = {utils.host().name}")
     return logger
 
 

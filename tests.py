@@ -973,7 +973,9 @@ def test_log_timestamp(monkeypatch):
 
 
 def test_host():
-    assert utils.host() != "Unknown"
+    host_data = utils.host()
+    assert host_data.name != "Unknown"
+    assert isinstance(host_data.sleep_scale, float) or host_data.sleep_scale is None
 
 
 def test_get_user_github_account():

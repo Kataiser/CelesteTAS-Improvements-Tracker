@@ -441,7 +441,7 @@ async def command_about(interaction: discord.Interaction):
                            sync_checks,
                            db.history_log.size(False),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks),
-                           utils.host(),
+                           utils.host().name,
                            host_uptime)
 
     log.info(text_out)

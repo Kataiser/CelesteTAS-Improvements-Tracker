@@ -155,7 +155,7 @@ async def alert_server_join():
 
 def heartbeat():
     db.misc.set('heartbeat', {'host_socket': utils.cached_hostname(),
-                              'host': utils.host(),
+                              'host': utils.host().name,
                               'time': int(time.time())})
 
 

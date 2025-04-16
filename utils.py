@@ -5,7 +5,9 @@ import os
 import socket
 import sys
 import time
+import tomllib
 import traceback
+from collections import namedtuple
 from typing import Optional, Sized, Union, Tuple
 
 import discord
@@ -15,6 +17,7 @@ import requests
 import db
 from constants import admin_user_id
 
+Host = namedtuple('Host', ('name', 'sleep_scale'))
 
 def plural(count: Union[int, Sized]) -> str:
     if isinstance(count, int):
@@ -101,13 +104,20 @@ def get_user_github_account(discord_id: int) -> Optional[list]:
 
 
 @functools.cache
-def host() -> str:
+def host() -> Host:
+    if os.path.isfile('host.toml'):
+        with open('host.toml', 'rb') as host_toml:
+            host_data = tomllib.load(host_toml)
+            return Host(name=host_data['all']['name'],
+                        sleep_scale=host_data['game_sync']['sleep_scale'])
     if os.path.isfile('host'):
         with open('host', 'r', encoding='UTF8') as host_file:
-            return host_file.read().strip('" \n')
+            return Host(name=host_file.read().strip('" \n'),
+                        sleep_scale=None)
     else:
         log_error("Couldn't determine host for about command")
-        return "Unknown"
+        return Host(name="Unknown",
+                    sleep_scale=None)
 
 
 def saved_log_name(base_name: str) -> str:
