@@ -251,7 +251,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
 @client.event
 async def on_guild_join(guild: discord.Guild):
-    join_message = f"Bot has been added to server: {guild.name} (ID = {guild.id}, owner = {utils.detailed_user(user=guild.owner)})"
+    join_message = f"Bot has been added to server: {guild.name} (ID = {guild.id}, owner ID = {guild.owner_id})"
     log.info(join_message)
     await (await utils.user_from_id(client, admin_user_id)).send(join_message)
 
