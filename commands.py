@@ -700,7 +700,7 @@ async def command_open_url(message: discord.Message):
 async def handle_direct_dm(message: discord.Message):
     log.info(f"Received DM from {utils.detailed_user(message)}: `{message.content}`")
 
-    if message.content.lower() in ('ok', 'hi', 'hello'):
+    if message.content.lower() in ('ok', 'hi', 'hello', 'meow'):
         await message.channel.send(message.content)
         return
 

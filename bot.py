@@ -33,8 +33,7 @@ safe_mode = False
 
 def start():
     heartbeat = db.misc.get('heartbeat')
-    current_time = int(time.time())
-    time_since_heartbeat = current_time - heartbeat['time']
+    time_since_heartbeat = int(time.time()) - heartbeat['time']
 
     if time_since_heartbeat < 180 and heartbeat['host_socket'] != utils.cached_hostname():
         log.warning(f"Bot seems to be running on host {heartbeat['host_socket']} ({heartbeat['host']}), "
