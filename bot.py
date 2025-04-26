@@ -134,8 +134,8 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
-    elif message.author.id in (438978127973318656, 155149108183695360) or message.channel.id == 403698615446536206:
-        return
+    elif message.guild.id == 403698615446536203:
+        return  # 1985
     elif message.channel.id == 1185382846018359346:
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
@@ -171,7 +171,7 @@ async def on_message(message: discord.Message):
     if re_1984_minty.findall(message_search):
         user_ids.add(1060652582663630919)
 
-    if message.guild and message.guild.id != 403698615446536203 and re_1984_bot.findall(message_search):
+    if re_1984_bot.findall(message_search):
         user_ids.add(219955313334288385)
 
     if message.reference:
