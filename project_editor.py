@@ -49,10 +49,15 @@ class ProjectEditor(discord.ui.View):
     async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         deep_diff = DeepDiff(self.project_original, self.project, ignore_order=True, verbose_level=2)
         log.info(f"Saved, changes: {deep_diff}")
-        db.projects.set(self.project['project_id'], self.project)
-        await main.edit_pin(client.get_channel(self.project['project_id']))
         changes_made_count = len(deep_diff.pretty().splitlines())
-        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "Saved, no changes made.")
+
+        if changes_made_count:
+            project_id = self.project['project_id']
+            db.projects.set(project_id, self.project)
+            await main.edit_pin(client.get_channel(project_id))
+            main.generate_path_cache(project_id, self.project)
+
+        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made.")
         self.stop()
 
     @staticmethod

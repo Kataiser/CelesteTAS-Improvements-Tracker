@@ -423,7 +423,8 @@ def sync_test(project_id: int, force: bool):
         if update_commit_files_changed == 1:
             commit_message = update_commit_single_commit_message
         else:
-            commit_message = f"Updated {update_commit_files_changed} fullgame files"
+            commit_messages = [queued_commit[2] for queued_commit in queued_update_commits]
+            commit_message = f"Updated {update_commit_files_changed} fullgame files\n\n{'\n'.join(commit_messages)}"
 
         log.info("Committing updated fullgame file(s)")
         time.sleep(0.2)
