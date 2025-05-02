@@ -423,7 +423,7 @@ def sync_test(project_id: int, force: bool):
         if update_commit_files_changed == 1:
             commit_message = update_commit_single_commit_message
         else:
-            commit_messages = [queued_commit[2] for queued_commit in queued_update_commits]
+            commit_messages = [queued_commit[3] for queued_commit in queued_update_commits]
             commit_message = f"Updated {update_commit_files_changed} fullgame files\n\n{'\n'.join(commit_messages)}"
 
         log.info("Committing updated fullgame file(s)")
@@ -718,7 +718,7 @@ def update_everest():
 
 def consider_disabling_after_inactivity(project: dict, reference_time: Union[int, float], from_abandoned: bool) -> Optional[str]:
     time_since_last_commit = int(reference_time) - int(project['last_commit_time'])
-    disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, rerun the `/register_project` command. "
+    disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, use the `/edit_project` command. "
                      "Otherwise, it will be automatically reenabled on the next valid improvement/draft.")
 
     if time_since_last_commit > 2629800 and project['do_run_validation'] and project['project_id'] != 598945702554501130:
