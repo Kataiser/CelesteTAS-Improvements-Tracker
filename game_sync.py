@@ -146,6 +146,7 @@ def sync_test(project_id: int, force: bool):
     clone_time, repo_path = clone_repo(repo)
     asserts_added = {}
     sid_cache_files_removed = []
+    og_tas_lines = {}
 
     # add asserts for cached SIDs
     try:
@@ -167,6 +168,7 @@ def sync_test(project_id: int, force: bool):
 
             with open(f'{repo_path}\\{file_path_repo}'.replace('/', '\\'), 'r+') as tas_file:
                 tas_lines = tas_file.readlines()
+                og_tas_lines[tas_filename] = tas_lines.copy()
 
                 for tas_line in enumerate(tas_lines):
                     if tas_line[1].lower() == '#start\n':
@@ -225,7 +227,6 @@ def sync_test(project_id: int, force: bool):
             has_filetime = finaltime_line_lower.startswith('filetime')
             finaltime_is_midway = finaltime_line_lower.startswith('midway')
             finaltime_line_blank = f'{tas_lines[tas_parsed.finaltime_line_num].partition(' ')[0]} \n'
-            tas_lines_og = tas_lines.copy()
             tas_lines[tas_parsed.finaltime_line_num] = finaltime_line_blank
 
             if has_filetime or finaltime_is_midway:
@@ -342,6 +343,7 @@ def sync_test(project_id: int, force: bool):
 
             if not time_synced:
                 new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
+                tas_lines_og = og_tas_lines[tas_filename]
                 tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
                 commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
                 queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
