@@ -223,7 +223,7 @@ def sync_test(project_id: int, force: bool):
         tas_parsed = validation.parse_tas_file(tas_lines, False, False)
 
         if tas_filename not in og_tas_lines:
-            og_tas_lines[tas_filename] = tas_lines
+            og_tas_lines[tas_filename] = tas_lines.copy()
 
         if tas_parsed.found_finaltime:
             finaltime_line_lower = tas_lines[tas_parsed.finaltime_line_num].lower()
