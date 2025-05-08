@@ -63,8 +63,6 @@ def run_syncs():
         all_sync_tests = {project_id: projects[project_id]['name'] for project_id in test_project_ids}
         log.info(f"Running all sync tests: {all_sync_tests} (forcing all: {force_run_all})")
 
-    update_everest()
-
     try:
         for project_id in test_project_ids:
             sync_test(project_id, cli_project or force_run_all)
@@ -676,7 +674,6 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         commit = orjson.loads(r_commits.content)
         state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
 
-    state['everest_version'] = latest_everest_stable_version()
     gb_mods = gb_mod_versions()
 
     if not gb_mods:
@@ -705,22 +702,6 @@ def generate_environment_state(project: dict, mods: set) -> dict:
     return state
 
 
-def update_everest():
-    latest_everest = latest_everest_stable_version()
-    last_everests = db.misc.get('sync_check_everest_versions')
-    host_name = utils.cached_hostname()
-    last_everest = last_everests[host_name] if host_name in last_everests else None
-
-    if last_everest != latest_everest:
-        log.info(f"Updating Everest from {last_everest} to {latest_everest}")
-        everest_install = subprocess.run('mons install itch stable', capture_output=True)
-        log.info(f"Installed: {everest_install.stderr.partition(b'\r')[0].decode('UTF8')}")
-        last_everests[host_name] = latest_everest
-        db.misc.set('sync_check_everest_versions', last_everests)
-    else:
-        log.info(f"Everest version: {latest_everest}")
-
-
 def consider_disabling_after_inactivity(project: dict, reference_time: Union[int, float], from_abandoned: bool) -> Optional[str]:
     time_since_last_commit = int(reference_time) - int(project['last_commit_time'])
     disabled_text = ("Disabled sync checking after a month of no improvements. If you would like to reenable it, use the `/edit_project` command. "
@@ -743,20 +724,6 @@ def format_elapsed_time(start_time: float) -> str:
     hours, seconds = divmod(time.time() - start_time, 3600)
     minutes = seconds / 60
     return f"{int(hours)}h {int(minutes)}m"
-
-
-@functools.cache
-def latest_everest_stable_version() -> Optional[int]:
-    try:
-        azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
-        r_everest = requests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params, timeout=10)
-        utils.handle_potential_request_error(r_everest, 200)
-    except requests.RequestException:
-        log_error()
-        return None
-
-    everest_builds = orjson.loads(r_everest.content)
-    return everest_builds['value'][0]['id'] + 700
 
 
 @functools.cache
