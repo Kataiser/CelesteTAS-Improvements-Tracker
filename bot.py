@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import re
 import subprocess
 import time
@@ -49,7 +50,9 @@ def start():
     if debug:
         log.info("DEBUG MODE")
 
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    if os.name == 'nt':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     projects_startup = db.projects.dict()
     main.fast_project_ids = set(projects_startup)
     path_caches_size = db.path_caches.size()

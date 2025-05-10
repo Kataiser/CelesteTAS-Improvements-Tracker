@@ -584,6 +584,10 @@ def create_logger(name: str, use_file_handler: bool = True) -> logging.Logger:
 
     # backup old logs
     if os.path.isfile(filename) and use_file_handler:
+        if not os.path.isdir('log_history'):
+            os.mkdir('log_history')
+            time.sleep(0.2)
+
         with open(filename, 'rb') as old_log, open(Path(f'log_history/{utils.saved_log_name(name)}'), 'wb') as old_log_backup:
             old_log_backup.write(old_log.read())
 
