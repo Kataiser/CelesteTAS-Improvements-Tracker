@@ -21,6 +21,7 @@ import gen_token
 import main
 import project_editor
 import spreadsheet
+import tasks
 import utils
 from utils import plural
 
@@ -631,6 +632,7 @@ async def command_sync_log(message: discord.Message):
 
 @admin_command()
 async def command_die(message: discord.Message):
+    tasks.heartbeat(killed=True)
     await message.channel.send("https://cdn.discordapp.com/attachments/972366104204812338/1179648390649360454/wqovpsazm7z61.png")
     raise SystemExit("guess I'll die")
 

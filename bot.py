@@ -70,6 +70,7 @@ def start():
         except Exception as error:
             if isinstance(error, RuntimeError) and str(error) == "Session is closed":
                 log.info("Assuming bot has been closed, not restarting")
+                tasks.heartbeat(killed=True)
                 return
             else:
                 utils.log_error()

@@ -153,10 +153,12 @@ async def alert_server_join():
             await (await utils.user_from_id(client, admin_user_id)).send(f"MC server: `{line.decode('UTF8').rstrip()}`")
 
 
-def heartbeat():
+def heartbeat(killed=False):
+    hb_time = 0 if killed else int(time.time())
+
     db.misc.set('heartbeat', {'host_socket': utils.cached_hostname(),
                               'host': utils.host().name,
-                              'time': int(time.time())})
+                              'time': hb_time})
 
 
 client: discord.Client | None = None
