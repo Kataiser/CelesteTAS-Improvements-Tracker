@@ -1,5 +1,6 @@
 import argparse
 import base64
+import datetime
 import functools
 import gzip
 import io
@@ -17,6 +18,7 @@ from typing import Optional, Union
 
 import dateutil.parser
 import orjson
+import pydantic
 import requests
 from deepdiff import DeepDiff
 
@@ -74,6 +76,61 @@ def run_syncs():
 
     post_cleanup()
     log.info(f"All sync checks time: {format_elapsed_time(start_time)}")
+
+
+class Config(pydantic.BaseModel):
+    gameDirectory: str
+    everestBranch: str = 'manual'
+    mods: list[str]
+    blacklistedMods: list[str]
+    files: list[str]
+
+
+class AbortInfo(pydantic.BaseModel):
+    FilePath: str | None
+    FileLine: int | None
+    CurrentInput: str | None
+
+
+class CrashInfo(pydantic.BaseModel):
+    FilePath: str | None
+    FileLine: int | None
+    Error: str
+
+
+class WrongTimeInfo(pydantic.BaseModel):
+    FilePath: str | None
+    FileLine: int | None
+    OldTime: str
+    NewTime: str
+
+
+class AssertFailedInfo(pydantic.BaseModel):
+    FilePath: str | None
+    FileLine: int | None
+    Actual: str
+    Expected: str
+
+
+class ResultEntryAdditionalInfo(pydantic.BaseModel):
+    abort: AbortInfo | None
+    crash: CrashInfo | None
+    wrongTime: list[WrongTimeInfo] | None
+    assertFailed: AssertFailedInfo | None
+
+
+class ResultEntry(pydantic.BaseModel):
+    file: str
+    status: str
+    gameInfo: str
+    additionalInfo: ResultEntryAdditionalInfo
+
+
+class Result(pydantic.BaseModel):
+    startTime: datetime.datetime
+    endTime: datetime.datetime
+    entries: list[ResultEntry]
+    checksum: str
 
 
 def sync_test(project_id: int, force: bool):
