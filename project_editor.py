@@ -55,6 +55,7 @@ class ProjectEditor(discord.ui.View):
             project_id = self.project['project_id']
             db.projects.set(project_id, self.project)
             await main.edit_pin(client.get_channel(project_id))
+            main.generate_request_headers(self.project['installation_owner'])
             main.generate_path_cache(project_id, self.project)
 
         await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made.")
