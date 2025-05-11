@@ -79,11 +79,21 @@ def run_syncs():
 
 
 class Config(pydantic.BaseModel):
-    gameDirectory: str
+    gameDirectory: Path
     everestBranch: str = 'manual'
-    mods: list[str]
-    blacklistedMods: list[str]
-    files: list[str]
+    mods: set[str] = set()
+    blacklistedMods: list[str] = []
+    files: list[str] = []
+
+    @staticmethod
+    def path() -> Path:
+        return game_dir() / 'SyncChecker/config.json'
+
+    def save(self):
+        with open(self.path(), 'w') as config_file:
+            config_file.write(self.model_dump_json(indent=4))
+
+        log.info(f"Saved config to {self.path()}")
 
 
 class AbortInfo(pydantic.BaseModel):
@@ -132,6 +142,10 @@ class Result(pydantic.BaseModel):
     entries: list[ResultEntry]
     checksum: str
 
+    @staticmethod
+    def path() -> Path:
+        return game_dir() / 'SyncChecker/result.json'
+
 
 def sync_test(project_id: int, force: bool):
     start_time = time.time()
@@ -155,7 +169,7 @@ def sync_test(project_id: int, force: bool):
     filetimes = {}
     desyncs = []
     mods_to_load = set(mods)
-    mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'AltEnterFullscreen', 'HelperTestMapHider', 'OverworldAA'}
+    mods_to_load |= {'CelesteTAS', 'SpeedrunTool'}
     files_timed = 0
     remove_save_files()
     queued_update_commits = []
@@ -163,6 +177,7 @@ def sync_test(project_id: int, force: bool):
     crash_logs_dir = f'{game_dir()}\\CrashLogs'
     project_is_maingame = project_id == 598945702554501130
     get_mod_dependencies.cache_clear()
+    log.info(f"Previous desyncs: {previous_desyncs}")
 
     for mod in mods:
         mods_to_load |= get_mod_dependencies(mod)
@@ -183,13 +198,10 @@ def sync_test(project_id: int, force: bool):
     log.info(f"Environment state changes: {DeepDiff(prev_environment_state, environment_state, ignore_order=True, ignore_numeric_type_changes=True, verbose_level=2)}")
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
-    log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
-    close_game()
-    start_game()
+    log.info(f"Created blacklist, loading {len(mods_to_load)} mod{plural(mods_to_load)}")
 
-    # make sure path cache is correct while the game is launching
-    main.generate_path_cache(project_id)
-    path_cache = db.path_caches.get(project_id)
+    # make sure path cache is correct
+    path_cache = main.generate_path_cache(project_id)
 
     if not path_cache and not force:
         log.info(f"Abandoning sync test due to path cache now being empty")
@@ -256,8 +268,20 @@ def sync_test(project_id: int, force: bool):
         log.warning(f"Sleep scale defaulting to {sleep_scale_default}")
         sleep_scale = sleep_scale_default
 
-    log.info(f"Previous desyncs: {previous_desyncs}")
-    game_process = wait_for_game_load(mods_to_load, project['name'])
+    del path_cache['0 - 202 Berries.tas']
+    file_paths = [f'{repo_path}\\{path_cache[tas].replace('/', '\\')}' for tas in path_cache]
+    sync_checker_config = Config(gameDirectory=game_dir(), mods=mods_to_load, files=file_paths)
+    sync_checker_config.save()
+    close_game()
+    subprocess.run(f'dotnet {game_dir() / 'SyncChecker/SyncChecker.dll'} {Config.path()} {Result.path()}')
+
+
+
+
+
+
+
+
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
