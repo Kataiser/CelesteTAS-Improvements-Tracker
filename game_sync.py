@@ -85,6 +85,9 @@ class Config(pydantic.BaseModel):
     blacklistedMods: list[str] = []
     files: list[str] = []
 
+    def model_post_init(self, context):
+        self.blacklistedMods = asset_mods()
+
     @staticmethod
     def path() -> Path:
         return game_dir() / 'SyncChecker/config.json'
@@ -268,7 +271,7 @@ def sync_test(project_id: int, force: bool):
         log.warning(f"Sleep scale defaulting to {sleep_scale_default}")
         sleep_scale = sleep_scale_default
 
-    del path_cache['0 - 202 Berries.tas']
+    # del path_cache['0 - 202 Berries.tas']
     file_paths = [f'{repo_path}\\{path_cache[tas].replace('/', '\\')}' for tas in path_cache]
     sync_checker_config = Config(gameDirectory=game_dir(), mods=mods_to_load, files=file_paths)
     sync_checker_config.save()
@@ -282,7 +285,7 @@ def sync_test(project_id: int, force: bool):
 
 
 
-
+    raise SystemExit
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
         file_path_repo_backslashes = file_path_repo.replace('/', '\\')
@@ -858,6 +861,12 @@ def b64encode(data: bytes) -> str:
 
 def sid_is_valid(sid: str) -> bool:
     return sid not in ('', 'null') and 'Cannot access instance field' not in sid and 'Not found' not in sid
+
+
+@functools.cache
+def asset_mods() -> list[str]:
+    with open('asset_mods.txt', 'r') as asset_mods_txt:
+        return asset_mods_txt.read().splitlines(keepends=False)
 
 
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
