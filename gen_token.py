@@ -1,8 +1,10 @@
 import datetime
 import logging
+import os
 import time
 from typing import Union
 
+import dotenv
 import jwt
 import orjson
 import requests
@@ -21,14 +23,12 @@ def generate_jwt(min_time: int) -> str:
         log.info(f"Reused JWT with {round(time_remaining / 60, 1)} mins remaining")
         return cached_jwt[0]
 
-    with open('celestetas-improvements-tracker.2022-05-01.private-key.pem', 'rb') as pem_file:
-        private = pem_file.read()
-
     payload = {'iat': round(current_time - 60),
                'exp': round(current_time + (9.5 * 60)),
                'iss': github_app_id}
 
-    generated_jwt = jwt.encode(payload, private, algorithm='RS256')
+    dotenv.load_dotenv()
+    generated_jwt = jwt.encode(payload, os.getenv('GITHUB_PRIVATE_KEY'), algorithm='RS256')
     log.info("Generated JWT")
     set_token_cache('_jwt', [generated_jwt, payload['exp']])
     return generated_jwt

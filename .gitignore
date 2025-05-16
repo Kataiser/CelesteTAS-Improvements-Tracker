@@ -1,8 +1,6 @@
 .idea/
 __pycache__/
 log_history/
-*.pem
-bot_token
 CelesteTAS Improvements Tracker.exe
 bot.log
 improvements bot icon 32.ico
@@ -13,16 +11,14 @@ CelesteTAS Improvement Tracker.rdp
 improvements-bot-data/
 game_sync.log
 sync/
-service.json
-sheet_id
 todo.txt
 PULL.bat
 sid_caches.json
 bot.old.log
 game_sync.old.log
 history_log.json
-host
 /NoSQL
 celeste
 Mods
 host.toml
+.env

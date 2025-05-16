@@ -4,10 +4,12 @@ import dataclasses
 import decimal
 import enum
 import json
+import os
 from operator import itemgetter
 from typing import Union, Any
 
 import boto3
+import dotenv
 import fastjsonschema
 import orjson
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
@@ -260,8 +262,14 @@ tokens = Table('tokens', 'installation_owner')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 
-dynamodb_client = boto3.client('dynamodb')
-sqs_client = boto3.client('sqs')
+dotenv.load_dotenv()
+aws_session = boto3.session.Session(
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name='us-east-2'
+)
+dynamodb_client = aws_session.client('dynamodb')
+sqs_client = aws_session.client('sqs')
 sqs_queue_url = sqs_client.get_queue_url(QueueName='CelesteTAS-Improvement-Tracker_sync_results.fifo')['QueueUrl']
 atexit.register(dynamodb_client.close)
 serializer = TypeSerializer()

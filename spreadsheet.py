@@ -1,12 +1,15 @@
 import datetime
 import functools
 import logging
+import os
 import re
 import time
 from ssl import SSLEOFError
 from typing import List, Optional, Any, Union
 
 import discord
+import dotenv
+import orjson
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -443,7 +446,9 @@ class SheetReadError(Exception):
 client: Optional[discord.Client] = None
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 SJ_SHEET_ID = '1yXTxFyIbqxjuzRt7Y8WCojpX2prULcfgiCZm1hWMbjE'
-creds = service_account.Credentials.from_service_account_file('service.json', scopes=['https://www.googleapis.com/auth/spreadsheets'])
+dotenv.load_dotenv()
+service_info = orjson.loads(os.getenv('GCP_SERVICE_ACCOUNT'))
+creds = service_account.Credentials.from_service_account_info(service_info, scopes=['https://www.googleapis.com/auth/spreadsheets'])
 sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 difficulties = ("Beginner", "Intermediate", "Advanced", "Expert", "Grandmaster")
 re_ping = re.compile(r'<@\d+>')

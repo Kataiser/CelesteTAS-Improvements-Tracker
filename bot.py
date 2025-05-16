@@ -7,6 +7,7 @@ import time
 from typing import List, Optional
 
 import discord
+import dotenv
 from discord import app_commands
 
 import commands
@@ -63,8 +64,8 @@ def start():
     if not len(projects_startup) == project_logs_size == path_caches_size:
         log.warning("Project data component lengths are not equal")
 
-    with open('bot_token', 'r') as bot_token_file:
-        bot_token = bot_token_file.read()
+    dotenv.load_dotenv()
+    bot_token = os.getenv('BOT_TOKEN')
 
     while True:
         try:
@@ -140,7 +141,7 @@ async def on_message(message: discord.Message):
         await main.process_improvement_message(message)
     elif message.guild.id == 403698615446536203:
         return  # 1985
-    elif message.channel.id == 1185382846018359346 and '_master' in message.content:
+    elif message.channel.id == 1185382846018359346 and ':master' in message.content:
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
