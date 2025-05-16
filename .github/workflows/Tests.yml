@@ -33,7 +33,7 @@ jobs:
         ENV: ${{ secrets.ENV }}
       shell: bash
       run: |
-        echo $ENV > .env
+        echo $ENV | base64 --decode > .env
     - name: Run tests
       run: |
         echo "GitHub Actions runner" > host
