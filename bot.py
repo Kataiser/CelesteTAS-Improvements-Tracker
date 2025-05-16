@@ -7,6 +7,7 @@ import time
 from typing import List, Optional
 
 import discord
+import dotenv
 from discord import app_commands
 
 import commands
@@ -63,8 +64,8 @@ def start():
     if not len(projects_startup) == project_logs_size == path_caches_size:
         log.warning("Project data component lengths are not equal")
 
-    with open('bot_token', 'r') as bot_token_file:
-        bot_token = bot_token_file.read()
+    dotenv.load_dotenv()
+    bot_token = os.getenv('BOT_TOKEN')
 
     while True:
         try:
