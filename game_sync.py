@@ -310,7 +310,7 @@ def sync_test(project_id: int, force: bool):
             scaled_sleep(5)
             start_game()
 
-            for new_crash_log_name in new_crash_logs:
+            for new_crash_log_name in new_crash_logs[:10]:
                 with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'rb') as new_crash_log:
                     crash_logs_data[f'{new_crash_log_name}.gz'] = b64encode(gzip.compress(new_crash_log.read()))
 

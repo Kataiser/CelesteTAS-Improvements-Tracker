@@ -89,7 +89,7 @@ async def handle_game_sync_results():
                         crash_log_data = sync_result.data['crash_logs'][crash_log_name]
                         files.append(discord.File(io.BytesIO(base64.b64decode(crash_log_data)), filename=crash_log_name))
 
-                    await improvements_channel.send(sync_result.data['report_text'], files=files)
+                    await improvements_channel.send(sync_result.data['report_text'], files=files[:10])
 
                 if sync_result.data['disabled_text']:
                     await improvements_channel.send(sync_result.data['disabled_text'])
