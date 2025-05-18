@@ -682,9 +682,10 @@ async def command_echo(message: discord.Message):
 
 @admin_command()
 async def command_echo_reply(message: discord.Message):
-    if message.content.startswith('https'):
+    if message.content.lower().startswith('echo_reply https'):
         message_split = message.content.split('/')
-        channel_id, message_id = message_split[5], message_split[6]
+        channel_id = message_split[5]
+        message_id, _, message_text = message_split[6].partition(' ')
     else:
         message_full_id, _, message_text = message.content[11:].partition(' ')
         channel_id, message_id = message_full_id.split('-')
