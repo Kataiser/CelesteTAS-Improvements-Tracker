@@ -252,7 +252,7 @@ class AdminSaveButton(discord.ui.Button):
 
 
 def split_items(field: discord.ui.TextInput) -> list[str]:
-    return [item.strip() for item in field.value.split(',')]
+    return [item.strip() for item in field.value.split(',') if item]
 
 
 client: Optional[discord.Client] = None

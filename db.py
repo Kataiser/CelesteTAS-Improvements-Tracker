@@ -14,6 +14,8 @@ import fastjsonschema
 import orjson
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
+import utils
+
 
 class Table:
     def __init__(self, table_name: str, primary_key: str):
@@ -143,7 +145,16 @@ class Projects(Table):
         super().__init__(table_name, primary_key)
 
         with open('project_schema.json', 'rb') as projects_schema_file:
-            self.validate_project_schema = fastjsonschema.compile(orjson.loads(projects_schema_file.read()))
+            validate_project_schema_compiled = fastjsonschema.compile(orjson.loads(projects_schema_file.read()))
+
+        def validate_project_schema(*args):
+            try:
+                validate_project_schema_compiled(*args)
+            except fastjsonschema.JsonSchemaException:
+                utils.log_error()
+                raise
+
+        self.validate_project_schema = validate_project_schema
 
     def set(self, project_id: Union[str, int], project: dict, get_previous: bool = False) -> Any:
         self.validate_project_schema(project, get_previous)
