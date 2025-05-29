@@ -1,11 +1,17 @@
 import base64
+import datetime
 import inspect
 import io
 import logging
+import random
 import time
+import urllib.parse
+import zipfile
+from collections import namedtuple
 from pathlib import Path
 
 import discord
+import requests
 from discord.ext import tasks
 
 import db
@@ -18,7 +24,8 @@ def start_tasks() -> dict[callable, bool]:
     tasks_running = {handle_game_sync_results_task: False,
                      handle_no_game_sync_results_task: False,
                      alert_server_join_task: False,
-                     heartbeat_task: False}
+                     heartbeat_task: False,
+                     daily_maingame_room_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -33,9 +40,15 @@ def start_tasks() -> dict[callable, bool]:
 
 async def run_and_catch_task(task_function: callable):
     if inspect.iscoroutinefunction(task_function):
-        await task_function()
+        try:
+            await task_function()
+        except Exception:
+            await utils.report_error(client)
     else:
-        task_function()
+        try:
+            task_function()
+        except Exception:
+            utils.log_error()
 
 
 @tasks.loop(minutes=1)
@@ -56,6 +69,11 @@ async def alert_server_join_task():
 @tasks.loop(minutes=2)
 async def heartbeat_task():
     await run_and_catch_task(heartbeat)
+
+
+@tasks.loop(hours=1)
+async def daily_maingame_room_task():
+    await run_and_catch_task(daily_maingame_room)
 
 
 async def handle_game_sync_results():
@@ -159,6 +177,62 @@ def heartbeat(killed=False):
     db.misc.set('heartbeat', {'host_socket': utils.cached_hostname(),
                               'host': utils.host().name,
                               'time': hb_time})
+
+
+async def daily_maingame_room():
+    if datetime.datetime.now(datetime.timezone.utc).hour != 4:
+        return
+
+    log.info("Updating daily maingame room")
+    r = requests.get('https://github.com/VampireFlower/CelesteTAS/archive/refs/heads/master.zip', timeout=30)
+    utils.handle_potential_request_error(r, 200)
+    Room = namedtuple('Room', ['name', 'file', 'line_num'])
+    rooms: list[Room] = []
+
+    with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
+        for file in archive_file.filelist:
+            if not file.filename.endswith('.tas'):
+                continue
+
+            with archive_file.open(file) as file_opened:
+                file_path = file.filename.partition('/')[2]
+                file_lines = file_opened.read().decode('UTF8').splitlines()
+
+                for line_num, line in enumerate(file_lines):
+                    if line.startswith('#lvl_'):
+                        rooms.append(Room(line[5:], file_path, line_num + 1))
+
+    berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
+                 '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
+                 '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
+                 '3B': 'resort/b', '3C': 'resort/c', '3': 'resort/a',
+                 '4B': 'ridge/b', '4C': 'ridge/c', '4': 'ridge/a',
+                 '5B': 'temple/b', '5C': 'temple/c', '5': 'temple/a',
+                 '6B': 'reflection/b', '6C': 'reflection/c', '6': 'reflection/a',
+                 '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
+                 '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
+
+    chosen_room = random.choice(rooms)
+    github_link = f'https://github.com/VampireFlower/CelesteTAS/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
+    berrycamp_files1 = []
+    berrycamp_files2 = []
+
+    for prefix in berrycamp:
+        if chosen_room.file.removeprefix('202/').startswith(prefix):
+            room_trimmed = chosen_room.name.partition(' ')[0]
+            r = requests.get(f'https://berrycamp.github.io/img/celeste/rooms/{berrycamp[prefix]}/{room_trimmed}.png', timeout=30)
+            utils.handle_potential_request_error(r, 200)
+            berrycamp_files1 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
+            berrycamp_files2 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
+            break
+
+    message = (f"### Daily maingame room to improve\n"
+               f"Room: `{chosen_room.name}`\n"
+               f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
+               f"<t:{int(time.time())}:F>\n")
+    channel = client.get_channel(1376210150985170987)
+    await channel.send(message, files=berrycamp_files1)
+    await channel.get_partial_message(1377721486298710159).edit(content=message, attachments=berrycamp_files2)
 
 
 client: discord.Client | None = None
