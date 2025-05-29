@@ -212,7 +212,21 @@ async def daily_maingame_room():
                  '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
                  '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
 
-    chosen_room = random.choice(rooms)
+    room_history: list[str] = db.misc.get('daily_maingame_history')
+    random.shuffle(rooms)
+
+    for chosen_room in rooms:
+        room_and_file = f'{chosen_room.name} {chosen_room.file.removesuffix('.tas')}'
+
+        if room_and_file not in room_history:
+            room_history.append(room_and_file)
+
+            if len(room_history) > 500:
+                room_history.pop(0)
+
+            db.misc.set('daily_maingame_history', room_history)
+            break
+
     github_link = f'https://github.com/VampireFlower/CelesteTAS/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
     berrycamp_files1 = []
     berrycamp_files2 = []
