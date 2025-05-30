@@ -71,7 +71,7 @@ async def heartbeat_task():
     await run_and_catch_task(heartbeat)
 
 
-@tasks.loop(hours=1)
+@tasks.loop(time=datetime.time(hour=9, tzinfo=datetime.timezone.utc))
 async def daily_maingame_room_task():
     await run_and_catch_task(daily_maingame_room)
 
@@ -180,11 +180,6 @@ def heartbeat(killed=False):
 
 
 async def daily_maingame_room():
-    now = datetime.datetime.now(datetime.timezone.utc)
-
-    if now.hour != 9:
-        return
-
     log.info("Updating daily maingame room")
     r = requests.get('https://github.com/VampireFlower/CelesteTAS/archive/refs/heads/master.zip', timeout=30)
     utils.handle_potential_request_error(r, 200)
@@ -214,9 +209,10 @@ async def daily_maingame_room():
                  '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
                  '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
 
-    days_since_init = (now - datetime.datetime(2025, 5, 30, tzinfo=datetime.timezone.utc)).days
+    days_since_init = (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime(2025, 5, 30, tzinfo=datetime.timezone.utc)).days
     random.Random(1376210150985170987).shuffle(rooms)
     chosen_room = rooms[days_since_init]
+    log.info(f"Chose {chosen_room}, index {days_since_init}")
     github_link = f'https://github.com/VampireFlower/CelesteTAS/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
     berrycamp_files1 = []
     berrycamp_files2 = []
