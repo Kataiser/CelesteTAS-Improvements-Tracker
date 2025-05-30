@@ -180,7 +180,7 @@ def heartbeat(killed=False):
 
 
 async def daily_maingame_room():
-    if datetime.datetime.now(datetime.timezone.utc).hour != 4:
+    if datetime.datetime.now(datetime.timezone.utc).hour != 9:
         return
 
     log.info("Updating daily maingame room")
