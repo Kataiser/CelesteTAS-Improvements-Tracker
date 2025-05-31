@@ -185,12 +185,11 @@ async def room_suggestions():
     now = datetime.datetime.now(datetime.timezone.utc)
     crons = get_crons()
 
-    for cron in crons:
-        if not cron_validator.CronValidator.match_datetime(cron, now):
+    for project_id in crons:
+        if not cron_validator.CronValidator.match_datetime(crons[project_id], now):
             continue
 
-        project = db.projects.get(crons[cron])
-        project_id = int(project['project_id'])
+        project = db.projects.get(project_id)
         repo = project['repo']
         pin = int(project['room_suggestion_pin'])
         rooms_index = int(project['room_suggestion_index'])
@@ -211,16 +210,17 @@ async def room_suggestions():
 
         with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
             for file in archive_file.filelist:
-                if not file.filename.endswith('.tas'):
+                file_path = file.filename.partition('/')[2]
+
+                if [item for item in project['excluded_items'] if file_path.startswith(item)] or not file.filename.endswith('.tas'):
                     continue
 
                 with archive_file.open(file) as file_opened:
-                    file_path = file.filename.partition('/')[2]
                     file_lines = file_opened.read().decode('UTF8').splitlines()
 
-                    for line_num, line in enumerate(file_lines):
-                        if line.startswith('#lvl_'):
-                            rooms.append(Room(line[5:], file_path, line_num + 1))
+                for line_num, line in enumerate(file_lines):
+                    if line.startswith('#lvl_'):
+                        rooms.append(Room(line[5:], file_path, line_num + 1))
 
         berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
                      '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
@@ -232,8 +232,8 @@ async def room_suggestions():
                      '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
                      '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
 
-        random.Random(project_id).shuffle(rooms)
-        chosen_room = rooms[rooms_index]
+        random.Random(project_id + (rooms_index // len(rooms))).shuffle(rooms)
+        chosen_room = rooms[rooms_index % len(rooms)]
         log.info(f"Chose {chosen_room}, index {rooms_index}")
         github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
         berrycamp_files1 = []
@@ -266,7 +266,7 @@ async def room_suggestions():
 
 
 @functools.cache
-def get_crons() -> dict[str, int]:
+def get_crons() -> dict[int, str]:
     crons = {}
 
     for project in db.projects.get_all():
@@ -276,7 +276,7 @@ def get_crons() -> dict[str, int]:
             if project['room_suggestion_channel'] == 0:
                 log.warning(f"Can't add room suggestion cron for project \"{project['name']}\" because channel ID is 0")
             else:
-                crons[project_cron] = project['project_id']
+                crons[int(project['project_id'])] = project_cron
 
     return crons
 
