@@ -1,5 +1,6 @@
 import base64
 import datetime
+import functools
 import inspect
 import io
 import logging
@@ -10,6 +11,7 @@ import zipfile
 from collections import namedtuple
 from pathlib import Path
 
+import cron_validator
 import discord
 import requests
 from discord.ext import tasks
@@ -25,7 +27,7 @@ def start_tasks() -> dict[callable, bool]:
                      handle_no_game_sync_results_task: False,
                      alert_server_join_task: False,
                      heartbeat_task: False,
-                     daily_maingame_room_task: False}
+                     room_suggestions_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -71,9 +73,9 @@ async def heartbeat_task():
     await run_and_catch_task(heartbeat)
 
 
-@tasks.loop(time=datetime.time(hour=9, tzinfo=datetime.timezone.utc))
-async def daily_maingame_room_task():
-    await run_and_catch_task(daily_maingame_room)
+@tasks.loop(minutes=1)
+async def room_suggestions_task():
+    await run_and_catch_task(room_suggestions)
 
 
 async def handle_game_sync_results():
@@ -179,60 +181,104 @@ def heartbeat(killed=False):
                               'time': hb_time})
 
 
-async def daily_maingame_room():
-    log.info("Updating daily maingame room")
-    r = requests.get('https://github.com/VampireFlower/CelesteTAS/archive/refs/heads/master.zip', timeout=30)
-    utils.handle_potential_request_error(r, 200)
-    Room = namedtuple('Room', ['name', 'file', 'line_num'])
-    rooms: list[Room] = []
+async def room_suggestions():
+    now = datetime.datetime.now(datetime.timezone.utc)
+    crons = get_crons()
 
-    with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
-        for file in archive_file.filelist:
-            if not file.filename.endswith('.tas'):
-                continue
+    for cron in crons:
+        if not cron_validator.CronValidator.match_datetime(cron, now):
+            continue
 
-            with archive_file.open(file) as file_opened:
-                file_path = file.filename.partition('/')[2]
-                file_lines = file_opened.read().decode('UTF8').splitlines()
+        project = db.projects.get(crons[cron])
+        project_id = int(project['project_id'])
+        repo = project['repo']
+        pin = int(project['room_suggestion_pin'])
+        rooms_index = int(project['room_suggestion_index'])
+        channel_id = int(project['room_suggestion_channel'])
 
-                for line_num, line in enumerate(file_lines):
-                    if line.startswith('#lvl_'):
-                        rooms.append(Room(line[5:], file_path, line_num + 1))
+        if channel_id == 0:
+            log.warning(f"Can't do room improvement suggestion for project \"{project['name']}\" because channel ID is 0")
+            continue
 
-    berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
-                 '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
-                 '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
-                 '3B': 'resort/b', '3C': 'resort/c', '3': 'resort/a',
-                 '4B': 'ridge/b', '4C': 'ridge/c', '4': 'ridge/a',
-                 '5B': 'temple/b', '5C': 'temple/c', '5': 'temple/a',
-                 '6B': 'reflection/b', '6C': 'reflection/c', '6': 'reflection/a',
-                 '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
-                 '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
+        project['room_suggestion_index'] += 1
+        db.projects.set(project_id, project)
 
-    days_since_init = (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime(2025, 5, 30, tzinfo=datetime.timezone.utc)).days
-    random.Random(1376210150985170987).shuffle(rooms)
-    chosen_room = rooms[days_since_init]
-    log.info(f"Chose {chosen_room}, index {days_since_init}")
-    github_link = f'https://github.com/VampireFlower/CelesteTAS/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
-    berrycamp_files1 = []
-    berrycamp_files2 = []
+        log.info(f"Updating room improvement suggestion for project \"{project['name']}\"")
+        r = requests.get(f'https://github.com/{repo}/archive/refs/heads/master.zip', timeout=30)
+        utils.handle_potential_request_error(r, 200)
+        Room = namedtuple('Room', ['name', 'file', 'line_num'])
+        rooms: list[Room] = []
 
-    for prefix in berrycamp:
-        if chosen_room.file.removeprefix('202/').startswith(prefix):
-            room_trimmed = chosen_room.name.partition(' ')[0]
-            r = requests.get(f'https://berrycamp.github.io/img/celeste/rooms/{berrycamp[prefix]}/{room_trimmed}.png', timeout=30)
-            utils.handle_potential_request_error(r, 200)
-            berrycamp_files1 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
-            berrycamp_files2 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
-            break
+        with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
+            for file in archive_file.filelist:
+                if not file.filename.endswith('.tas'):
+                    continue
 
-    message = (f"### Daily maingame room to improve\n"
-               f"Room: `{chosen_room.name}`\n"
-               f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
-               f"<t:{int(time.time())}:F>\n")
-    channel = client.get_channel(1376210150985170987)
-    await channel.send(message, files=berrycamp_files1)
-    await channel.get_partial_message(1377721486298710159).edit(content=message, attachments=berrycamp_files2)
+                with archive_file.open(file) as file_opened:
+                    file_path = file.filename.partition('/')[2]
+                    file_lines = file_opened.read().decode('UTF8').splitlines()
+
+                    for line_num, line in enumerate(file_lines):
+                        if line.startswith('#lvl_'):
+                            rooms.append(Room(line[5:], file_path, line_num + 1))
+
+        berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
+                     '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
+                     '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
+                     '3B': 'resort/b', '3C': 'resort/c', '3': 'resort/a',
+                     '4B': 'ridge/b', '4C': 'ridge/c', '4': 'ridge/a',
+                     '5B': 'temple/b', '5C': 'temple/c', '5': 'temple/a',
+                     '6B': 'reflection/b', '6C': 'reflection/c', '6': 'reflection/a',
+                     '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
+                     '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
+
+        random.Random(project_id).shuffle(rooms)
+        chosen_room = rooms[rooms_index]
+        log.info(f"Chose {chosen_room}, index {rooms_index}")
+        github_link = f'https://github.com/VampireFlower/CelesteTAS/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
+        berrycamp_files1 = []
+        berrycamp_files2 = []
+
+        if project_id == 598945702554501130:  # maingame
+            for prefix in berrycamp:
+                if chosen_room.file.removeprefix('202/').startswith(prefix):
+                    room_trimmed = chosen_room.name.partition(' ')[0]
+                    r = requests.get(f'https://berrycamp.github.io/img/celeste/rooms/{berrycamp[prefix]}/{room_trimmed}.png', timeout=30)
+                    utils.handle_potential_request_error(r, 200)
+                    berrycamp_files1 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
+                    berrycamp_files2 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
+                    break
+
+        message = (f"### Daily room to improve\n"
+                   f"Room: `{chosen_room.name}`\n"
+                   f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
+                   f"<t:{int(time.time())}:F>\n")
+        channel = client.get_channel(channel_id)
+        await channel.send(message, files=berrycamp_files1)
+
+        if pin != 0:
+            await channel.get_partial_message(pin).edit(content=message, attachments=berrycamp_files2)
+        else:
+            pin = await channel.send(message, files=berrycamp_files2)
+            await pin.pin()
+            project['room_suggestion_pin'] = pin.id
+            db.projects.set(project_id, project)
+
+
+@functools.cache
+def get_crons() -> dict[str, int]:
+    crons = {}
+
+    for project in db.projects.get_all():
+        project_cron = project['room_suggestion_cron']
+
+        if project_cron:
+            if project['room_suggestion_channel'] == 0:
+                log.warning(f"Can't add room suggestion cron for project \"{project['name']}\" because channel ID is 0")
+            else:
+                crons[project_cron] = project['project_id']
+
+    return crons
 
 
 client: discord.Client | None = None

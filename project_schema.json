@@ -115,6 +115,18 @@
         },
         "room_indexing_includes_reads": {
             "type": "boolean"
+        },
+        "room_suggestion_cron": {
+            "type": "string"
+        },
+        "room_suggestion_channel": {
+            "type": "number"
+        },
+        "room_suggestion_pin": {
+            "type": "number"
+        },
+        "room_suggestion_index": {
+            "type": "number"
         }
     }
 }
