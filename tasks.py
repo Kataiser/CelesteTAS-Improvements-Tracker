@@ -235,7 +235,7 @@ async def room_suggestions():
         random.Random(project_id).shuffle(rooms)
         chosen_room = rooms[rooms_index]
         log.info(f"Chose {chosen_room}, index {rooms_index}")
-        github_link = f'https://github.com/VampireFlower/CelesteTAS/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
+        github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
         berrycamp_files1 = []
         berrycamp_files2 = []
 
