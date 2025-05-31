@@ -2,6 +2,7 @@ import copy
 import logging
 from typing import Optional, Union
 
+import cron_validator
 import discord
 from deepdiff import DeepDiff
 
@@ -69,6 +70,11 @@ class ProjectEditor(discord.ui.View):
         contributors_file_path_display = f"`{project['contributors_file_path']}`" if project['contributors_file_path'] else "Root"
         excluded_items_display = f"`{', '.join([item for item in project['excluded_items']])}`" if project['excluded_items'] else "None"
 
+        if project['room_suggestion_cron']:
+            room_suggestion_display = f"Enabled, runs at `{project['room_suggestion_cron']}` in channel ID `{project['room_suggestion_channel']}`"
+        else:
+            room_suggestion_display = "Disabled"
+
         if not project['disallowed_command_exemptions']:
             disallowed_command_exemptions_display = "None"
         else:
@@ -85,12 +91,13 @@ class ProjectEditor(discord.ui.View):
                 f"  - Subdirectory: {subdir_display}\n"
                 f"  - Excluded items: {excluded_items_display}\n"
                 f"  - Contributors file path: {contributors_file_path_display}\n"
+                f"  - Admins: `{', '.join(admins)}` (edit with `/edit_admin`)\n"
                 f"- Details 2\n"
                 f"  - Github installation owner: `{project['installation_owner']}`\n"
-                f"  - Admins: `{', '.join(admins)}` (edit with `/edit_admin`)\n"
                 f"  - Mods: {mods_display} (add with `/add_mods` preferably)\n"
                 f"  - Lobby sheet cell: {project['lobby_sheet_cell']} (edit with `/link_lobby_sheet`)\n"
                 f"  - Disallowed command exemptions: {disallowed_command_exemptions_display}\n"
+                f"  - Room suggestions: {room_suggestion_display}\n"
                 f"- Settings\n"
                 f"  - Commit drafts: `{project['commit_drafts']}`\n"
                 f"  - Is lobby: `{project['is_lobby']}`\n"
@@ -169,15 +176,34 @@ class ProjectEditorModal2(discord.ui.Modal, title="Edit project details 2"):
         project = base_editor.project
         self.field_installation_owner.default = project['installation_owner']
         self.field_mods.default = ', '.join(project['mods'])
+        self.field_room_suggestion_cron.default = project['room_suggestion_cron']
+        self.field_room_suggestion_channel.default = None if project['room_suggestion_channel'] == 0 else int(project['room_suggestion_channel'])
 
     field_installation_owner = discord.ui.TextInput(label="Github installation owner")
     field_mods = discord.ui.TextInput(label="Mods (for sync check, filenames without .zip)", required=False)
+    field_room_suggestion_cron = discord.ui.TextInput(label="Room suggestion cron (none = disable)", required=False)
+    field_room_suggestion_channel = discord.ui.TextInput(label="Room suggestion channel ID", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
+        room_suggestion_cron = self.field_room_suggestion_cron.value
+
+        try:
+            cron_validator.CronValidator.parse(room_suggestion_cron)
+        except ValueError:
+            log.warning(f"Entered cron \"{room_suggestion_cron}\" is invalid")
+            room_suggestion_cron = ''
+
+        try:
+            room_suggestion_channel = int(self.field_room_suggestion_channel.value)
+        except ValueError:
+            room_suggestion_channel = 0
+
         log.info("Submitted modal 2")
         project = self.base_editor.project
         project['installation_owner'] = self.field_installation_owner.value
         project['mods'] = split_items(self.field_mods)
+        project['room_suggestion_cron'] = room_suggestion_cron
+        project['room_suggestion_channel'] = room_suggestion_channel
         await interaction.response.defer()
         await self.base_editor.update_message()
 
