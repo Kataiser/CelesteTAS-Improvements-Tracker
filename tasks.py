@@ -222,16 +222,6 @@ async def room_suggestions():
                     if line.startswith('#lvl_'):
                         rooms.append(Room(line[5:], file_path, line_num + 1))
 
-        berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
-                     '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
-                     '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
-                     '3B': 'resort/b', '3C': 'resort/c', '3': 'resort/a',
-                     '4B': 'ridge/b', '4C': 'ridge/c', '4': 'ridge/a',
-                     '5B': 'temple/b', '5C': 'temple/c', '5': 'temple/a',
-                     '6B': 'reflection/b', '6C': 'reflection/c', '6': 'reflection/a',
-                     '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
-                     '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
-
         random.Random(project_id + (rooms_index // len(rooms))).shuffle(rooms)
         chosen_room = rooms[rooms_index % len(rooms)]
         log.info(f"Chose {chosen_room}, index {rooms_index}")
@@ -240,6 +230,16 @@ async def room_suggestions():
         berrycamp_files2 = []
 
         if project_id == 598945702554501130:  # maingame
+            berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
+                         '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
+                         '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
+                         '3B': 'resort/b', '3C': 'resort/c', '3': 'resort/a',
+                         '4B': 'ridge/b', '4C': 'ridge/c', '4': 'ridge/a',
+                         '5B': 'temple/b', '5C': 'temple/c', '5': 'temple/a',
+                         '6B': 'reflection/b', '6C': 'reflection/c', '6': 'reflection/a',
+                         '7B': 'summit/b', '7C': 'summit/c', '7': 'summit/a',
+                         '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
+
             for prefix in berrycamp:
                 if chosen_room.file.removeprefix('202/').startswith(prefix):
                     room_trimmed = chosen_room.name.partition(' ')[0]
@@ -249,19 +249,18 @@ async def room_suggestions():
                     berrycamp_files2 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
                     break
 
-        message = (f"### Daily room to improve\n"
-                   f"Room: `{chosen_room.name}`\n"
-                   f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
-                   f"<t:{int(time.time())}:F>\n")
+        message_text = (f"### Daily room to improve\n"
+                        f"Room: `{chosen_room.name}`\n"
+                        f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
+                        f"<t:{int(time.time())}:F>\n")
         channel = client.get_channel(channel_id)
-        await channel.send(message, files=berrycamp_files1)
+        message = await channel.send(message_text, files=berrycamp_files1)
 
         if pin != 0:
-            await channel.get_partial_message(pin).edit(content=message, attachments=berrycamp_files2)
+            await channel.get_partial_message(pin).edit(content=message_text, attachments=berrycamp_files2)
         else:
-            pin = await channel.send(message, files=berrycamp_files2)
-            await pin.pin()
-            project['room_suggestion_pin'] = pin.id
+            await message.pin()
+            project['room_suggestion_pin'] = message.id
             db.projects.set(project_id, project)
 
 
