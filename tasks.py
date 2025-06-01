@@ -191,7 +191,7 @@ async def room_suggestions():
 
         project = db.projects.get(project_id)
         repo = project['repo']
-        pin = int(project['room_suggestion_pin'])
+        pin_id = int(project['room_suggestion_pin'])
         rooms_index = int(project['room_suggestion_index'])
         channel_id = int(project['room_suggestion_channel'])
 
@@ -256,8 +256,14 @@ async def room_suggestions():
         channel = client.get_channel(channel_id)
         message = await channel.send(message_text, files=berrycamp_files1)
 
-        if pin != 0:
-            await channel.get_partial_message(pin).edit(content=message_text, attachments=berrycamp_files2)
+        try:
+            pin_message = await channel.fetch_message(pin_id)
+        except discord.NotFound:
+            pin_id = 0
+            pin_message = message
+
+        if pin_id != 0:
+            await pin_message.edit(content=message_text, attachments=berrycamp_files2)
         else:
             await message.pin()
             project['room_suggestion_pin'] = message.id
