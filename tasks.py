@@ -249,7 +249,7 @@ async def room_suggestions():
                     berrycamp_files2 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
                     break
 
-        message_text = (f"### Daily room to improve\n"
+        message_text = (f"### Room improvement suggestion\n"
                         f"Room: `{chosen_room.name}`\n"
                         f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
                         f"<t:{int(time.time())}:F>\n")
