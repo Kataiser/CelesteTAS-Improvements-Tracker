@@ -176,7 +176,7 @@ async def on_message(message: discord.Message):
     if re_1984_minty.findall(message_search):
         user_ids.add(1060652582663630919)
 
-    if re_1984_bot.findall(message_search):
+    if re_1984_bot.findall(message_search) and message.guild.id != 1334595934495182861:
         user_ids.add(219955313334288385)
 
     if message.reference:
