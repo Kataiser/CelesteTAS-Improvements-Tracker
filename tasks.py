@@ -226,8 +226,7 @@ async def room_suggestions():
         chosen_room = rooms[rooms_index % len(rooms)]
         log.info(f"Chose {chosen_room}, index {rooms_index}")
         github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
-        berrycamp_files1 = []
-        berrycamp_files2 = []
+        room_display = f"`{chosen_room.name}`"
 
         if project_id == 598945702554501130:  # maingame
             berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
@@ -242,19 +241,15 @@ async def room_suggestions():
 
             for prefix in berrycamp:
                 if chosen_room.file.removeprefix('202/').startswith(prefix):
-                    room_trimmed = chosen_room.name.partition(' ')[0]
-                    r = requests.get(f'https://berrycamp.github.io/img/celeste/rooms/{berrycamp[prefix]}/{room_trimmed}.png', timeout=30)
-                    utils.handle_potential_request_error(r, 200)
-                    berrycamp_files1 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
-                    berrycamp_files2 = [discord.File(io.BytesIO(r.content), filename=f'{room_trimmed}.png')]
+                    berrycamp_url = f'https://berrycamp.github.io/img/celeste/rooms/{berrycamp[prefix]}/{chosen_room.name.partition(' ')[0]}.png'
+                    room_display = f'[`{chosen_room.name}`]({berrycamp_url})'
                     break
 
         message_text = (f"### Room improvement suggestion\n"
-                        f"Room: `{chosen_room.name}`\n"
-                        f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)\n"
-                        f"<t:{int(time.time())}:F>\n")
+                        f"Room: {room_display}\n"
+                        f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)")
         channel = client.get_channel(channel_id)
-        message = await channel.send(message_text, files=berrycamp_files1)
+        message = await channel.send(message_text)
 
         try:
             pin_message = await channel.fetch_message(pin_id)
@@ -263,7 +258,7 @@ async def room_suggestions():
             pin_message = message
 
         if pin_id != 0:
-            await pin_message.edit(content=message_text, attachments=berrycamp_files2)
+            await pin_message.edit(content=message_text)
         else:
             await message.pin()
             project['room_suggestion_pin'] = message.id
