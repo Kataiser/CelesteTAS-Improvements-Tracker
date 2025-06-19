@@ -55,7 +55,7 @@ class ProjectEditor(discord.ui.View):
 
         if changes_made_count:
             project_id = self.project['project_id']
-            db.projects.set(project_id, self.project)
+            db.projects.set(project_id, self.project)  # TODO: fix race condition by applying diff to new project get
             await main.edit_pin(client.get_channel(project_id))
             main.generate_request_headers(self.project['installation_owner'])
             main.generate_path_cache(project_id, self.project)

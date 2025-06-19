@@ -18,6 +18,7 @@ from discord.ext import tasks
 
 import db
 import main
+import spreadsheet
 import utils
 from constants import admin_user_id
 
@@ -182,6 +183,23 @@ def heartbeat(killed=False):
 
 
 async def room_suggestions():
+    async def send_message_update_pin(message_text: str, pin_id: int):
+        channel = client.get_channel(channel_id)
+        message = await channel.send(message_text)
+
+        try:
+            pin_message = await channel.fetch_message(pin_id)
+        except discord.NotFound:
+            pin_id = 0
+            pin_message = message
+
+        if pin_id != 0:
+            await pin_message.edit(content=message_text)
+        else:
+            await message.pin()
+            project['room_suggestion_pin'] = message.id
+            db.projects.set(project_id, project)
+
     now = datetime.datetime.now(datetime.timezone.utc)
     crons = get_crons()
 
@@ -201,6 +219,20 @@ async def room_suggestions():
 
         project['room_suggestion_index'] += 1
         db.projects.set(project_id, project)
+
+        if project_id == 1074148268407275520:  # sj
+            log.info("Updating room improvement suggestion for SJ")
+            sj_maps = [level for level in spreadsheet.sj_data]
+            random.Random(project_id + (rooms_index // len(sj_maps))).shuffle(sj_maps)
+            chosen_map = sj_maps[rooms_index % len(sj_maps)]
+            chosen_map_filename = spreadsheet.sj_data[chosen_map][4]
+            log.info(f"Chose {chosen_map} ({chosen_map_filename}), index {rooms_index}")
+            github_link = f'https://github.com/VampireFlower/StrawberryJamTAS/blob/main/{db.path_caches.get(project_id)[chosen_map_filename]}'
+            message_text = (f"### Level improvement suggestion\n"
+                            f"Level: {chosen_map}\n"
+                            f"File: [{chosen_map_filename}](<{github_link}>)")
+            await send_message_update_pin(message_text, pin_id)
+            return
 
         log.info(f"Updating room improvement suggestion for project \"{project['name']}\"")
         r = requests.get(f'https://github.com/{repo}/archive/refs/heads/master.zip', timeout=30)
@@ -248,21 +280,7 @@ async def room_suggestions():
         message_text = (f"### Room improvement suggestion\n"
                         f"Room: {room_display}\n"
                         f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)")
-        channel = client.get_channel(channel_id)
-        message = await channel.send(message_text)
-
-        try:
-            pin_message = await channel.fetch_message(pin_id)
-        except discord.NotFound:
-            pin_id = 0
-            pin_message = message
-
-        if pin_id != 0:
-            await pin_message.edit(content=message_text)
-        else:
-            await message.pin()
-            project['room_suggestion_pin'] = message.id
-            db.projects.set(project_id, project)
+        await send_message_update_pin(message_text, pin_id)
 
 
 @functools.cache
