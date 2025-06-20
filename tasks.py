@@ -230,7 +230,8 @@ async def room_suggestions():
             github_link = f'https://github.com/VampireFlower/StrawberryJamTAS/blob/main/{db.path_caches.get(project_id)[chosen_map_filename]}'
             message_text = (f"### Level improvement suggestion\n"
                             f"Level: {chosen_map}\n"
-                            f"File: [{chosen_map_filename}](<{github_link}>)")
+                            f"File: [{chosen_map_filename}](<{github_link}>)\n"
+                            f"Last improved: {spreadsheet.MapRow(chosen_map).improvement_date_cell.value()}")
             await send_message_update_pin(message_text, pin_id)
             return
 
