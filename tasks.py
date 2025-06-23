@@ -228,10 +228,12 @@ async def room_suggestions():
             chosen_map_filename = spreadsheet.sj_data[chosen_map][4]
             log.info(f"Chose {chosen_map} ({chosen_map_filename}), index {rooms_index}")
             github_link = f'https://github.com/VampireFlower/StrawberryJamTAS/blob/main/{db.path_caches.get(project_id)[chosen_map_filename]}'
+            last_improved_value = spreadsheet.MapRow(chosen_map).improvement_date_cell.value()
+            last_improved_timestamp = int(datetime.datetime.strptime(last_improved_value, '%m/%d/%Y').replace(hour=12).timestamp())
             message_text = (f"### Level improvement suggestion\n"
                             f"Level: {chosen_map}\n"
                             f"File: [{chosen_map_filename}](<{github_link}>)\n"
-                            f"Last improved: {spreadsheet.MapRow(chosen_map).improvement_date_cell.value()}")
+                            f"Last improved: <t:{last_improved_timestamp}:D> (<t:{last_improved_timestamp}:R>)")
             await send_message_update_pin(message_text, pin_id)
             return
 
