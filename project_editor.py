@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 import cron_validator
 import discord
-from deepdiff import DeepDiff
+from deepdiff import DeepDiff, Delta
 
 import db
 import main
@@ -49,16 +49,17 @@ class ProjectEditor(discord.ui.View):
 
     @discord.ui.button(label="Save", style=discord.ButtonStyle.primary, row=3)
     async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        deep_diff = DeepDiff(self.project_original, self.project, ignore_order=True, verbose_level=2)
-        log.info(f"Saved, changes: {deep_diff}")
+        deep_diff = DeepDiff(self.project_original, self.project, ignore_order=True, report_repetition=True, verbose_level=2)
+        log.info(f"Saving, changes: {deep_diff}")
         changes_made_count = len(deep_diff.pretty().splitlines())
 
         if changes_made_count:
             project_id = self.project['project_id']
-            db.projects.set(project_id, self.project)  # TODO: fix race condition by applying diff to new project get
+            updated_project = self.project_original + Delta(deep_diff)
+            db.projects.set(project_id, updated_project)
             await main.edit_pin(client.get_channel(project_id))
-            main.generate_request_headers(self.project['installation_owner'])
-            main.generate_path_cache(project_id, self.project)
+            main.generate_request_headers(updated_project['installation_owner'])
+            main.generate_path_cache(project_id, updated_project)
             tasks.get_crons.cache_clear()
 
         await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made.")
