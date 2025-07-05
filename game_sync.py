@@ -262,7 +262,7 @@ def sync_test(project_id: int, force: bool):
 
         while not tas_started and not game_crashed:
             try:
-                requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}', timeout=10)
+                requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}'.replace('+', '%2B'), timeout=10)
             except requests.RequestException:
                 if not game_process.is_running():
                     game_crashed = True
