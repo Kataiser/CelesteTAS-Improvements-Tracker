@@ -59,7 +59,6 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     is_dash_save = dash_saves is not None
     got_timesave = False
     wip_in_message = 'wip' in re_remove_punctuation.subn(' ', message_lowercase)[0].split()
-    last_analogmode = 'ignore'
     rooms_found = {}
     uses_one_indexing = None
     found_start = False
@@ -185,7 +184,6 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
             for arg in enumerate(args[:len(rules_functions)]):
                 rules_function = rules_functions[arg[0]]
-                last_analogmode = arg[1].lower() if command in ('analogmode', 'analoguemode') else last_analogmode
 
                 if isinstance(rules_function, OptionalArg):
                     rules_function = rules_function.validate_func
@@ -196,11 +194,6 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                     if arg_validity is not True:
                         validation_result.emit_failed_check(f"Incorrect `{line_split[0]}` command usage on line {line_num + 1}: {arg_validity}.",
                                                             f"incorrect command argument in {filename}: {line_split[0]}, {arg_validity}")
-
-    # validate last analogmode is ignore
-    if last_analogmode != 'ignore':
-        validation_result.emit_failed_check(f"Incorrect last AnalogMode, is {last_analogmode.capitalize()} but should be Ignore so as to not possibly desync later TASes.",
-                                            f"last analogmode in {filename} is {last_analogmode}")
 
     time_saved_messages: Union[None, re.Match] = None
 
