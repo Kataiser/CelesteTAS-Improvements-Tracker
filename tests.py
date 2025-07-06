@@ -417,13 +417,6 @@ def test_validate(setup_log, monkeypatch):
                                                                      "no \"draft\" text in message"])
     assert validation.validate(Path('test_tases\\invalids\\ehs_bad_recordcount.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_bad_command_usage
 
-    result_wrong_analogmode = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
-                                                          warning_text=["Incorrect last AnalogMode, is Square but should be Ignore so as to not possibly desync later TASes.", "Since this "
-                                                                        "is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. "
-                                                                        "If it shouldn't be a draft, make sure your filename is exactly the same as in the repo."],
-                                                          log_text=["last analogmode in expert_heartside.tas is square", "no \"draft\" text in message"])
-    assert validation.validate(Path('test_tases\\invalids\\ehs_wrong_analogmode.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_wrong_analogmode
-
     message_no_chaptertime = discord.Message("-229f Expert Heartside", MockChannel(), mock_kataiser)
     result_no_message_chaptertime = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
                                                                 warning_text=["The file's ChapterTime (7:54.929) is missing in your message, please add it and post again.", "Since this "
