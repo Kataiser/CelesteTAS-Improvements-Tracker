@@ -5,6 +5,7 @@ import inspect
 import io
 import logging
 import random
+import re
 import time
 import urllib.parse
 import zipfile
@@ -226,7 +227,7 @@ async def room_suggestions():
             random.Random(project_id + (rooms_index // len(sj_maps))).shuffle(sj_maps)
             chosen_map = sj_maps[rooms_index % len(sj_maps)]
             chosen_map_filename = spreadsheet.sj_data[chosen_map][4]
-            log.info(f"Chose {chosen_map} ({chosen_map_filename}), index {rooms_index}")
+            log.info(f"Chose {chosen_map} ({chosen_map_filename}), index {rooms_index}/{len(sj_maps)}")
             github_link = f'https://github.com/VampireFlower/StrawberryJamTAS/blob/main/{db.path_caches.get(project_id)[chosen_map_filename]}'
             last_improved_value = spreadsheet.MapRow(chosen_map).improvement_date_cell.value()
             last_improved_timestamp = int(datetime.datetime.strptime(last_improved_value, '%m/%d/%Y').replace(hour=12).timestamp())
@@ -259,9 +260,10 @@ async def room_suggestions():
 
         random.Random(project_id + (rooms_index // len(rooms))).shuffle(rooms)
         chosen_room = rooms[rooms_index % len(rooms)]
-        log.info(f"Chose {chosen_room}, index {rooms_index}")
+        log.info(f"Chose {chosen_room}, index {rooms_index}/{len(rooms)}")
         github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
         room_display = f"`{chosen_room.name}`"
+        maingame_emojis = ''
 
         if project_id == 598945702554501130:  # maingame
             berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
@@ -280,9 +282,11 @@ async def room_suggestions():
                     room_display = f'[`{chosen_room.name}`]({berrycamp_url})'
                     break
 
+            maingame_emojis = get_maingame_emojis(chosen_room.file)
+
         message_text = (f"### Room improvement suggestion\n"
                         f"Room: {room_display}\n"
-                        f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>)")
+                        f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>) {maingame_emojis}")
         await send_message_update_pin(message_text, pin_id)
 
 
@@ -302,7 +306,47 @@ def get_crons() -> dict[int, str]:
     return crons
 
 
+def get_maingame_emojis(filename: str) -> str:
+    filename = filename.removesuffix('.tas')
+
+    if filename == '9NMG':
+        return '<:unimpressedbirb:971377619687850034>'
+    elif filename == '9S':
+        return '<:wow:628615320365432853>'
+
+    match = re_maingame_filenames.match(filename)
+
+    if not match:
+        return ''
+
+    emojis = []
+    letters = match.group(1)
+
+    for letter in letters:
+        if letter == 'A':
+            emojis.append(':mountain_snow:')
+        elif letter == 'B':
+            emojis.append('<:heartred:911514304916901920>')
+        elif letter == 'C':
+            if letters.replace('C', ''):
+                emojis.append(':vhs:')
+            else:
+                emojis.append('<:heartyellow:916877000680026143>')
+        elif letter == 'S':
+            emojis.append('<:strawberry:916877000487100508>')
+        elif letter == 'H':
+            emojis.append('<:heartblue:916877000612913173>')
+        elif letter == 'D':
+            emojis.append('<:napeline:523614058092429322>')
+
+    if filename.endswith('G'):
+        emojis.append('<:goldenberry:916877000755535953>')
+
+    return ' '.join(emojis)
+
+
 client: discord.Client | None = None
 log: logging.Logger | utils.LogPlaceholder = utils.LogPlaceholder()
 mc_server_log_last_update = None
 mc_server_log_last_pos = 0
+re_maingame_filenames = re.compile(r'\d+([A-Z]+)')
