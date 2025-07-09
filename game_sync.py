@@ -141,7 +141,7 @@ def sync_test(project_id: int, force: bool):
         return
 
     # clone repo
-    clone_time, repo_path = clone_repo(repo)
+    clone_time, repo_path = clone_repo(repo, project_id)
     asserts_added = {}
     sid_cache_files_removed = []
     og_tas_lines = {}
@@ -401,7 +401,7 @@ def sync_test(project_id: int, force: bool):
     # commit updated fullgame files
     if queued_update_commits:
         log.info(f"Potentially committing updated fullgame files: \"{[i[0] for i in queued_update_commits]}\"")
-        clone_repo(repo, gen_token.access_token(project['installation_owner'], 300))
+        clone_repo(repo, project_id, gen_token.access_token(project['installation_owner'], 300))
 
     for queued_commit in queued_update_commits:
         file_path, lines, raw_file, commit_message = queued_commit
@@ -448,9 +448,10 @@ def sync_test(project_id: int, force: bool):
     log.info(f"Sync check time: {format_elapsed_time(start_time)}")
 
 
-def clone_repo(repo: str, access_token: str | None = None):
+def clone_repo(repo: str, project_id: int, access_token: str | None = None):
     repo_cloned = repo.partition('/')[2]
-    repo_path = f'{game_dir()}\\repos\\{repo_cloned}'
+    repo_cloned_rename = f'{repo_cloned} {project_id}'
+    repo_path = f'{game_dir()}\\repos\\{repo_cloned_rename}'
 
     if not os.path.isdir(f'{game_dir()}\\repos'):
         os.mkdir(f'{game_dir()}\\repos')
@@ -468,6 +469,7 @@ def clone_repo(repo: str, access_token: str | None = None):
         clone_url = f'https://github.com/{repo}'
 
     subprocess.run(f'git clone --depth=1 --recursive {clone_url}', capture_output=True)
+    os.rename(repo_cloned, repo_cloned_rename)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
     return clone_time, repo_path
