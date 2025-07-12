@@ -309,10 +309,13 @@ def get_crons() -> dict[int, str]:
 def get_maingame_emojis(filename: str) -> str:
     filename = filename.removesuffix('.tas')
 
-    if filename == '9NMG':
-        return '<:unimpressedbirb:971377619687850034>'
-    elif filename == '9S':
-        return '<:wow:628615320365432853>'
+    match filename:
+        case '9NMG':
+            return '<:unimpressedbirb:971377619687850034>'
+        case '9S':
+            return '<:wow:628615320365432853>'
+        case '9':
+            return '<:creature_f:903066740534149130>'
 
     match = re_maingame_filenames.match(filename)
 
@@ -323,21 +326,19 @@ def get_maingame_emojis(filename: str) -> str:
     letters = match.group(1)
 
     for letter in letters:
-        if letter == 'A':
-            emojis.append(':mountain_snow:')
-        elif letter == 'B':
-            emojis.append('<:heartred:911514304916901920>')
-        elif letter == 'C':
-            if letters.replace('C', ''):
-                emojis.append(':vhs:')
-            else:
-                emojis.append('<:heartyellow:916877000680026143>')
-        elif letter == 'S':
-            emojis.append('<:strawberry:916877000487100508>')
-        elif letter == 'H':
-            emojis.append('<:heartblue:916877000612913173>')
-        elif letter == 'D':
-            emojis.append('<:napeline:523614058092429322>')
+        match letter:
+            case 'A':
+                emojis.append(':mountain_snow:')
+            case 'B':
+                emojis.append('<:heartred:911514304916901920>')
+            case 'C':
+                emojis.append(':vhs:' if letters.replace('C', '') else '<:heartyellow:916877000680026143>')
+            case 'S':
+                emojis.append('<:strawberry:916877000487100508>')
+            case 'H':
+                emojis.append('<:heartblue:916877000612913173>')
+            case 'D':
+                emojis.append('<:napeline:523614058092429322>')
 
     if filename.endswith('G'):
         emojis.append('<:goldenberry:916877000755535953>')
