@@ -21,6 +21,7 @@ class ProjectEditor(discord.ui.View):
                                 discord.SelectOption(label="Use contributors file", value='use_contributors_file'),
                                 discord.SelectOption(label="Run sync checks", value='do_run_validation'),
                                 discord.SelectOption(label="Validate room labels in sync check", value='validate_room_labels'),
+                                discord.SelectOption(label="Auto commit any timesave", value='commit_any_time_saved'),
                                 discord.SelectOption(label="Project enabled", value='enabled')]
 
         super().__init__(timeout=600)  # 10 mins
@@ -58,13 +59,13 @@ class ProjectEditor(discord.ui.View):
             project_id = self.project['project_id']
             updated_project = self.project_original + Delta(deep_diff)
             db.projects.set(project_id, updated_project)
-            await main.edit_pin(client.get_channel(project_id))
-            main.generate_request_headers(updated_project['installation_owner'])
-            tasks.get_crons.cache_clear()
 
         await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made.")
 
         if changes_made_count:
+            tasks.get_crons.cache_clear()
+            await main.edit_pin(client.get_channel(project_id))
+            main.generate_request_headers(updated_project['installation_owner'])
             main.generate_path_cache(project_id, updated_project)
 
         self.stop()
@@ -112,6 +113,7 @@ class ProjectEditor(discord.ui.View):
                 f"  - Use contributors file: `{project['use_contributors_file']}`\n"
                 f"  - Run sync checks: `{project['do_run_validation']}`\n"
                 f"  - Validate room labels in sync check: `{project['validate_room_labels']}`\n"
+                f"  - Auto commit any timesave: `{project['commit_any_time_saved']}`\n"
                 f"  - Project enabled: `{project['enabled']}`")
 
     async def update_message(self):

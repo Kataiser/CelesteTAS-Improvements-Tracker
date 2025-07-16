@@ -106,7 +106,6 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
     queued_update_commits = []
     crash_logs_data = {}
     crash_logs_dir = f'{game_dir()}\\CrashLogs'
-    project_is_maingame = project_id == 598945702554501130
     get_mod_dependencies.cache_clear()
 
     for mod in mods:
@@ -348,14 +347,14 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
         time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
                       f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
-        if has_filetime or project_is_maingame:
+        if has_filetime or project['commit_any_time_saved']:
             log.info(f"Time: {tas_parsed_new.finaltime_trimmed}")
 
             if has_filetime:
                 filetimes[tas_filename] = tas_parsed_new.finaltime_trimmed
 
             if not time_synced:
-                if project_is_maingame and frame_diff > 0:  # god this logic is a mess
+                if project['commit_any_time_saved'] and frame_diff > 0:  # god this logic is a mess
                     log.warning(f"Desynced: {time_delta}")
                     desyncs.append((tas_filename, time_delta))
                 else:
@@ -456,7 +455,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
         commit_url = f'https://github.com/{repo}/commit/{commit_sha}'
         log.info(f"Successfully committed: {commit_url}")
 
-        if project_is_maingame:
+        if project_id == 598945702554501130:
             db.send_sync_result(db.SyncResultType.MAINGAME_COMMIT, {'maingame_message': f"Committed `{commit_message}` <{commit_url}>"})
 
     log.info(f"Sync check time: {format_elapsed_time(start_time)}")

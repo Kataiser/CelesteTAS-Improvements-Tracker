@@ -131,7 +131,7 @@
         "validate_room_labels": {
             "type": "boolean"
         },
-        "commit_filetime_changes": {
+        "commit_any_time_saved": {
             "type": "boolean"
         }
     }
