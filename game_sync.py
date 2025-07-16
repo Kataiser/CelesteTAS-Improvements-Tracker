@@ -34,9 +34,11 @@ def run_syncs():
     log = main.create_logger('game_sync')
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
+    parser.add_argument('--file', help="Test a specific file only")
     parser.add_argument('--all', action='store_true', help="Run all sync checks", default=False)
     parser.add_argument('--safe', action='store_true', help="Disable database writes", default=False)
     cli_project = parser.parse_args().project
+    force_file = parser.parse_args().file
     force_run_all = parser.parse_args().all
     db.writes_enabled = not parser.parse_args().safe
 
@@ -65,7 +67,7 @@ def run_syncs():
 
     try:
         for project_id in test_project_ids:
-            sync_test(project_id, cli_project or force_run_all)
+            sync_test(project_id, cli_project or force_run_all, force_file)
     except Exception:
         log_error()
         close_game()
@@ -76,7 +78,7 @@ def run_syncs():
     log.info(f"All sync checks time: {format_elapsed_time(start_time)}")
 
 
-def sync_test(project_id: int, force: bool):
+def sync_test(project_id: int, force: bool, force_file: str | None):
     start_time = time.time()
     current_log = io.StringIO()
     stream_handler = logging.StreamHandler(current_log)
@@ -153,6 +155,14 @@ def sync_test(project_id: int, force: bool):
     except db.DBKeyError:
         sid_cache = {}
         log.info("Created SID cache entry")
+
+    # for checking specific files only
+    if force_file:
+        if not force_file.endswith('.tas'):
+            force_file = f'{force_file}.tas'
+
+        log.info(f"Only checking file {force_file}")
+        path_cache = {force_file: path_cache[force_file]}
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
