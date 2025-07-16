@@ -335,6 +335,8 @@ def sync_test(project_id: int, force: bool):
 
         frame_diff = validation.calculate_time_difference(tas_parsed_new.finaltime, tas_parsed.finaltime)
         time_synced = frame_diff == 0
+        time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
+                      f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
 
         if has_filetime or project_is_maingame:
             log.info(f"Time: {tas_parsed_new.finaltime_trimmed}")
@@ -343,20 +345,22 @@ def sync_test(project_id: int, force: bool):
                 filetimes[tas_filename] = tas_parsed_new.finaltime_trimmed
 
             if not time_synced:
-                new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
-                tas_lines_og = og_tas_lines[tas_filename]
-                tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
-                commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
-                # don't commit now, since there may be desyncs
+                if project_is_maingame and frame_diff > 0:  # god this logic is a mess
+                    log.warning(f"Desynced: {time_delta}")
+                    desyncs.append((tas_filename, time_delta))
+                else:
+                    new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
+                    tas_lines_og = og_tas_lines[tas_filename]
+                    tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
+                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
+                    queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
+                    # don't commit now, since there may be desyncs
         else:
             if not tas_parsed_new.finaltime_frames:
                 log_error(f"Couldn't parse FileTime frames for {file_path_repo}")
                 continue
 
             log_command = log.info if time_synced else log.warning
-            time_delta = (f"{tas_parsed.finaltime_trimmed}({tas_parsed.finaltime_frames}) -> {tas_parsed_new.finaltime_trimmed}({tas_parsed_new.finaltime_frames}) "
-                          f"({'+' if frame_diff > 0 else ''}{frame_diff}f)")
             log_command(f"{'Synced' if time_synced else 'Desynced'}: {time_delta}")
 
             if time_synced:
