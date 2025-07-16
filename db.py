@@ -143,7 +143,9 @@ class PathCaches(Table):
 class Projects(Table):
     def __init__(self, table_name: str, primary_key: str):
         super().__init__(table_name, primary_key)
+        self.init_validate_project_schema()
 
+    def init_validate_project_schema(self):
         with open('project_schema.json', 'rb') as projects_schema_file:
             validate_project_schema_compiled = fastjsonschema.compile(orjson.loads(projects_schema_file.read()))
 
@@ -186,6 +188,7 @@ class Projects(Table):
 
 def add_project_key(key: str, value: Any):
     # update project_schema.json first
+    projects.init_validate_project_schema()
     projects_ = projects.dict()
 
     for project_id in projects_:
@@ -198,6 +201,23 @@ def add_project_key(key: str, value: Any):
             projects.set(project_id, projects_[project_id])
 
     print(f"Added `{key}: {value}` to {len(projects_)} projects, be sure to update command_register_project")
+
+
+def remove_project_key(key: str):
+    # update project_schema.json first
+    projects.init_validate_project_schema()
+    projects_ = projects.dict()
+
+    for project_id in projects_:
+        print(projects_[project_id]['name'])
+
+        if key in projects_[project_id]:
+            del projects_[project_id][key]
+            projects.set(project_id, projects_[project_id])
+        else:
+            print(f"\tDoesn't exist")
+
+    print(f"Removed `{key}` from {len(projects_)} projects, be sure to update command_register_project")
 
 
 class SyncResultType(enum.StrEnum):

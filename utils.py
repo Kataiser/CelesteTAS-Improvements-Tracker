@@ -160,4 +160,4 @@ class LogPlaceholder:
         print("CRITICAL:", msg, file=sys.stderr)
 
 
-log: Optional[logging.Logger] = None
+log: Union[logging.Logger, LogPlaceholder] = LogPlaceholder()
