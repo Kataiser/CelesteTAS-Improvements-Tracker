@@ -130,7 +130,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
     close_game()
-    start_game()
+    start_game(project['validate_room_labels'])
 
     # make sure path cache is correct while the game is launching
     main.generate_path_cache(project_id)
@@ -318,7 +318,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
             scaled_sleep(10)
             close_game()
             scaled_sleep(5)
-            start_game()
+            start_game(project['validate_room_labels'])
 
             for new_crash_log_name in new_crash_logs[:10]:
                 with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'rb') as new_crash_log:
@@ -550,8 +550,11 @@ def del_rw(function, path, excinfo):
     os.remove(path)
 
 
-def start_game():
-    subprocess.Popen(f'{game_dir()}\\Celeste.exe', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+def start_game(validate_room_labels: bool = False):
+    subprocess.Popen(f'{game_dir()}\\Celeste.exe{' --validate-room-labels' if validate_room_labels else ''}', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+
+    if validate_room_labels:
+        log.info("Validating room labels enabled")
 
 
 def wait_for_game_load(mods: set, project_name: str):

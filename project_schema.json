@@ -127,6 +127,12 @@
         },
         "room_suggestion_index": {
             "type": "number"
+        },
+        "validate_room_labels": {
+            "type": "boolean"
+        },
+        "commit_filetime_changes": {
+            "type": "boolean"
         }
     }
 }
