@@ -266,6 +266,7 @@ async def room_suggestions():
         maingame_emojis = ''
 
         if project_id == 598945702554501130:  # maingame
+            filename_only = chosen_room.file.rpartition('/')[2]
             berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
                          '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
                          '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
@@ -277,12 +278,12 @@ async def room_suggestions():
                          '8B': 'core/b', '8C': 'core/c', '8': 'core/a'}
 
             for prefix in berrycamp:
-                if chosen_room.file.removeprefix('202/').startswith(prefix):
+                if filename_only.startswith(prefix):
                     berrycamp_url = f'https://berrycamp.github.io/img/celeste/rooms/{berrycamp[prefix]}/{chosen_room.name.partition(' ')[0]}.png'
                     room_display = f'[`{chosen_room.name}`]({berrycamp_url})'
                     break
 
-            maingame_emojis = get_maingame_emojis(chosen_room.file)
+            maingame_emojis = get_maingame_emojis(filename_only)
 
         message_text = (f"### Room improvement suggestion\n"
                         f"Room: {room_display}\n"
