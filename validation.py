@@ -434,7 +434,7 @@ def filter_out_links(text: str):
 
 
 def fuzz_possible_filename(filename: str, path_cache_filenames):
-    from fuzzywuzzy import process as fuzzy_process
+    from rapidfuzz import process as fuzzy_process
     fuzzes = fuzzy_process.extract(filename, path_cache_filenames)
     return fuzzes[0][0] if fuzzes[0][1] >= 90 else None
 

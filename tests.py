@@ -842,10 +842,13 @@ def test_read_sheet():
 
 def test_sj_fuzzy_match():
     assert spreadsheet.sj_fuzzy_match('') == []
-    assert spreadsheet.sj_fuzzy_match('lab') == ['The Lab', 'Lethal Laser Laboratory']
-    assert spreadsheet.sj_fuzzy_match('summit') == ['summit', 'Summit Down-Side']
-    assert spreadsheet.sj_fuzzy_match('heart') == ['Beginner Heartside', 'Intermediate Heartside', 'Advanced Heartside', 'Expert Heartside', 'Grandmaster Heartside']
-    assert spreadsheet.sj_fuzzy_match('Storm Runner') == ['Storm Runner']
+    assert spreadsheet.sj_fuzzy_match('lab') == ('The Lab',)
+    assert spreadsheet.sj_fuzzy_match('tower') == ('The Tower', 'The Tower (XVI)', 'Plasma Reactor')
+    assert spreadsheet.sj_fuzzy_match('summit') == ('Summit Down-Side', 'summit')
+    assert spreadsheet.sj_fuzzy_match('heart') == ('Beginner Heartside', 'Intermediate Heartside', 'Advanced Heartside', 'Expert Heartside', 'Grandmaster Heartside')
+    assert spreadsheet.sj_fuzzy_match('Storm Runner') == ('Storm Runner',)
+    assert spreadsheet.sj_fuzzy_match('the') == ('The Squeeze', 'The Tower', 'The Lab', 'The Tower (XVI)', 'The Core Problem', 'The Solar Express', 'A Gift From the Stars',
+                                                 'Over the City', 'Square the Circle', 'Attack of the Clone', 'Call of the Void')
 
 
 def test_correct_map_case():

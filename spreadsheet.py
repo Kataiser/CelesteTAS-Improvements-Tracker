@@ -345,14 +345,16 @@ async def sj_command_allowed(interaction: discord.Interaction) -> bool:
 
 
 @functools.lru_cache(maxsize=512)
-def sj_fuzzy_match(search: str) -> List[str]:
-    from fuzzywuzzy import process as fuzzy_process
+def sj_fuzzy_match(search: str) -> tuple:
+    if not search:
+        return ()
 
-    if search:
-        fuzzes = fuzzy_process.extract(search, sj_data.keys())
-        return [sj_map[0] for sj_map in fuzzes[:25] if sj_map[1] >= 65]
-    else:
-        return []
+    from rapidfuzz import process as fuzzy_process
+    sj_maps = sj_data.keys()
+    fuzzes = fuzzy_process.extract(search, sj_maps)
+    fuzzes_thresholded = [sj_map[0] for sj_map in fuzzes[:25] if sj_map[1] >= 65]
+    sj_maps_startwith = [sj_map for sj_map in sj_maps if sj_map.lower().startswith(search)]
+    return tuple(dict.fromkeys(sj_maps_startwith + fuzzes_thresholded))
 
 
 @functools.lru_cache(maxsize=512)
