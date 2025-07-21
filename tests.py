@@ -823,6 +823,11 @@ def test_get_mod_everest_yaml(monkeypatch):
                                                                                         'Name': 'PuzzleHelper', 'Version': '1.1.0'}
     assert game_sync.get_mod_everest_yaml('', Path('test_tases\\TASides.zip')) == {'Dependencies': [{'Name': 'Everest', 'Version': '1.796.0'}],
                                                                                    'Name': 'TASides', 'Version': '0.2.0'}
+    assert game_sync.get_mod_everest_yaml('', Path('test_tases\\CelesteTAS.zip')) == {'Name': 'CelesteTAS', 'Version': '3.45.4', 'DLL': 'bin/CelesteTAS-EverestInterop.dll',
+                                                                                      'Dependencies': [{'Name': 'EverestCore', 'Version': '1.5617.0'}],
+                                                                                      'OptionalDependencies': [{'Name': 'SpeedrunTool', 'Version': '3.24.5'},
+                                                                                                               {'Name': 'TASRecorder', 'Version': '1.6.0'},
+                                                                                                               {'Name': 'ExtendedCameraDynamics', 'Version': '1.0.5'}]}
 
 
 # SPREADSHEET

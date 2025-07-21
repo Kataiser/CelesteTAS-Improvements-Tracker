@@ -659,8 +659,8 @@ def get_mod_everest_yaml(mod: str, zip_path: Optional[Path] = None) -> Optional[
 
         if yaml_name:
             with mod_zip.open(yaml_name) as everest_yaml:
-                import yaml
-                return yaml.safe_load(everest_yaml)[0]
+                from ruamel.yaml import YAML
+                return YAML(typ='safe').load(everest_yaml)[0]
         else:
             return None
 
@@ -753,8 +753,8 @@ def gb_mod_versions() -> Optional[dict]:
         log_error()
         return None
 
-    import yaml
-    return yaml.safe_load(r_mods.content)
+    from ruamel.yaml import YAML
+    return YAML(typ='safe').load(r_mods.content)
 
 
 @functools.cache
