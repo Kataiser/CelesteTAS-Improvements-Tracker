@@ -6,6 +6,7 @@ import cron_validator
 import discord
 from deepdiff import DeepDiff, Delta
 
+import constants
 import db
 import main
 import tasks
@@ -60,7 +61,9 @@ class ProjectEditor(discord.ui.View):
             updated_project = self.project_original + Delta(deep_diff)
             db.projects.set(project_id, updated_project)
 
-        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made.")
+        saved_text = f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made."
+        await interaction.response.send_message(saved_text)
+        await (await utils.user_from_id(client, constants.admin_user_id)).send(f"`{saved_text}`")
 
         if changes_made_count:
             tasks.get_crons.cache_clear()
