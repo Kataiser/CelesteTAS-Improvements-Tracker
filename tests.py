@@ -818,7 +818,7 @@ async def test_command_register_project_editing(setup_log, setup_client, monkeyp
 
 # GAME SYNC
 
-def test_get_mod_everest_yaml(monkeypatch):
+def test_get_mod_everest_yaml():
     assert game_sync.get_mod_everest_yaml('', Path('test_tases\\PuzzleHelper.zip')) == {'DLL': 'PuzzleHelper.dll', 'Dependencies': [{'Name': 'Everest', 'Version': '1.3366.0'}],
                                                                                         'Name': 'PuzzleHelper', 'Version': '1.1.0'}
     assert game_sync.get_mod_everest_yaml('', Path('test_tases\\TASides.zip')) == {'Dependencies': [{'Name': 'Everest', 'Version': '1.796.0'}],
@@ -828,6 +828,17 @@ def test_get_mod_everest_yaml(monkeypatch):
                                                                                       'OptionalDependencies': [{'Name': 'SpeedrunTool', 'Version': '3.24.5'},
                                                                                                                {'Name': 'TASRecorder', 'Version': '1.6.0'},
                                                                                                                {'Name': 'ExtendedCameraDynamics', 'Version': '1.0.5'}]}
+
+
+def test_generate_environment_state():
+    glitch_mods = {'AdventureHelper', 'AltEnterFullscreen', 'CelesteTAS', 'DJMapHelper', 'ExtendedVariantMode', 'Glitchy_Platformer',
+                   'HelperTestMapHider', 'MaxHelpingHand', 'OverworldAA', 'PandorasBox', 'SpeedrunTool'}
+    environment_state = game_sync.generate_environment_state(db.projects.get(976903244863381564), glitch_mods)
+    assert environment_state.pop('host')
+    assert len(environment_state.pop('mod_versions')) == 11
+    assert environment_state.pop('last_commit_time') >= 1739658254
+    assert environment_state == {'everest_version': None, 'game_sync_hash': None, 'excluded_items': [], 'installation_owner': 'Kataiser', 'is_lobby': False,
+                                 'repo': 'Kataiser/improvements-bot-testing', 'subdir': 'sync_testing', 'sid_caches_exist': True}
 
 
 # SPREADSHEET
