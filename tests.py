@@ -857,7 +857,7 @@ def test_read_sheet():
 
 
 def test_sj_fuzzy_match():
-    assert spreadsheet.sj_fuzzy_match('') == []
+    assert spreadsheet.sj_fuzzy_match('') == ()
     assert spreadsheet.sj_fuzzy_match('lab') == ('The Lab',)
     assert spreadsheet.sj_fuzzy_match('tower') == ('The Tower', 'The Tower (XVI)', 'Plasma Reactor')
     assert spreadsheet.sj_fuzzy_match('summit') == ('Summit Down-Side', 'summit')
