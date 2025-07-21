@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 import dateutil.parser
+import niquests
 import orjson
-import requests
 from deepdiff import DeepDiff
 
 import db
@@ -271,8 +271,8 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
 
         while not tas_started and not game_crashed:
             try:
-                requests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}'.replace('+', '%2B'), timeout=10)
-            except requests.RequestException:
+                niquests.post(f'http://localhost:32270/tas/playtas?filePath={file_path}'.replace('+', '%2B'), timeout=10)
+            except niquests.RequestException:
                 if not game_process.is_running():
                     game_crashed = True
             else:
@@ -285,8 +285,8 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
 
             try:
                 scaled_sleep(20 if has_filetime else 5)
-                session_data = requests.get('http://localhost:32270/tas/info?forceAllowCodeExecution=true', timeout=2).text
-            except requests.RequestException:
+                session_data = niquests.get('http://localhost:32270/tas/info?forceAllowCodeExecution=true', timeout=2).text
+            except niquests.RequestException:
                 if not game_process.is_running():
                     game_crashed = True
             else:
@@ -490,13 +490,13 @@ def clone_repo(repo: str, project_id: int, access_token: str | None = None):
 
 def clear_debug_save():
     try:
-        requests.post('http://localhost:32270/console?command=overworld', timeout=10)
+        niquests.post('http://localhost:32270/console?command=overworld', timeout=10)
         scaled_sleep(4)
-        requests.post('http://localhost:32270/console?command=clrsav', timeout=10)
+        niquests.post('http://localhost:32270/console?command=clrsav', timeout=10)
         scaled_sleep(4)
         log.info("Cleared debug save")
         scaled_sleep(4)
-    except (requests.Timeout, requests.ConnectionError):
+    except (niquests.Timeout, niquests.ConnectionError):
         pass
 
 
@@ -565,8 +565,8 @@ def wait_for_game_load(mods: set, project_name: str):
     while not game_loaded:
         try:
             scaled_sleep(5)
-            requests.get('http://localhost:32270/', timeout=2)
-        except requests.RequestException:
+            niquests.get('http://localhost:32270/', timeout=2)
+        except niquests.RequestException:
             current_time = time.perf_counter()
 
             if current_time - last_game_loading_notify > 60:
@@ -682,9 +682,9 @@ def generate_environment_state(project: dict, mods: set) -> dict:
              'subdir': project['subdir'], 'sid_caches_exist': True}
 
     try:
-        r_commits = requests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
+        r_commits = niquests.get(f'https://api.github.com/repos/{project['repo']}/commits', headers=main.headers, params={'per_page': 1}, timeout=10)
         utils.handle_potential_request_error(r_commits, 200)
-    except requests.RequestException:
+    except niquests.RequestException:
         log_error()
         return project['sync_environment_state']
 
@@ -747,9 +747,9 @@ def format_elapsed_time(start_time: float) -> str:
 @functools.cache
 def gb_mod_versions() -> Optional[dict]:
     try:
-        r_mods = requests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=60)
+        r_mods = niquests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=60)
         utils.handle_potential_request_error(r_mods, 200)
-    except requests.RequestException:
+    except niquests.RequestException:
         log_error()
         return None
 

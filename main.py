@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 import discord
+import niquests
 import orjson
-import requests
 
 import commands
 import db
@@ -55,7 +55,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
 
     for zip_attachment in zip_attachments:
         log.info(f"Downloading and parsing {zip_attachment.filename} from {zip_attachment.url}")
-        r = requests.get(zip_attachment.url)
+        r = niquests.get(zip_attachment.url)
         utils.handle_potential_request_error(r, 200)
 
         with zipfile.ZipFile(io.BytesIO(r.content), 'r') as zip_file:
@@ -97,7 +97,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         if isinstance(attachment, AttachmentFromZip):
             file_content = attachment.content
         else:
-            r = requests.get(attachment.url)
+            r = niquests.get(attachment.url)
             utils.handle_potential_request_error(r, 200)
             file_content = r.content
 
@@ -226,7 +226,7 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
         log.info(f"Set commit author to {data['author']}")
 
     log.info(f"Set commit message to \"{data['message'].partition('\n')[0]}\" (truncated)")
-    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=orjson.dumps(data))
+    r = niquests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=orjson.dumps(data))
     utils.handle_potential_request_error(r, 201 if draft else 200)
     commit_url = orjson.loads(r.content)['commit']['html_url']
     log.info(f"Successfully committed: {commit_url}")
@@ -254,7 +254,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
     excluded_items = project['excluded_items']
     project_subdir_base = project_subdir.partition('/')[0]
     log.info(f"Caching {repo} structure ({project_subdir=})")
-    r = requests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
+    r = niquests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
     utils.handle_potential_request_error(r, 200)
     contents_json = orjson.loads(r.content)
     studioconfig_path = None
@@ -276,7 +276,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
             if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
                 # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
                 dir_sha = item['sha']
-                r = requests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
+                r = niquests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
                 utils.handle_potential_request_error(r, 200)
 
                 for subitem in orjson.loads(r.content)['tree']:
@@ -300,7 +300,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
 
     if studioconfig_path:
         try:
-            r = requests.get(f'https://api.github.com/repos/{repo}/contents/{studioconfig_path}', headers=headers)
+            r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{studioconfig_path}', headers=headers)
             r_json = orjson.loads(r.content)
             utils.handle_potential_request_error(r, 200)
             studioconfig_data = base64.b64decode(r_json['content']).decode('UTF8')
@@ -322,7 +322,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
 
 # we know the file exists, so get its SHA for updating
 def get_sha(repo: str, file_path: str) -> str:
-    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers)
+    r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers)
     utils.handle_potential_request_error(r, 200)
     repo_contents = orjson.loads(r.content)
     log.info(f"Found SHA of {file_path}: {repo_contents['sha']}")
@@ -436,7 +436,7 @@ def download_old_file(project_id: int, repo: str, filename: str, path_cache: Opt
         if path_cache is None:
             log.info("Downloading old version of file, for time reference")
 
-        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
+        r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{old_file_path}', headers=headers)
         r_json = orjson.loads(r.content)
 
         if r.status_code == 404 and 'message' in r_json:
@@ -514,7 +514,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
 
     db_contributor_names = [project_contributors[id_]['name'] for id_ in project_contributors]
     repo = project['repo']
-    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
+    r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers)
     r_json = orjson.loads(r.content)
 
     if r.status_code == 404 and 'message' in r_json and r_json['message'] in ("Not Found", "This repository is empty."):
@@ -545,7 +545,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
             commit_data['sha'] = get_sha(repo, contributors_txt_path)
 
         log.info(commit_message)
-        r = requests.put(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers, data=orjson.dumps(commit_data))
+        r = niquests.put(f'https://api.github.com/repos/{repo}/contents/{contributors_txt_path}', headers=headers, data=orjson.dumps(commit_data))
         utils.handle_potential_request_error(r, 201 if created_file else 200)
 
 

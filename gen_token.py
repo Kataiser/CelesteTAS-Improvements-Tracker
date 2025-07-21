@@ -6,8 +6,8 @@ from typing import Union
 
 import dotenv
 import jwt
+import niquests
 import orjson
-import requests
 
 import db
 import utils
@@ -42,7 +42,7 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
         installations_saved[installation_owner] = db.installations.get(installation_owner, consistent_read=False)
     except db.DBKeyError:
         log.info(f"Installation ID not cached for owner \"{installation_owner}\"")
-        r = requests.get('https://api.github.com/app/installations', headers=headers, timeout=30)
+        r = niquests.get('https://api.github.com/app/installations', headers=headers, timeout=30)
         utils.handle_potential_request_error(r, 200)
         installations = orjson.loads(r.content)
         log.info(f"Found {len(installations)} installation{plural(installations)}: {[(i['id'], i['account']['login'], i['created_at']) for i in installations]}")
@@ -56,7 +56,7 @@ def generate_access_token(installation_owner: str, min_jwt_time: int) -> tuple:
     else:
         raise InstallationOwnerMissingError(installation_owner)
 
-    r = requests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers, timeout=30)
+    r = niquests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers, timeout=30)
     utils.handle_potential_request_error(r, 201)
     access_token_data = orjson.loads(r.content)
     token_expiration_str = access_token_data['expires_at'][:-1]

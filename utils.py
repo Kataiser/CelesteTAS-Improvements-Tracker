@@ -11,8 +11,8 @@ from collections import namedtuple
 from typing import Optional, Sized, Union, Tuple
 
 import discord
+import niquests
 import orjson
-import requests
 
 import db
 from constants import admin_user_id
@@ -44,7 +44,7 @@ async def report_error(client: discord.Client, message: Optional[str] = None):
     await (await user_from_id(client, admin_user_id)).send(f"```\n{error[-1990:]}```")
 
 
-def handle_potential_request_error(req: requests.Response, code: int):
+def handle_potential_request_error(req: niquests.Response, code: int):
     if req.status_code != code:
         log.warning(f"Bad HTTP status_code: {req.status_code}, should be {code} (url={req.url})")
         log.warning(req.text)

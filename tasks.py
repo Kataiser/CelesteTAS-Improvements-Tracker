@@ -14,7 +14,7 @@ from pathlib import Path
 
 import cron_validator
 import discord
-import requests
+import niquests
 from discord.ext import tasks
 
 import db
@@ -239,7 +239,7 @@ async def room_suggestions():
             return
 
         log.info(f"Updating room improvement suggestion for project \"{project['name']}\"")
-        r = requests.get(f'https://github.com/{repo}/archive/refs/heads/master.zip', timeout=30)
+        r = niquests.get(f'https://github.com/{repo}/archive/refs/heads/master.zip', timeout=30)
         utils.handle_potential_request_error(r, 200)
         Room = namedtuple('Room', ['name', 'file', 'line_num'])
         rooms: list[Room] = []

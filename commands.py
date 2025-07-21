@@ -10,8 +10,8 @@ from operator import itemgetter
 from typing import Optional, Union
 
 import discord
+import niquests
 import orjson
-import requests
 import strip_markdown
 
 import constants
@@ -113,7 +113,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
         return
 
     # verify github account exists
-    r = requests.get(f'https://api.github.com/users/{github_account}', headers={'Accept': 'application/vnd.github.v3+json'})
+    r = niquests.get(f'https://api.github.com/users/{github_account}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
         await utils.report_error(client, f"GitHub account {github_account} doesn't seem to exist, status code is {r.status_code}")
         await respond(interaction, f"GitHub account \"{github_account}\" doesn't seem to exist.")
@@ -135,7 +135,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
     repo_fixed = repo_and_subdir.removeprefix('https://github.com/')
     repo_split = repo_fixed.rstrip('/').split('/')
     repo, subdir = '/'.join(repo_split[:2]), '/'.join(repo_split[2:])
-    r = requests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
+    r = niquests.get(f'https://api.github.com/repos/{repo}', headers={'Accept': 'application/vnd.github.v3+json'})
     if r.status_code != 200:
         await utils.report_error(client, f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")
         await respond(interaction, f"Repo \"{repo}\" doesn't seem to publically exist.")
@@ -143,14 +143,14 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
 
     # verify subdir exists in repo
     if subdir:
-        r = requests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}', headers={'Accept': 'application/vnd.github.v3+json'})
+        r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{subdir}', headers={'Accept': 'application/vnd.github.v3+json'})
         if r.status_code != 200 or 'type' in orjson.loads(r.content):
             await utils.report_error(client, f"Directory {subdir} doesn't seem to exist in repo {repo}, status code is {r.status_code}")
             await respond(interaction, f"Directory \"{subdir}\" doesn't seem to exist in \"{repo}\".")
             return
 
     # verify installation can access repo
-    r = requests.get(f'https://api.github.com/installation/repositories', headers=main.headers)
+    r = niquests.get(f'https://api.github.com/installation/repositories', headers=main.headers)
     accessible_repos = [i['full_name'] for i in orjson.loads(r.content)['repositories']]
     if repo not in accessible_repos:
         await utils.report_error(client, f"Repo {repo} not in accessible to installation: {accessible_repos}")
@@ -355,7 +355,7 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
     user_github_account = utils.get_user_github_account(interaction.user.id)
 
     log.info(f"Downloading {filename_before}")
-    r = requests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
+    r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers)
     utils.handle_potential_request_error(r, 200)
     tas_downloaded = base64.b64decode(orjson.loads(r.content)['content'])
 
@@ -365,7 +365,7 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
     if user_github_account:
         data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
         log.info(f"Setting commit author to {data['author']}")
-    r = requests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=orjson.dumps(data))
+    r = niquests.delete(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=main.headers, data=orjson.dumps(data))
     utils.handle_potential_request_error(r, 200)
     time.sleep(1)  # just to be safe
 
@@ -383,7 +383,7 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
     if user_github_account:
         data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}
         log.info(f"Setting commit author to {data['author']}")
-    r = requests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_after}', headers=main.headers, data=orjson.dumps(data))
+    r = niquests.put(f'https://api.github.com/repos/{repo}/contents/{file_path_after}', headers=main.headers, data=orjson.dumps(data))
     utils.handle_potential_request_error(r, expected_status)
 
     if r.status_code == expected_status:
@@ -582,7 +582,7 @@ async def command_projects_admined(interaction: discord.Interaction):
 
 @command(report_usage=True)
 async def command_set_github(interaction: discord.Interaction, account_name: str, email: str):
-    r = requests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
+    r = niquests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
 
     if r.status_code != 200:
         await utils.report_error(client, f"GitHub account {account_name} doesn't seem to exist, status code is {r.status_code}")
@@ -607,7 +607,7 @@ async def command_check_github(interaction: discord.Interaction):
     except db.DBKeyError:
         await respond(interaction, "You do not have a Github account associated with your Discord account.")
     else:
-        r = requests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
+        r = niquests.get(f'https://api.github.com/users/{account_name}', headers={'Accept': 'application/vnd.github.v3+json'})
         account_exists = r.status_code == 200
         await respond(interaction, f"Username: {account_name}\n"
                                    f"Email: {email}\n"
