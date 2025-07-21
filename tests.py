@@ -637,6 +637,17 @@ def test_filter_out_links(setup_log):
     assert validation.filter_out_links(message) == "-17f The House on Ash Tree Lane 0:15.742(926) -> 0:15.453(909)\n+4f [a-00-outside] Build up speed\nsecond link I guess"
 
 
+def test_fuzz_possible_filename(setup_log):
+    sj_int = ('construction_conundrum.tas', 'deep_blue.tas', 'eat_girl.tas', 'fifth_dimension.tas', 'frosted_fragments.tas', 'honeyzip_inc.tas', 'intermediate_heartside.tas',
+              'in_filtration.tas', 'low-g_botany.tas', 'midnight_monsoon.tas', 'pointless_machines.tas', 'pufferfish_transportation.tas', 'sea_of_soup.tas', 'sleeping_under_stars.tas',
+              'square_the_circle.tas', 'supernautica.tas', 'temple_of_a_thousand_skies.tas', 'the_tower.tas', 'vertigo.tas')
+    assert validation.fuzz_possible_filename('bointless_bachines.tas', sj_int) == 'pointless_machines.tas'
+    assert validation.fuzz_possible_filename('sleeping_under_tars.tas', sj_int) == 'sleeping_under_stars.tas'
+    assert validation.fuzz_possible_filename('eat_girls.tas', sj_int) == 'eat_girl.tas'
+    assert validation.fuzz_possible_filename('mosaic_garden.tas', sj_int) is None
+    assert validation.fuzz_possible_filename('subway_neon.tas', sj_int) is None
+
+
 # COMMANDS
 
 @pytest.mark.xfail

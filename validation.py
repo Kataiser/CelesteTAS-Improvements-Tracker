@@ -258,9 +258,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             path_cache = db.path_caches.get(message.channel.id)
 
             if path_cache:
-                from fuzzywuzzy import process as fuzzy_process
-                fuzzes = fuzzy_process.extract(filename, path_cache.keys())
-                possible_filename = fuzzes[0][0] if fuzzes[0][1] >= 90 else None
+                possible_filename = fuzz_possible_filename(filename, path_cache)
                 did_you_mean_text = f" (did you mean `{possible_filename}`?)" if possible_filename else ""
                 shouldnt_be_draft_text = f" If it shouldn't be a draft, make sure your filename is exactly the same as in the repo{did_you_mean_text}."
             else:
@@ -433,6 +431,12 @@ def filter_out_links(text: str):
         log.info("Filtered link(s) out of message")
 
     return text_filtered
+
+
+def fuzz_possible_filename(filename: str, path_cache_filenames):
+    from fuzzywuzzy import process as fuzzy_process
+    fuzzes = fuzzy_process.extract(filename, path_cache_filenames)
+    return fuzzes[0][0] if fuzzes[0][1] >= 90 else None
 
 
 class OptionalArg:
