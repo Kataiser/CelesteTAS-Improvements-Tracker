@@ -53,7 +53,8 @@ class ProjectEditor(discord.ui.View):
     @discord.ui.button(label="Save", style=discord.ButtonStyle.primary, row=3)
     async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         deep_diff = DeepDiff(self.project_original, self.project, ignore_order=True, report_repetition=True, verbose_level=2)
-        log.info(f"Saving, changes: {deep_diff}")
+        diff_log = f"Saving, changes: `{deep_diff}`"
+        log.info(diff_log)
         changes_made_count = len(deep_diff.pretty().splitlines())
 
         if changes_made_count:
@@ -61,9 +62,8 @@ class ProjectEditor(discord.ui.View):
             updated_project = self.project_original + Delta(deep_diff)
             db.projects.set(project_id, updated_project)
 
-        saved_text = f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made."
-        await interaction.response.send_message(saved_text)
-        await (await utils.user_from_id(client, constants.admin_user_id)).send(f"`{saved_text}`")
+        await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "No changes made.")
+        await (await utils.user_from_id(client, constants.admin_user_id)).send(diff_log)
 
         if changes_made_count:
             tasks.get_crons.cache_clear()
