@@ -113,6 +113,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
 
     main.generate_request_headers(project['installation_owner'], 300)
     environment_state = generate_environment_state(project, mods_to_load)
+    time_since_last_commit = int(time.time()) - environment_state['last_commit_time']
 
     if environment_state['last_commit_time'] > project['last_commit_time']:
         log.info(f"Last repo commit time is later than improvement channel post ({environment_state['last_commit_time']} > {int(project['last_commit_time'])}), updating project")
@@ -121,6 +122,11 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
 
     if environment_state == prev_environment_state and not force:
         log.info(f"Abandoning sync test for project \"{project['name']}\" due to environment state matching previous run")
+        consider_disabling_after_inactivity(project, time.time(), True)
+        return
+
+    if time_since_last_commit < 60 and not force:
+        log.info(f"Abandoning sync test for project \"{project['name']}\" due to time since last commit being too short ({time_since_last_commit} seconds)")
         consider_disabling_after_inactivity(project, time.time(), True)
         return
 
