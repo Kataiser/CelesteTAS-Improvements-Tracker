@@ -333,7 +333,7 @@ def get_maingame_emojis(filename: str) -> str:
             case 'B':
                 emojis.append('<:heartred:911514304916901920>')
             case 'C':
-                emojis.append('<:cassette_static:1395975739077300354>' if letters.replace('C', '') else '<:heartyellow:916877000680026143>')
+                emojis.append('<:cassette_static:1395975739077300354>' if letters.replace('C', '').replace('G', '') else '<:heartyellow:916877000680026143>')
             case 'S':
                 emojis.append('<:strawberry:916877000487100508>')
             case 'H':
