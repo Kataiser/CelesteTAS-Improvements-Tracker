@@ -115,7 +115,11 @@ async def on_ready():
 
         for message in reversed([m async for m in improvements_channel.history(limit=history_limit)]):
             downtime_message_count += 1
-            set_status = await main.process_improvement_message(message, project)
+
+            try:
+                set_status = await main.process_improvement_message(message, project)
+            except Exception:
+                await utils.report_error(client)
 
             if set_status:
                 set_default_status = False
