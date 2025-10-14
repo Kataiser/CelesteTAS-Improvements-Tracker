@@ -32,7 +32,7 @@ def run_syncs():
     global log, game_sync_hash
     start_time = time.time()
     log = main.create_logger('game_sync')
-    db.misc.set('last_game_sync_start_time', start_time)
+    db.misc.set('last_game_sync_start_time', int(start_time))
 
     parser = argparse.ArgumentParser()
     parser.add_argument('project', help="Only sync test a specific project (ID or name, use quotes if need be)", nargs='?')
