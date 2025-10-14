@@ -137,10 +137,17 @@ async def handle_game_sync_results():
 
 
 async def handle_no_game_sync_results():
-    time_since_last_game_sync_result = time.time() - float(db.misc.get('last_game_sync_result_time'))
+    current_time = time.time()
+    time_since_last_game_sync_start = current_time - float(db.misc.get('last_game_sync_start_time'))
+    time_since_last_game_sync_result = current_time - float(db.misc.get('last_game_sync_result_time'))
+    warning_text = None
 
-    if time_since_last_game_sync_result > 86400:  # 24 hours
-        warning_text = f"Last sync check was {round(time_since_last_game_sync_result / 3600, 1)} hours ago"
+    if time_since_last_game_sync_result > 172800:  # 48 hours
+        warning_text = f"Last sync check result was {round(time_since_last_game_sync_result / 3600, 1)} hours ago"
+    elif time_since_last_game_sync_start > 7200:  # 2 hours
+        warning_text = f"Last sync check start was {round(time_since_last_game_sync_result / 3600, 1)} hours ago"
+
+    if warning_text:
         log.warning(warning_text)
         await (await utils.user_from_id(client, admin_user_id)).send(warning_text)
 
