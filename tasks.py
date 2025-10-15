@@ -144,8 +144,8 @@ async def handle_no_game_sync_results():
 
     if time_since_last_game_sync_result > 172800:  # 48 hours
         warning_text = f"Last sync check result was {round(time_since_last_game_sync_result / 3600, 1)} hours ago"
-    elif time_since_last_game_sync_start > 7200:  # 2 hours
-        warning_text = f"Last sync check start was {round(time_since_last_game_sync_result / 3600, 1)} hours ago"
+    elif time_since_last_game_sync_start > 14400:  # 4 hours
+        warning_text = f"Last sync check start was {round(time_since_last_game_sync_start / 3600, 1)} hours ago"
 
     if warning_text:
         log.warning(warning_text)
