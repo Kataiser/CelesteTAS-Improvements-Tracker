@@ -44,6 +44,8 @@ def run_syncs():
     force_run_all = parser.parse_args().all
     db.writes_enabled = not parser.parse_args().safe
 
+    everest_update_to_stable()
+
     with open('game_sync.py', 'rb') as game_sync_py:
         game_sync_hash = zlib.adler32(game_sync_py.read())
 
@@ -700,6 +702,7 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         commit = orjson.loads(r_commits.content)
         state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
 
+    state['everest_version'] = everest_installed_version()
     gb_mods = gb_mod_versions()
 
     if not gb_mods:
@@ -785,6 +788,74 @@ def game_dir() -> Path:
         raise FileNotFoundError("ok where'd the game go")
     else:
         return game_path_resolved
+
+
+def everest_update_to_stable():
+    installed_everest = everest_installed_version()
+    latest_everest = everest_latest_stable_version()
+
+    if installed_everest != latest_everest:
+        log.info(f"Updating Everest from {installed_everest} to {latest_everest}")
+        current_dir = os.getcwd()
+        os.chdir(game_dir())
+        everest_download_and_extract_stable()
+        subprocess.run('MiniInstaller-win64.exe', capture_output=True)
+        log.info("Installed")
+        Path('installed_everest_version.txt').write_text(str(latest_everest))
+        os.chdir(current_dir)
+        log_error(f"Updated Everest from {installed_everest} to {latest_everest} on {utils.cached_hostname()}")
+    else:
+        log.info(f"Everest version: {installed_everest}")
+
+
+@functools.cache
+def everest_latest_stable_version() -> Optional[int]:
+    try:
+        azure_params = {'statusFilter': 'completed', 'resultFilter': 'succeeded', 'branchName': 'refs/heads/stable', 'definitions': 3}
+        r_everest = niquests.get('https://dev.azure.com/EverestAPI/Everest/_apis/build/builds', headers={'Content-Type': 'application/json'}, params=azure_params, timeout=10)
+        utils.handle_potential_request_error(r_everest, 200)
+    except niquests.RequestException:
+        log_error()
+        return None
+
+    everest_builds = orjson.loads(r_everest.content)
+    return everest_builds['value'][0]['id'] + 700
+
+
+
+# don't actually parse the install cause that would be hard
+def everest_installed_version() -> int:
+    installed_everest_version_path = game_dir() / 'installed_everest_version.txt'
+
+    if installed_everest_version_path.is_file():
+        return int(installed_everest_version_path.read_text())
+    else:
+        if latest_everest := everest_latest_stable_version():
+            installed_everest_version_path.write_text(str(latest_everest))
+            return latest_everest
+        else:
+            return 0
+
+
+def everest_download_and_extract_stable():
+    r_everest_release = niquests.get('https://api.github.com/repos/EverestAPI/Everest/releases/latest',
+                                     headers={'Accept': 'application/vnd.github.v3+json', 'X-GitHub-Api-Version': '2022-11-28'})
+    utils.handle_potential_request_error(r_everest_release, 200)
+    everest_release = orjson.loads(r_everest_release.content)
+
+    for asset in everest_release['assets']:
+        if (browser_download_url := asset['browser_download_url']).endswith('/main.zip'):
+            log.info(f"Downloading from {browser_download_url}")
+            r_zip = niquests.get(browser_download_url)
+            utils.handle_potential_request_error(r_zip, 200)
+            log.info(f"Downloaded {len(r_zip.content)} bytes")
+
+            with zipfile.ZipFile(io.BytesIO(r_zip.content)) as zip_file:
+                zip_file.extractall()
+                shutil.copytree('main', os.getcwd(), dirs_exist_ok=True)
+                return
+
+    log.error("Failed to download latest stable Everest")
 
 
 def scaled_sleep(seconds: float):

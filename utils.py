@@ -126,7 +126,7 @@ def saved_log_name(base_name: str) -> str:
 
 @functools.cache
 def cached_hostname() -> str:
-    return socket .gethostname()
+    return socket.gethostname()
 
 
 async def user_from_id(client: discord.Client, user_id: int) -> discord.User:
