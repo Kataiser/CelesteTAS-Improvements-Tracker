@@ -835,9 +835,10 @@ def test_generate_environment_state():
                    'HelperTestMapHider', 'MaxHelpingHand', 'OverworldAA', 'PandorasBox', 'SpeedrunTool'}
     environment_state = game_sync.generate_environment_state(db.projects.get(976903244863381564), glitch_mods)
     assert environment_state.pop('host')
+    assert environment_state.pop('everest_version')
     assert len(environment_state.pop('mod_versions')) == 11
     assert environment_state.pop('last_commit_time') >= 1739658254
-    assert environment_state == {'everest_version': None, 'game_sync_hash': None, 'excluded_items': [], 'installation_owner': 'Kataiser', 'is_lobby': False,
+    assert environment_state == {'game_sync_hash': None, 'excluded_items': [], 'installation_owner': 'Kataiser', 'is_lobby': False,
                                  'repo': 'Kataiser/improvements-bot-testing', 'subdir': 'sync_testing', 'sid_caches_exist': True}
 
 

@@ -687,7 +687,7 @@ def mod_versions(mods: set) -> str:
 
 def generate_environment_state(project: dict, mods: set) -> dict:
     log.info("Generating environment state")
-    state = {'host': utils.cached_hostname(), 'last_commit_time': 0, 'everest_version': None, 'mod_versions': {}, 'game_sync_hash': game_sync_hash,
+    state = {'host': utils.cached_hostname(), 'last_commit_time': 0, 'everest_version': everest_installed_version(), 'mod_versions': {}, 'game_sync_hash': game_sync_hash,
              'excluded_items': project['excluded_items'], 'installation_owner': project['installation_owner'], 'is_lobby': project['is_lobby'], 'repo': project['repo'],
              'subdir': project['subdir'], 'sid_caches_exist': True}
 
@@ -702,7 +702,6 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         commit = orjson.loads(r_commits.content)
         state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
 
-    state['everest_version'] = everest_installed_version()
     gb_mods = gb_mod_versions()
 
     if not gb_mods:
@@ -803,6 +802,7 @@ def everest_update_to_stable():
         log.info("Installed")
         Path('installed_everest_version.txt').write_text(str(latest_everest))
         os.chdir(current_dir)
+        everest_installed_version.cache_clear()
         log_error(f"Updated Everest from {installed_everest} to {latest_everest} on {utils.cached_hostname()}")
     else:
         log.info(f"Everest version: {installed_everest}")
@@ -824,6 +824,7 @@ def everest_latest_stable_version() -> Optional[int]:
 
 
 # don't actually parse the install cause that would be hard
+@functools.cache
 def everest_installed_version() -> int:
     installed_everest_version_path = game_dir() / 'installed_everest_version.txt'
 
