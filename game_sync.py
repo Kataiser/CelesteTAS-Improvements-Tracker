@@ -826,6 +826,9 @@ def everest_latest_stable_version() -> Optional[int]:
 # don't actually parse the install cause that would be hard
 @functools.cache
 def everest_installed_version() -> int:
+    if not game_dir().is_dir():
+        return 0
+
     installed_everest_version_path = game_dir() / 'installed_everest_version.txt'
 
     if installed_everest_version_path.is_file():
