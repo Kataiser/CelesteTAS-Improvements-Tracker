@@ -22,3 +22,5 @@ celeste
 Mods
 host.toml
 .env
+/log_history_months
+archivelist.txt

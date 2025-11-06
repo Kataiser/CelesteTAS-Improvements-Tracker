@@ -4,8 +4,10 @@ import functools
 import inspect
 import io
 import logging
+import os
 import random
 import re
+import subprocess
 import time
 import urllib.parse
 import zipfile
@@ -29,7 +31,8 @@ def start_tasks() -> dict[callable, bool]:
                      handle_no_game_sync_results_task: False,
                      alert_server_join_task: False,
                      heartbeat_task: False,
-                     room_suggestions_task: False}
+                     room_suggestions_task: False,
+                     archive_logs_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -78,6 +81,11 @@ async def heartbeat_task():
 @tasks.loop(minutes=1)
 async def room_suggestions_task():
     await run_and_catch_task(room_suggestions)
+
+
+@tasks.loop(hours=48)
+async def archive_logs_task():
+    await run_and_catch_task(archive_logs)
 
 
 async def handle_game_sync_results():
@@ -352,6 +360,36 @@ def get_maingame_emojis(filename: str) -> str:
         emojis.append('<:goldenberry:916877000755535953>')
 
     return ' '.join(emojis)
+
+
+def archive_logs():
+    now = datetime.datetime.now()
+    last_month = now.replace(day=1) - datetime.timedelta(days=1)
+    files = []
+
+    for file in Path('log_history').iterdir():
+        mtime = datetime.datetime.fromtimestamp(file.stat().st_mtime)
+
+        if mtime.month == last_month.month and mtime.year == last_month.year:
+            files.append(file)
+
+    if not files or now.day <= 7:
+        return
+
+    with open('archivelist.txt', 'w') as archivelist:
+        archivelist.writelines([f'{f}\n' for f in files])
+
+    log_history_months = Path('log_history_months')
+    os.makedirs(log_history_months, exist_ok=True)
+    archive_path = log_history_months / f'{last_month.strftime('%Y %b')}.7z'
+    log.info(f"Archiving {len(files)} logs to {archive_path.name}")
+    result = subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe a -mx=9 -sdel \"{archive_path}\" @archivelist.txt', capture_output=True)
+    time.sleep(0.2)
+
+    if result.returncode == 0 and archive_path.is_file():
+        log.info(f"Successfully archived logs")
+    else:
+        raise Exception(f"Error archiving files: {result.stderr}")
 
 
 client: discord.Client | None = None
