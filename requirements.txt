@@ -13,7 +13,7 @@ google-api-core==2.28.1
 google-api-python-client==2.187.0
 google-auth-httplib2==0.2.1
 google-auth-oauthlib==1.2.3
-google-auth==2.43.0
+google-auth==2.42.0
 googleapis-common-protos==1.72.0
 mons==2.0.0
 niquests==3.15.2
