@@ -100,6 +100,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
         return
 
     log.info(f"Running sync test for project: {project['name']}")
+    db.misc.set('last_game_sync_start_time', int(start_time))
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
