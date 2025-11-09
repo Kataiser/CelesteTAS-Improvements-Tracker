@@ -363,6 +363,7 @@ def get_maingame_emojis(filename: str) -> str:
 
 
 def archive_logs():
+    os.makedirs('log_history', exist_ok=True)
     now = datetime.datetime.now()
     last_month = now.replace(day=1) - datetime.timedelta(days=1)
     files = []
