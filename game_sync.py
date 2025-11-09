@@ -44,7 +44,10 @@ def run_syncs():
     force_run_all = parser.parse_args().all
     db.writes_enabled = not parser.parse_args().safe
 
-    everest_update_to_stable()
+    try:
+        everest_update_to_stable()
+    except Exception:
+        log_error()
 
     with open('game_sync.py', 'rb') as game_sync_py:
         game_sync_hash = zlib.adler32(game_sync_py.read())
