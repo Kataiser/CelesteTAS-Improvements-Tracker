@@ -151,7 +151,7 @@ async def on_message(message: discord.Message):
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
         import psutil
         self_process = psutil.Process()
-        subprocess.Popen(f'python updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
+        subprocess.Popen(f'.venv\\Scripts\\python.exe updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
         time.sleep(60)
 
     message_search = re_non_ascii.subn('', message.content.lower())[0]

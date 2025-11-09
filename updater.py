@@ -14,11 +14,12 @@ def main():
     target_pid = int(parser.parse_args().target_pid)
     parent_pid = int(parser.parse_args().parent_pid)
     print(f"Target PID: {target_pid}")
-    print(f"Target PID: {parent_pid}")
+    print(f"Parent PID: {parent_pid}")
 
     time.sleep(1)
     target_process = psutil.Process(target_pid)
     target_process.kill()
+    time.sleep(0.5)
     parent_process = psutil.Process(parent_pid)
     parent_process.kill()
     print("Killed processes")
@@ -27,17 +28,11 @@ def main():
     subprocess.run('git pull')
     time.sleep(1)
 
-    bot_starts = ('CelesteTAS Improvements Tracker.exe', 'run.bat', 'python bot.py')
+    bot_starts = ('run.bat', 'CelesteTAS Improvements Tracker.exe', 'python bot.py')
 
-    if os.path.isfile(bot_starts[0]):
-        subprocess.Popen(bot_starts[0], creationflags=0x00000010)
-        print(f"Restarted bot via {bot_starts[0]}")
-    elif os.path.isfile(bot_starts[1]):
-        subprocess.Popen(bot_starts[1], creationflags=0x00000010)
-        print(f"Restarted bot via {bot_starts[1]}")
-    else:
-        subprocess.Popen(bot_starts[2], creationflags=0x00000010)
-        print(f"Restarted bot via {bot_starts[2]}")
+    for bot_start in bot_starts:
+        if os.path.isfile(bot_start):
+            subprocess.Popen(bot_start, creationflags=0x00000010)
 
     time.sleep(10)
 
