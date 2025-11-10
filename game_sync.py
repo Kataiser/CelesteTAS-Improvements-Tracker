@@ -100,7 +100,6 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
         return
 
     log.info(f"Running sync test for project: {project['name']}")
-    db.misc.set('last_game_sync_start_time', int(start_time))
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -108,7 +107,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
     filetimes = {}
     desyncs = []
     mods_to_load = set(mods)
-    mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'AltEnterFullscreen', 'HelperTestMapHider', 'OverworldAA'}
+    mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'HelperTestMapHider'}
     files_timed = 0
     remove_save_files()
     queued_update_commits = []
@@ -138,6 +137,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
         consider_disabling_after_inactivity(project, time.time(), True)
         return
 
+    db.misc.set('last_game_sync_start_time', int(start_time))
     log.info(f"Environment state changes: {DeepDiff(prev_environment_state, environment_state, ignore_order=True, ignore_numeric_type_changes=True, verbose_level=2)}")
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
