@@ -21,11 +21,15 @@ def main():
     target_process.kill()
     print("Killed target")
     time.sleep(0.5)
-    parent_process = psutil.Process(parent_pid)
-    parent_process.kill()
-    print("Killed parent")
-    time.sleep(1)
 
+    try:
+        parent_process = psutil.Process(parent_pid)
+        parent_process.kill()
+        print("Killed parent")
+    except Exception as error:
+        print(f"Couldn't kill parent: {repr(error)}")
+
+    time.sleep(1)
     subprocess.run('git pull')
     time.sleep(1)
     print("Pulled")
@@ -45,4 +49,4 @@ if __name__ == '__main__':
         main()
     except Exception as error:
         print(repr(error))
-        input() 
+        input()
