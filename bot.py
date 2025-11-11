@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import re
-import subprocess
+import sys
 import time
 from typing import List, Optional
 
@@ -149,10 +149,7 @@ async def on_message(message: discord.Message):
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
-        import psutil
-        self_process = psutil.Process()
-        subprocess.Popen(f'.venv\\Scripts\\python.exe updater.py {self_process.pid} {self_process.parent().pid}', creationflags=0x00000010)
-        time.sleep(60)
+        sys.exit(1)  # caught by run.bat
 
     message_search = re_non_ascii.subn('', message.content.lower())[0]
     user_ids = set()
