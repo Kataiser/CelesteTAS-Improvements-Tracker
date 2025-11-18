@@ -1,8 +1,9 @@
 @echo off
-title bot
+cd "%~dp0"
 :loop
+title bot
 .venv\Scripts\python bot.py
-if %ERRORLEVEL% NEQ 1 goto end
+if %ERRORLEVEL% NEQ 666 goto end
 git pull
 goto loop
 :exit
