@@ -705,6 +705,19 @@ async def command_open_url(message: discord.Message):
     await message.channel.send(webbrowser.open(url))
 
 
+@admin_command()
+async def command_del(message: discord.Message):
+    link_split = message.content.split('/')
+    channel_id, message_id = int(link_split[5]), int(link_split[6])
+    log.info(f"Looking for message {message_id} in channel {channel_id}")
+    target_message = await client.get_channel(channel_id).fetch_message(message_id)
+
+    if target_message.author == client.user:
+        await target_message.delete()
+        await message.channel.send("poof")
+    else:
+        await message.channel.send("no")
+
 async def handle_direct_dm(message: discord.Message):
     log.info(f"Received DM from {utils.detailed_user(message)}: `{message.content}`")
 
