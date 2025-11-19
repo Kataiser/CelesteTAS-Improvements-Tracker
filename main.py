@@ -479,10 +479,10 @@ def convert_line_endings(tas: bytes, old_tas: Optional[bytes]) -> bytes:
         return tas.replace(b'\r\n', b'\n')
 
     if uses_crlf:
-        return tas
+        log.info("Converted from CRLF to LF (default)")
+        return tas.replace(b'\r\n', b'\n')
     else:
-        log.info("Converted from LF to CRLF")
-        return tas.replace(b'\n', b'\r\n')
+        return tas
 
 
 def update_contributors(contributor: discord.User, project_id: int, project: dict):
