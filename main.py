@@ -86,6 +86,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
         # TODO: handle this better
 
+    db.misc.set('last_processed_message', f'{message.channel.id}-{message.id}')
     if not skip_validation:
         await message.clear_reaction('❌')
         await message.clear_reaction('⏭')
@@ -156,6 +157,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
             db.projects.set(message.channel.id, project)
             update_contributors(message.author, message.channel.id, project)
         else:
+            db.misc.set('last_failed_message', f'{message.channel.id}-{message.id}')
             log_messages = ", ".join(validation_result.log_text)
             log.info(f"Warning {utils.detailed_user(message)} about {log_messages}")
             add_project_log(message)

@@ -720,6 +720,30 @@ async def command_del(message: discord.Message):
         await message.channel.send("no")
 
 
+@admin_command()
+async def command_retry(message: discord.Message):
+    await retry_message('last_processed_message', message.channel)
+
+
+@admin_command()
+async def command_retry_failed(message: discord.Message):
+    await retry_message('last_failed_message', message.channel)
+
+
+async def retry_message(key: str, dm_channel: discord.DMChannel):
+    last_channel_id, last_message_id = db.misc.get(key).split('-')
+    last_processed_message = await client.get_channel(last_channel_id).fetch_message(last_message_id)
+
+    if last_processed_message:
+        retry_log = (f"Retrying message {last_processed_message.id} from {utils.detailed_user(last_processed_message)} "
+                     f"in server {last_processed_message.guild.name} {last_processed_message.jump_url}")
+        log.info(retry_log)
+        await dm_channel.send(retry_log)
+        await main.process_improvement_message(last_processed_message)
+    else:
+        await dm_channel.send("doesn't seem to exist")
+
+
 async def handle_direct_dm(message: discord.Message):
     log.info(f"Received DM from {utils.detailed_user(message)}: `{message.content}`")
 
