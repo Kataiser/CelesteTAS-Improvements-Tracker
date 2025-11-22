@@ -224,8 +224,8 @@ def test_convert_line_endings(setup_log):
     assert main.convert_line_endings(tas_lf, tas_lf) == tas_lf
     assert main.convert_line_endings(tas_lf, tas_crlf) == tas_crlf
     assert main.convert_line_endings(tas_crlf, tas_lf) == tas_lf
-    assert main.convert_line_endings(tas_crlf, None) == tas_crlf
-    assert main.convert_line_endings(tas_lf, None) == tas_crlf
+    assert main.convert_line_endings(tas_crlf, None) == tas_lf
+    assert main.convert_line_endings(tas_lf, None) == tas_lf
 
 
 # GEN TOKEN
