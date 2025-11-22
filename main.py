@@ -581,7 +581,7 @@ def add_project_log(message: discord.Message):
 def generate_request_headers(installation_owner: str, min_time: int = 30):
     global headers
     headers = {'Authorization': f'Bearer {gen_token.access_token(installation_owner, min_time)}',
-               'Accept': 'application/vnd.github.v3+json',
+               'Accept': 'application/vnd.github+json',
                'X-GitHub-Api-Version': '2022-11-28'}
 
 
