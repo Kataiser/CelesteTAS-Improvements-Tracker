@@ -230,7 +230,8 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
         log.info(f"Set commit author to {data['author']}")
 
     log.info(f"Set commit message to \"{data['message'].partition('\n')[0]}\" (truncated)")
-    r = niquests.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=orjson.dumps(data))
+    session = niquests.Session(disable_http2=True)
+    r = session.put(f'https://api.github.com/repos/{repo}/contents/{file_path}', headers=headers, data=orjson.dumps(data))
     utils.handle_potential_request_error(r, 201 if draft else 200)
     commit_url = orjson.loads(r.content)['commit']['html_url']
     log.info(f"Successfully committed: {commit_url}")
