@@ -730,6 +730,13 @@ async def command_retry_failed(message: discord.Message):
     await retry_message('last_failed_message', message.channel)
 
 
+@admin_command()
+async def command_restart(message: discord.Message):
+    log.info("Restarting...")
+    await message.channel.send("yeah ok")
+    sys.exit(666)  # caught by run.bat
+
+
 async def retry_message(key: str, dm_channel: discord.DMChannel):
     last_channel_id, last_message_id = db.misc.get(key).split('-')
     last_processed_message = await client.get_channel(int(last_channel_id)).fetch_message(int(last_message_id))
