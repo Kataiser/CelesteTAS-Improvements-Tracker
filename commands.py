@@ -732,7 +732,7 @@ async def command_retry_failed(message: discord.Message):
 
 async def retry_message(key: str, dm_channel: discord.DMChannel):
     last_channel_id, last_message_id = db.misc.get(key).split('-')
-    last_processed_message = await client.get_channel(last_channel_id).fetch_message(last_message_id)
+    last_processed_message = await client.get_channel(int(last_channel_id)).fetch_message(int(last_message_id))
 
     if last_processed_message:
         retry_log = (f"Retrying message {last_processed_message.id} from {utils.detailed_user(last_processed_message)} "
