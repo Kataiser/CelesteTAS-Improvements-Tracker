@@ -74,6 +74,9 @@ def run_syncs():
 
     try:
         for project_id in test_project_ids:
+            if project_id == 966074810788614265:
+                continue  # temp
+
             sync_test(project_id, cli_project or force_run_all, force_file)
     except Exception:
         log_error()
@@ -449,7 +452,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
             tas_file.truncate()
             tas_file.write(lines_encoded)
 
-    if update_commit_files_changed:
+    if update_commit_files_changed and not argparse.ArgumentParser().parse_args().safe:
         if update_commit_files_changed == 1:
             commit_message = update_commit_single_commit_message
         else:
