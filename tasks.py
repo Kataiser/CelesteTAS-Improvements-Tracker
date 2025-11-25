@@ -28,7 +28,7 @@ from constants import admin_user_id
 
 def start_tasks() -> dict[callable, bool]:
     tasks_running = {handle_game_sync_results_task: False,
-                     handle_no_game_sync_results_task: False,
+                     # handle_no_game_sync_results_task: False,
                      alert_server_join_task: False,
                      heartbeat_task: False,
                      room_suggestions_task: False,
