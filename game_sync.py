@@ -42,7 +42,7 @@ def run_syncs():
     cli_project = parser.parse_args().project
     force_file = parser.parse_args().file
     force_run_all = parser.parse_args().all
-    db.writes_enabled = not parser.parse_args().safe
+    safe = parser.parse_args().safe
 
     try:
         everest_update_to_stable()
@@ -77,7 +77,7 @@ def run_syncs():
             if project_id == 966074810788614265:
                 continue  # temp
 
-            sync_test(project_id, cli_project or force_run_all, force_file)
+            sync_test(project_id, cli_project or force_run_all, force_file, safe)
     except Exception:
         log_error()
         close_game()
@@ -88,7 +88,7 @@ def run_syncs():
     log.info(f"All sync checks time: {format_elapsed_time(start_time)}")
 
 
-def sync_test(project_id: int, force: bool, force_file: str | None):
+def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: bool = False):
     start_time = time.time()
     current_log = io.StringIO()
     stream_handler = logging.StreamHandler(current_log)
@@ -117,6 +117,10 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
     crash_logs_data = {}
     crash_logs_dir = f'{game_dir()}\\CrashLogs'
     get_mod_dependencies.cache_clear()
+
+    if safe_mode:
+        log.info("Safe mode enabled (no DB writes or GitHub commits)")
+        db.writes_enabled = False
 
     for mod in mods:
         mods_to_load |= get_mod_dependencies(mod)
@@ -452,7 +456,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None):
             tas_file.truncate()
             tas_file.write(lines_encoded)
 
-    if update_commit_files_changed and not argparse.ArgumentParser().parse_args().safe:
+    if update_commit_files_changed and not safe_mode:
         if update_commit_files_changed == 1:
             commit_message = update_commit_single_commit_message
         else:
