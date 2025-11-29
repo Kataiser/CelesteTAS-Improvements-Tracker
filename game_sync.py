@@ -74,9 +74,6 @@ def run_syncs():
 
     try:
         for project_id in test_project_ids:
-            if project_id in (966074810788614265, 1074148268407275520):
-                continue  # temp
-
             sync_test(project_id, cli_project or force_run_all, force_file, safe)
     except Exception:
         log_error()
@@ -379,11 +376,12 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
                     log.warning(f"Desynced: {time_delta}")
                     desyncs.append((tas_filename, time_delta))
                 else:
-                    new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
-                    tas_lines_og = og_tas_lines[tas_filename]
-                    tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
-                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                    queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
+                    log.warning("🔥🔥🔥this is fine.🔥🔥🔥")
+                    # new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
+                    # tas_lines_og = og_tas_lines[tas_filename]
+                    # tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
+                    # commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
+                    # queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
                     # don't commit now, since there may be desyncs
         else:
             if not tas_parsed_new.finaltime_frames:
