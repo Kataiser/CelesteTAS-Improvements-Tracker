@@ -74,7 +74,7 @@ def run_syncs():
 
     try:
         for project_id in test_project_ids:
-            if project_id == 966074810788614265:
+            if project_id in (966074810788614265, 1074148268407275520):
                 continue  # temp
 
             sync_test(project_id, cli_project or force_run_all, force_file, safe)
