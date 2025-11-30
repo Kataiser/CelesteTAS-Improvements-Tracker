@@ -99,7 +99,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         consider_disabling_after_inactivity(project, time.time(), True)
         return
 
-    log.info(f"Running sync test for project: {project['name']}")
+    log.info(f"Running sync test for project: {project['name']} ({project_id})")
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -351,7 +351,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         tas_parsed_new = validation.parse_tas_file(tas_updated, False, False, tas_parsed.finaltime_type)
 
         # for silvers
-        if has_filetime:  # or tas_lines[tas_parsed.finaltime_line_num].lower().startswith('midway'):
+        if has_filetime:
             clear_debug_save()
 
         if not tas_parsed_new.found_finaltime:
@@ -376,12 +376,11 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
                     log.warning(f"Desynced: {time_delta}")
                     desyncs.append((tas_filename, time_delta))
                 else:
-                    log.warning("🔥🔥🔥this is fine.🔥🔥🔥")
-                    # new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
-                    # tas_lines_og = og_tas_lines[tas_filename]
-                    # tas_lines_og[tas_parsed.finaltime_line_num] = f'{new_time_line}\n'
-                    # commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
-                    # queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
+                    new_time_line = tas_updated[tas_parsed_new.finaltime_line_num]
+                    tas_lines_og = og_tas_lines[tas_filename]
+                    tas_lines_og[validation.parse_tas_file(tas_lines_og, False, False).finaltime_line_num] = f'{new_time_line}\n'
+                    commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
+                    queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
                     # don't commit now, since there may be desyncs
         else:
             if not tas_parsed_new.finaltime_frames:
