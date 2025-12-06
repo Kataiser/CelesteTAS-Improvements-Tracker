@@ -99,7 +99,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         consider_disabling_after_inactivity(project, time.time(), True)
         return
 
-    log.info(f"Running sync test for project: {project['name']} ({project_id})")
+    log.info(f"Considering sync check for project: {project['name']} ({project_id})")
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -141,8 +141,10 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         consider_disabling_after_inactivity(project, time.time(), True)
         return
 
+    log.info(f"Starting sync check for project: {project['name']} ({project_id})")
     db.misc.set('last_game_sync_start_time', int(start_time))
     log.info(f"Environment state changes: {DeepDiff(prev_environment_state, environment_state, ignore_order=True, ignore_numeric_type_changes=True, verbose_level=2)}")
+    update_mods(mods_to_load)
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
@@ -543,6 +545,30 @@ def generate_blacklist(mods_to_load: set):
         blacklist_txt.write('\n'.join(blacklist))
 
 
+# for when headless is enabled
+def update_mods(mods: set):
+    gb_mods = get_gb_mods()
+
+    for mod in mods:
+        mod_spaces = mod.replace('_', ' ')
+
+        if mod_spaces in gb_mods:
+            mod_gb = gb_mods[mod_spaces]
+        else:
+            mod_gb = gb_mods[mod]
+
+        installed_version = get_mod_everest_yaml(mod)['Version']
+        latest_version = mod_gb['Version']
+
+        if installed_version != latest_version:
+            log.info(f"Updating \"{mod}\" from {installed_version} to {latest_version}")
+            start_time = time.time()
+            r_mmdl = niquests.get(mod_gb['URL'], timeout=600)
+            utils.handle_potential_request_error(r_mmdl, 200)
+            mods_dir().joinpath(f'{mod}.zip').write_bytes(r_mmdl.content)
+            log.info(f"Done in {time.time() - start_time:.1f} seconds, wrote {len(r_mmdl.content)} bytes")
+
+
 # remove all files related to any save
 def remove_save_files():
     saves_dir = f'{game_dir()}\\Saves'
@@ -710,23 +736,24 @@ def generate_environment_state(project: dict, mods: set) -> dict:
         commit = orjson.loads(r_commits.content)
         state['last_commit_time'] = int(dateutil.parser.parse(commit[0]['commit']['author']['date']).timestamp())
 
-    gb_mods = gb_mod_versions()
+    gb_mods = get_gb_mods()
 
-    if not gb_mods:
-        gb_mod_versions.cache_clear()
-
-    for mod in mods:
-        if mod in gb_mods:
-            mod_gb = gb_mods[mod]
-        else:
-            mod_spaces = mod.replace('_', ' ')
-
-            if mod_spaces in gb_mods:
-                mod_gb = gb_mods[mod_spaces]
-            else:
+    if gb_mods:
+        for mod in mods:
+            if mod in gb_mods:
                 mod_gb = gb_mods[mod]
+            else:
+                mod_spaces = mod.replace('_', ' ')
 
-        state['mod_versions'][mod] = mod_gb['Version']
+                if mod_spaces in gb_mods:
+                    mod_gb = gb_mods[mod_spaces]
+                else:
+                    mod_gb = gb_mods[mod]
+
+            state['mod_versions'][mod] = mod_gb['Version']
+    else:
+        log.error("No GB mods, reusing previous from environment state")
+        state['mod_versions'] = project['sync_environment_state']['mod_versions']
 
     try:
         db.sid_caches.get(project['project_id'], consistent_read=False)
@@ -762,17 +789,29 @@ def format_elapsed_time(start_time: float) -> str:
     return f"{int(hours)}h {int(minutes)}m"
 
 
-@functools.cache
-def gb_mod_versions() -> Optional[dict]:
+def get_gb_mods() -> Optional[dict]:
+    global gb_mods_cache
+    current_time = int(time.time())
+
+    if gb_mods_cache and current_time - gb_mods_cache[0] < 60:
+        return gb_mods_cache[1]
+
     try:
         r_mods = niquests.get('https://maddie480.ovh/celeste/everest_update.yaml', timeout=60)
         utils.handle_potential_request_error(r_mods, 200)
     except niquests.RequestException:
         log_error()
+
+        if gb_mods_cache:
+            log.warning(f"Using outdated ({current_time - gb_mods_cache[0]} seconds old) GB mods from cache")
+            return gb_mods_cache[1]
+
         return None
 
     from ruamel.yaml import YAML
-    return YAML(typ='safe').load(r_mods.content)
+    gb_mods = YAML(typ='safe').load(r_mods.content)
+    gb_mods_cache = (current_time, gb_mods)
+    return gb_mods
 
 
 @functools.cache
@@ -806,7 +845,7 @@ def everest_update_to_stable():
         current_dir = os.getcwd()
         os.chdir(game_dir())
         everest_download_and_extract_stable()
-        subprocess.run('MiniInstaller-win64.exe', capture_output=True)
+        subprocess.run('MiniInstaller-win64.exe headless', capture_output=True)
         log.info("Installed")
         Path('installed_everest_version.txt').write_text(str(latest_everest))
         os.chdir(current_dir)
@@ -892,6 +931,7 @@ log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 re_redact_token = re.compile(r"'token': '[^']*'")
 game_sync_hash = None
 sleep_scale = 1.0
+gb_mods_cache: dict | None = None
 
 if __name__ == '__main__':
     run_syncs()
