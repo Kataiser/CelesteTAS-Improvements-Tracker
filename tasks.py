@@ -32,7 +32,8 @@ def start_tasks() -> dict[callable, bool]:
                      alert_server_join_task: False,
                      heartbeat_task: False,
                      room_suggestions_task: False,
-                     archive_logs_task: False}
+                     archive_logs_task: False,
+                     git_gc_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -86,6 +87,11 @@ async def room_suggestions_task():
 @tasks.loop(hours=48)
 async def archive_logs_task():
     await run_and_catch_task(archive_logs)
+
+
+@tasks.loop(hours=24)
+async def git_gc_task():
+    await run_and_catch_task(git_gc)
 
 
 async def handle_game_sync_results():
@@ -391,6 +397,11 @@ def archive_logs():
         log.info(f"Successfully archived logs")
     else:
         raise Exception(f"Error archiving files: {result.stderr}")
+
+
+def git_gc():
+    subprocess.run('git gc')
+    log.info("Ran git gc")
 
 
 client: discord.Client | None = None
