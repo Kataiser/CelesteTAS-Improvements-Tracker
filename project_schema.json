@@ -133,6 +133,9 @@
         },
         "commit_any_time_saved": {
             "type": "boolean"
+        },
+        "last_sync_check_elapsed_time": {
+            "type": "number"
         }
     }
 }

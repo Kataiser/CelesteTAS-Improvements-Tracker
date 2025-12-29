@@ -63,7 +63,7 @@ def run_syncs():
         projects = db.projects.dict()
         test_project_ids = []
 
-        for project_id in sorted(projects, key=lambda x: projects[x]['last_commit_time'], reverse=True):
+        for project_id in sorted(projects, key=lambda x: projects[x]['last_sync_check_elapsed_time']):
             project = projects[project_id]
 
             if project['do_run_validation'] and db.path_caches.get(project_id):
@@ -408,6 +408,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     project['filetimes'] = filetimes
     project['last_run_validation'] = int(clone_time)
     project['desyncs'] = [desync[0] for desync in desyncs]
+    project['last_sync_check_elapsed_time'] = int(time.time() - start_time)
     new_desyncs = [d for d in desyncs if d[0] not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")

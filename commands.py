@@ -205,7 +205,8 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
                           'room_suggestion_pin': 0,
                           'room_suggestion_index': 0,
                           'validate_room_labels': False,
-                          'commit_any_time_saved': False}
+                          'commit_any_time_saved': False,
+                          'last_sync_check_elapsed_time': 0}
 
     main.generate_path_cache(improvements_channel.id, registered_project)
     pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)
