@@ -267,7 +267,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
 
                 if not has_console_load:
                     # if it starts from begin, then menu there. doesn't change mod
-                    tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n', 'Repeat 20\n', '1,D\n', '1,F,180\n', 'Endrepeat\n', '1,J\n', '14\n']
+                    tas_lines[:0] = ['unsafe\n', 'console overworld\n', '2\n', '1,J\n', '94\n', '1,J\n', '56\n','1,U\n', '1,J\n', '14\n']
         else:
             log.info(f"{tas_filename} has no final time")
             continue
