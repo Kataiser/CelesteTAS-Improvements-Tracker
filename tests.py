@@ -838,8 +838,8 @@ def test_generate_environment_state():
     assert environment_state.pop('everest_version') is not None
     assert len(environment_state.pop('mod_versions')) == 11
     assert environment_state.pop('last_commit_time') >= 1739658254
-    assert environment_state == {'game_sync_hash': None, 'excluded_items': [], 'installation_owner': 'Kataiser', 'is_lobby': False,
-                                 'repo': 'Kataiser/improvements-bot-testing', 'subdir': 'sync_testing', 'sid_caches_exist': True}
+    assert environment_state == {'game_sync_hash': None, 'excluded_items': [], 'installation_owner': 'Kataiser', 'is_lobby': False, 'repo': 'Kataiser/improvements-bot-testing',
+                                 'subdir': 'sync_testing', 'sid_caches_exist': True, 'commit_any_time_saved': False, 'validate_room_labels': False}
 
 
 # SPREADSHEET

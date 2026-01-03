@@ -24,3 +24,5 @@ host.toml
 .env
 /log_history_months
 archivelist.txt
+uv.lock
+pyproject.toml
