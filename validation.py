@@ -258,7 +258,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
             path_cache = db.path_caches.get(message.channel.id)
 
             if path_cache:
-                possible_filename = fuzz_possible_filename(filename, path_cache)
+                possible_filename = fuzz_possible_filename(filename, path_cache.keys())
                 did_you_mean_text = f" (did you mean `{possible_filename}`?)" if possible_filename else ""
                 shouldnt_be_draft_text = f" If it shouldn't be a draft, make sure your filename is exactly the same as in the repo{did_you_mean_text}."
             else:
