@@ -5,6 +5,7 @@ import inspect
 import io
 import logging
 import os
+import platform
 import random
 import re
 import subprocess
@@ -390,7 +391,12 @@ def archive_logs():
     os.makedirs(log_history_months, exist_ok=True)
     archive_path = log_history_months / f'{last_month.strftime('%Y %b')}.7z'
     log.info(f"Archiving {len(files)} logs to {archive_path.name}")
-    result = subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe a -mx=9 -sdel \"{archive_path}\" @archivelist.txt', capture_output=True)
+
+    if platform.system() == 'Linux':
+        result = subprocess.run(['7zz', 'a', '-mx=9', '-sdel', archive_path, '@archivelist.txt'], capture_output=True)
+    else:
+        result = subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe a -mx=9 -sdel \"{archive_path}\" @archivelist.txt', capture_output=True)
+
     time.sleep(0.2)
 
     if result.returncode == 0 and archive_path.is_file():
@@ -400,7 +406,7 @@ def archive_logs():
 
 
 def git_gc():
-    subprocess.run('git gc')
+    subprocess.run(['git', 'gc'])
     log.info("Ran git gc")
 
 
