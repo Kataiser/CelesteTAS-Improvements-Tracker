@@ -5,6 +5,7 @@ import gzip
 import io
 import logging
 import os
+import platform
 import re
 import shutil
 import stat
@@ -112,7 +113,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     remove_save_files()
     queued_update_commits = []
     crash_logs_data = {}
-    crash_logs_dir = f'{game_dir()}\\CrashLogs'
+    crash_logs_dir = game_dir() / 'CrashLogs'
     get_mod_dependencies.cache_clear()
 
     if safe_mode:
@@ -193,7 +194,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
                 sid_cache_files_removed.append(file_path_repo)
                 continue
 
-            with open(f'{repo_path}\\{file_path_repo}'.replace('/', '\\'), 'r+') as tas_file:
+            with open(str(repo_path / file_path_repo).replace('/', os.sep), 'r+') as tas_file:
                 tas_lines = tas_file.readlines()
                 og_tas_lines[tas_filename] = tas_lines.copy()
 
@@ -233,8 +234,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
 
     for tas_filename in path_cache:
         file_path_repo = path_cache[tas_filename]
-        file_path_repo_backslashes = file_path_repo.replace('/', '\\')
-        file_path = f'{repo_path}\\{file_path_repo_backslashes}'
+        file_path = repo_path / file_path_repo.replace('/', os.sep)
 
         if 'lobby' in file_path_repo.lower() and 'lobby' not in tas_filename.lower():
             log.info(f"Skipping {tas_filename} (lobby)")
@@ -340,7 +340,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
             start_game(project['validate_room_labels'])
 
             for new_crash_log_name in new_crash_logs[:10]:
-                with open(f'{crash_logs_dir}\\{new_crash_log_name}', 'rb') as new_crash_log:
+                with open(crash_logs_dir / new_crash_log_name, 'rb') as new_crash_log:
                     crash_logs_data[f'{new_crash_log_name}.gz'] = b64encode(gzip.compress(new_crash_log.read()))
 
             game_process = wait_for_game_load(mods_to_load, project['name'])
@@ -467,11 +467,14 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         time.sleep(0.2)
         base_dir = os.getcwd()
         os.chdir(repo_path)
-        subprocess.run('git add .')
-        subprocess.run('git -c "user.name=celestetas-improvements-tracker[bot]" -c "user.email=104732884+celestetas-improvements-tracker[bot]@users.noreply.github.com" '
-                       f'commit -m "{commit_message}"')
-        subprocess.run('git push')
-        commit_sha = subprocess.check_output('git rev-parse HEAD', encoding='UTF8').strip()
+        subprocess.run(['git', 'add', '.'])
+        subprocess.run(['git',
+                        '-c', 'user.name=celestetas-improvements-tracker[bot]',
+                        '-c', 'user.email=104732884+celestetas-improvements-tracker[bot]@users.noreply.github.com',
+                        'commit',
+                        '-m', commit_message])
+        subprocess.run(['git', 'push'])
+        commit_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], encoding='UTF8').strip()
         os.chdir(base_dir)
         commit_url = f'https://github.com/{repo}/commit/{commit_sha}'
         log.info(f"Successfully committed: {commit_url}")
@@ -485,16 +488,16 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
 def clone_repo(repo: str, project_id: int, access_token: str | None = None):
     repo_cloned = repo.partition('/')[2]
     repo_cloned_rename = f'{repo_cloned} {project_id}'
-    repo_path = f'{game_dir()}\\repos\\{repo_cloned_rename}'
+    repos_path = game_dir() / 'repos'
+    repo_path = repos_path / repo_cloned_rename
+    repos_path.mkdir(exist_ok=True)
 
-    if not os.path.isdir(f'{game_dir()}\\repos'):
-        os.mkdir(f'{game_dir()}\\repos')
-    elif os.path.isdir(repo_path):
+    if repo_path.is_dir():
         shutil.rmtree(repo_path, onexc=del_rw)
 
     time.sleep(0.1)
     cwd = os.getcwd()
-    os.chdir(f'{game_dir()}\\repos')
+    os.chdir(repos_path)
     clone_time = time.time()
 
     if access_token:
@@ -502,7 +505,7 @@ def clone_repo(repo: str, project_id: int, access_token: str | None = None):
     else:
         clone_url = f'https://github.com/{repo}'
 
-    subprocess.run(f'git clone --depth=1 --recursive {clone_url}', capture_output=True)
+    subprocess.run(['git', 'clone', '--depth=1', '--recursive', clone_url], capture_output=True)
     os.rename(repo_cloned, repo_cloned_rename)
     os.chdir(cwd)
     log.info(f"Cloned repo to {repo_path}")
@@ -534,14 +537,14 @@ def format_desyncs(desyncs: list) -> str:
 
 
 def generate_blacklist(mods_to_load: set):
-    installed_mods = [item for item in os.listdir(f'{game_dir()}\\Mods') if item.endswith('.zip')]
+    installed_mods = [item.name for item in (game_dir() / 'Mods').glob('*') if item.name.endswith('.zip')]
     blacklist = []
 
     for installed_mod in installed_mods:
         if installed_mod.removesuffix('.zip') not in mods_to_load:
             blacklist.append(installed_mod)
 
-    with open(f'{game_dir()}\\Mods\\blacklist.txt', 'w') as blacklist_txt:
+    with open(game_dir() / 'Mods/blacklist.txt', 'w') as blacklist_txt:
         blacklist_txt.write("# This file has been created by the Improvements Tracker\n")
         blacklist_txt.write('\n'.join(blacklist))
 
@@ -572,8 +575,8 @@ def update_mods(mods: set):
 
 # remove all files related to any save
 def remove_save_files():
-    saves_dir = f'{game_dir()}\\Saves'
-    save_files = [f'{saves_dir}\\{file}' for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
+    saves_dir = game_dir() / 'Saves'
+    save_files = [saves_dir / file for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
 
     for save_file in save_files:
         os.remove(save_file)
@@ -595,7 +598,10 @@ def del_rw(function, path, excinfo):
 
 
 def start_game(validate_room_labels: bool = False):
-    subprocess.Popen(f'{game_dir()}\\Celeste.exe{' --validate-room-labels' if validate_room_labels else ''}', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
+    if platform.system() == 'Linux':
+        subprocess.Popen(['gnome-terminal', '--', f'{game_dir()}/Celeste', '--validate-room-labels' if validate_room_labels else ''])
+    else:
+        subprocess.Popen(f'{game_dir()}\\Celeste.exe{' --validate-room-labels' if validate_room_labels else ''}', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
 
     if validate_room_labels:
         log.info("Validating room labels enabled")
@@ -635,6 +641,32 @@ def wait_for_game_load(mods: set, project_name: str):
 
 
 def close_game():
+    if platform.system() == 'Linux':
+        close_game_linux()
+    else:
+        close_game_windows()
+
+
+def close_game_linux():
+    import psutil
+    closed = False
+
+    for process in psutil.process_iter(('name',)):
+        process_name = process.name()
+
+        if process_name == 'Celeste':
+            process.kill()
+            log.info("Closed Celeste")
+            closed = True
+        elif 'studio' in process_name and 'celeste' in process_name:
+            process.kill()
+            log.info("Closed Studio")
+
+    if not closed:
+        log.info("No running game to close")
+
+
+def close_game_windows():
     import psutil
     closed = False
 
@@ -832,8 +864,9 @@ def mods_dir() -> Path:
 def game_dir() -> Path:
     game_path = Path('celeste')  # expects a symlink
     game_path_resolved = game_path.resolve()
+    celeste_filename = 'Celeste' if platform.system() == 'Linux' else 'Celeste.exe'
 
-    if not game_path.is_dir() or not game_path_resolved.is_dir() or not (game_path_resolved / 'Celeste.exe').is_file():
+    if not game_path.is_dir() or not game_path_resolved.is_dir() or not (game_path_resolved / celeste_filename).is_file():
         raise FileNotFoundError("ok where'd the game go")
     else:
         return game_path_resolved
@@ -848,7 +881,12 @@ def everest_update_to_stable():
         current_dir = os.getcwd()
         os.chdir(game_dir())
         everest_download_and_extract_stable()
-        subprocess.run('MiniInstaller-win64.exe headless', capture_output=True)
+
+        if platform.system() == 'Linux':
+            subprocess.run(['MiniInstaller-linux', 'headless'], capture_output=True)
+        else:
+            subprocess.run('MiniInstaller-win64.exe headless', capture_output=True)
+
         log.info("Installed")
         Path('installed_everest_version.txt').write_text(str(latest_everest))
         os.chdir(current_dir)

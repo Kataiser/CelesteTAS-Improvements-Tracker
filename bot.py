@@ -151,7 +151,7 @@ async def on_message(message: discord.Message):
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
-        sys.exit(666)  # caught by run.bat
+        sys.exit(111)  # caught by runner script
 
     message_search = re_non_ascii.subn('', message.content.lower())[0]
     user_ids = set()
