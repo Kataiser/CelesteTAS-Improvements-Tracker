@@ -632,11 +632,14 @@ def wait_for_game_load(mods: set, project_name: str):
     scaled_sleep(5)
     log.info(f"Game loaded, mod versions: {mod_versions(mods)}")
     scaled_sleep(max(0, 10 - (time.perf_counter() - mod_versions_start_time)))
+    process_name = 'Celeste' if platform.system() == 'Linux' else 'Celeste.exe'
 
     for process in psutil.process_iter(['name']):
-        if process.name() == 'Celeste.exe':
-            process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-            log.info("Set game process to low priority")
+        if process.name() == process_name:
+            if platform.system() == 'Windows':
+                process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+                log.info("Set game process to low priority")
+
             return process
 
 
