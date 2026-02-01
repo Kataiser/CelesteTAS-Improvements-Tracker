@@ -329,19 +329,21 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
             log.info(f"Extra sleeps: {extra_sleeps}")
 
         updated_crash_logs = os.listdir(crash_logs_dir)
+        new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
 
-        if game_crashed or len(updated_crash_logs) > len(crash_logs):
-            new_crash_logs = [file for file in updated_crash_logs if file not in crash_logs]
+        if game_crashed or new_crash_logs:
             log.warning(f"Game crashed ({new_crash_logs}), restarting and continuing")
-            desyncs.append((tas_filename, "Crashed game"))
             scaled_sleep(10)
             close_game()
             scaled_sleep(5)
             start_game(project['validate_room_labels'])
 
-            for new_crash_log_name in new_crash_logs[:10]:
-                with open(crash_logs_dir / new_crash_log_name, 'rb') as new_crash_log:
-                    crash_logs_data[f'{new_crash_log_name}.gz'] = b64encode(gzip.compress(new_crash_log.read()))
+            if new_crash_logs:
+                desyncs.append((tas_filename, "Crashed game"))
+
+                for new_crash_log_name in new_crash_logs[:10]:
+                    with open(crash_logs_dir / new_crash_log_name, 'rb') as new_crash_log:
+                        crash_logs_data[f'{new_crash_log_name}.gz'] = b64encode(gzip.compress(new_crash_log.read()))
 
             game_process = wait_for_game_load(mods_to_load, project['name'])
             continue
@@ -599,7 +601,7 @@ def del_rw(function, path, excinfo):
 
 def start_game(validate_room_labels: bool = False):
     if platform.system() == 'Linux':
-        subprocess.Popen(['gnome-terminal', '--', f'{game_dir()}/Celeste', '--validate-room-labels' if validate_room_labels else ''])
+        subprocess.Popen(['gnome-terminal', '--', f'{game_dir()}/run_celeste.sh', '--validate-room-labels' if validate_room_labels else ''])
     else:
         subprocess.Popen(f'{game_dir()}\\Celeste.exe{' --validate-room-labels' if validate_room_labels else ''}', creationflags=0x00000010)  # the creationflag is for not waiting until the process exits
 
