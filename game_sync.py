@@ -110,7 +110,6 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     mods_to_load = set(mods)
     mods_to_load |= {'CelesteTAS', 'SpeedrunTool', 'HelperTestMapHider'}
     files_timed = 0
-    remove_save_files()
     queued_update_commits = []
     crash_logs_data = {}
     crash_logs_dir = game_dir() / 'CrashLogs'
@@ -145,6 +144,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     log.info(f"Starting sync check for project: {project['name']} ({project_id})")
     db.misc.set('last_game_sync_start_time', int(start_time))
     log.info(f"Environment state changes: {DeepDiff(prev_environment_state, environment_state, ignore_order=True, ignore_numeric_type_changes=True, verbose_level=2)}")
+    remove_save_files()
     update_mods(mods_to_load)
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
