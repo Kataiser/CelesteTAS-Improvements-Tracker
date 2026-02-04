@@ -272,7 +272,9 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
             log.info(f"{tas_filename} has no final time")
             continue
 
-        tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
+        if 'CollabUtils2' in mods_to_load:
+            tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
+
         tas_lines.append('\n***')
 
         with open(file_path, 'w', encoding='UTF8') as tas_file:
