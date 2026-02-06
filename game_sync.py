@@ -275,6 +275,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         if 'CollabUtils2' in mods_to_load:
             tas_lines.insert(0, f'Set,CollabUtils2.DisplayEndScreenForAllMaps,{not has_filetime}\n')
 
+        tas_lines.insert(0, 'Set,Everest.ShowModOptionsInGame,False\n')
         tas_lines.append('\n***')
 
         with open(file_path, 'w', encoding='UTF8') as tas_file:
