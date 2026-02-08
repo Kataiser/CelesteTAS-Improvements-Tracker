@@ -891,7 +891,8 @@ def everest_update_to_stable():
         everest_download_and_extract_stable()
 
         if platform.system() == 'Linux':
-            subprocess.run(['MiniInstaller-linux', 'headless'], capture_output=True)
+            subprocess.run(['chmod', '+x', 'MiniInstaller-linux'], capture_output=True)
+            subprocess.run(['./MiniInstaller-linux', 'headless'], capture_output=True)
         else:
             subprocess.run('MiniInstaller-win64.exe headless', capture_output=True)
 
