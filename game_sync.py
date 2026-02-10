@@ -389,6 +389,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
                     commit_message = f"{'+' if frame_diff > 0 else ''}{frame_diff}f {tas_filename} ({tas_parsed_new.finaltime_trimmed})"
                     queued_update_commits.append((file_path, tas_lines_og, tas_file_raw, commit_message))
                     # don't commit now, since there may be desyncs
+                    log.info("Queued for update commit")
         else:
             if not tas_parsed_new.finaltime_frames:
                 log_error(f"Couldn't parse FileTime frames for {file_path_repo}")

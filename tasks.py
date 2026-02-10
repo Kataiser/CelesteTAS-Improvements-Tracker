@@ -393,7 +393,7 @@ def archive_logs():
     log.info(f"Archiving {len(files)} logs to {archive_path.name}")
 
     if platform.system() == 'Linux':
-        result = subprocess.run(['7zz', 'a', '-mx=9', '-sdel', archive_path, '@archivelist.txt'], capture_output=True)
+        result = subprocess.run(['7z', 'a', '-mx=9', '-sdel', archive_path, '@archivelist.txt'], capture_output=True)
     else:
         result = subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe a -mx=9 -sdel \"{archive_path}\" @archivelist.txt', capture_output=True)
 
