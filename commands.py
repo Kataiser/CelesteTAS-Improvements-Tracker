@@ -747,7 +747,7 @@ async def retry_message(key: str, dm_channel: discord.DMChannel):
                      f"in server {last_processed_message.guild.name} {last_processed_message.jump_url}")
         log.info(retry_log)
         await dm_channel.send(retry_log)
-        await main.process_improvement_message(last_processed_message)
+        await main.process_improvement_message(last_processed_message, force=True)
     else:
         await dm_channel.send("doesn't seem to exist")
 

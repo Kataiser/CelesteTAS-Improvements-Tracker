@@ -31,13 +31,13 @@ from utils import plural
 
 
 # process a message posted in a registered improvements channel
-async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False) -> bool:
+async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False, force: bool = False) -> bool:
     start_tasks()
 
     if not project:
         project = db.projects.get(message.channel.id)
 
-    if not skip_validation and not is_processable_message(message, project):
+    if not skip_validation and not force and not is_processable_message(message, project):
         return False
 
     if message.channel.id == 1202709072718200842:  # celeste 64
