@@ -318,6 +318,9 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
                 session_total_frames = session_data.partition('TotalFrames: ')[2].partition('<')[0]
                 tas_finished = not tas_running or session_current_frames == session_total_frames
 
+                if tas_finished:
+                    niquests.post('http://localhost:32270/tas/sendhotkey?id=Pause', timeout=2)  # resume if paused tas
+
                 if not has_filetime:
                     sid = session_data.partition('SID: ')[2].partition(' (')[0]
 
