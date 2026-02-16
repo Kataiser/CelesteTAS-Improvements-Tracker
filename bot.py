@@ -25,6 +25,7 @@ intents.guilds = True
 intents.messages = True
 intents.reactions = True
 intents.message_content = True
+intents.members = True
 
 client = discord.Client(intents=intents)
 command_tree = app_commands.CommandTree(client)
@@ -282,6 +283,15 @@ async def on_connect():
 @client.event
 async def on_disconnect():
     log.warning("Disconnected from Discord")
+
+
+@client.event
+async def on_member_join(member: discord.Member):
+    if member.guild.id != 403698615446536203 and 403698615446536203 not in [g.id for g in member.mutual_guilds]:
+        kick_message = f"Kicking likely scambot {utils.detailed_user(user=member)}, mutual servers are {member.mutual_guilds}"
+        log.info(kick_message)
+        await (await utils.user_from_id(client, admin_user_id)).send(kick_message)
+        await member.kick(reason=kick_message)
 
 
 @client.event

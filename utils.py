@@ -50,7 +50,7 @@ def handle_potential_request_error(req: niquests.Response, code: int):
         log.warning(req.text)
 
 
-def detailed_user(message: Optional[discord.Message] = None, user: Optional[discord.User] = None) -> Optional[str]:
+def detailed_user(message: discord.Message | None = None, user: discord.User | discord.Member | None = None) -> str | None:
     if message:
         user = message.author
     elif not user:

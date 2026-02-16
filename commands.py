@@ -65,7 +65,7 @@ def admin_command():
 
 @command()
 async def command_help(interaction: discord.Interaction):
-    add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560512), scopes=('bot',))
+    add_bot_link = discord.utils.oauth_url('970375635027525652', permissions=discord.Permissions(2147560514), scopes=('bot',))
     admin_commands_formatted = ""
 
     if interaction.user.id in (constants.admin_user_id, 234520815658336258):
