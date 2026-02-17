@@ -287,11 +287,17 @@ async def on_disconnect():
 
 @client.event
 async def on_member_join(member: discord.Member):
-    if member.guild.id != 403698615446536203 and 403698615446536203 not in [g.id for g in member.mutual_guilds] and time.time() - member.created_at.timestamp() < 2629800000:
-        kick_message = f"Kicking likely scambot {utils.detailed_user(user=member)}, mutual servers are {member.mutual_guilds}"
-        log.info(kick_message)
-        await (await utils.user_from_id(client, admin_user_id)).send(kick_message)
-        await member.kick(reason=kick_message)
+    if member.guild.id != 403698615446536203 and 403698615446536203 not in [g.id for g in member.mutual_guilds]:
+        kicked_likely_bots = db.misc.get('kicked_likely_bots')
+        join_id = f'{member.guild.id}-{member.id}'
+
+        if join_id not in kicked_likely_bots:
+            kick_message = f"Kicking likely scambot {utils.detailed_user(user=member)}, mutual servers are {member.mutual_guilds}"
+            log.info(kick_message)
+            await (await utils.user_from_id(client, admin_user_id)).send(kick_message)
+            await member.kick(reason=kick_message)
+            kicked_likely_bots.append(join_id)
+            db.misc.set('kicked_likely_bots', kicked_likely_bots)
 
 
 @client.event
