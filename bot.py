@@ -287,7 +287,7 @@ async def on_disconnect():
 
 @client.event
 async def on_member_join(member: discord.Member):
-    if member.guild.id != 403698615446536203 and 403698615446536203 not in [g.id for g in member.mutual_guilds]:
+    if member.guild.member_count < 150 and 403698615446536203 not in [g.id for g in member.mutual_guilds]:
         kicked_likely_bots = db.misc.get('kicked_likely_bots')
         join_id = f'{member.guild.id}-{member.id}'
 
