@@ -420,7 +420,7 @@ async def command_about(interaction: discord.Interaction):
            "\nProjects (improvement channels): {0}" \
            "\nServers: {1}" \
            "\nGithub installations: {2}" \
-           "\nBot uptime: {3} hours" \
+           "\nBot uptime: {3} days" \
            "\nHost uptime: {8} days" \
            "\nCurrent host: {7}" \
            "\nSync checks: {4} project{6}" \
@@ -438,7 +438,7 @@ async def command_about(interaction: discord.Interaction):
             sync_checks += 1
 
     if main.login_time:
-        bot_uptime = round((time.time() - main.login_time) / 3600, 1)
+        bot_uptime = round((time.time() - main.login_time) / 86400, 1)
     else:
         bot_uptime = 0.0
 
