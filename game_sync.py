@@ -64,7 +64,7 @@ def run_syncs():
         projects = db.projects.dict()
         test_project_ids = []
 
-        for project_id in sorted(projects, key=lambda x: projects[x]['last_sync_check_elapsed_time']):
+        for project_id in sorted(projects, key=lambda x: projects[x]['last_commit_time'], reverse=True):
             project = projects[project_id]
 
             if project['do_run_validation'] and db.path_caches.get(project_id):
