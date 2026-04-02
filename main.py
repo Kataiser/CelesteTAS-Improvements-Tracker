@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import dataclasses
 import datetime
@@ -53,16 +52,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     if has_video:
         log.info("Video found 🍿")
         await message.add_reaction('🍿')
-
-    if message.author.id == 948044059988095046 and message.channel.id == 1074148268407275520:
-        log.info("Doing a funny")
-        await asyncio.sleep(1)
-        await message.add_reaction('👀')
-        await asyncio.sleep(4.1)
-        await message.add_reaction('📝')
-        await asyncio.sleep(1.3)
-        await message.clear_reaction('👀')
-        return True
 
     for zip_attachment in zip_attachments:
         log.info(f"Downloading and parsing {zip_attachment.filename} from {zip_attachment.url}")
