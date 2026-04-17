@@ -588,7 +588,7 @@ def remove_save_files():
     save_files = [saves_dir / file for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
 
     if platform.system() == 'Linux':
-        saves_dir = Path('~/.local/share/Celeste/Saves')
+        saves_dir = Path('~/.local/share/Celeste/Saves').expanduser()
         save_files += [saves_dir / file for file in os.listdir(saves_dir) if re_save_file.match(file)]
 
     for save_file in save_files:
