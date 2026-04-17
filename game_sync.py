@@ -587,6 +587,10 @@ def remove_save_files():
     saves_dir = game_dir() / 'Saves'
     save_files = [saves_dir / file for file in os.listdir(saves_dir) if file.startswith('debug') or (file[0].isdigit() and file[0] != '0')]
 
+    if platform.system() == 'Linux':
+        saves_dir = Path('~/.local/share/Celeste/Saves')
+        save_files += [saves_dir / file for file in os.listdir(saves_dir) if re_save_file.match(file)]
+
     for save_file in save_files:
         os.remove(save_file)
 
@@ -983,6 +987,7 @@ def sid_is_valid(sid: str) -> bool:
 
 log: Union[logging.Logger, utils.LogPlaceholder] = utils.LogPlaceholder()
 re_redact_token = re.compile(r"'token': '[^']*'")
+re_save_file = re.compile(r"([1-9]|\d{2,})(?:-modsavedata|-mod(?:save|session)-\w+)?\.celeste")
 game_sync_hash = None
 sleep_scale = 1.0
 gb_mods_cache: dict | None = None
