@@ -12,7 +12,6 @@ import subprocess
 import time
 import urllib.parse
 import zipfile
-from collections import namedtuple
 from pathlib import Path
 
 import cron_validator
@@ -22,6 +21,7 @@ from discord.ext import tasks
 
 import db
 import main
+import maingame_vids
 import spreadsheet
 import utils
 from constants import admin_user_id
@@ -263,8 +263,7 @@ async def room_suggestions():
         log.info(f"Updating room improvement suggestion for project \"{project['name']}\"")
         r = niquests.get(f'https://github.com/{repo}/archive/refs/heads/master.zip', timeout=30)
         utils.handle_potential_request_error(r, 200)
-        Room = namedtuple('Room', ['name', 'file', 'line_num'])
-        rooms: list[Room] = []
+        rooms: list[maingame_vids.Room] = []
 
         with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
             for file in archive_file.filelist:
@@ -276,19 +275,17 @@ async def room_suggestions():
                 with archive_file.open(file) as file_opened:
                     file_lines = file_opened.read().decode('UTF8').splitlines()
 
-                for line_num, line in enumerate(file_lines):
-                    if line.startswith('#lvl_'):
-                        rooms.append(Room(line[5:], file_path, line_num + 1))
+                rooms.extend(maingame_vids.get_rooms_from_tas(file_lines, file_path))
 
         random.Random(project_id + (rooms_index // len(rooms))).shuffle(rooms)
         chosen_room = rooms[rooms_index % len(rooms)]
         log.info(f"Chose {chosen_room}, index {rooms_index}/{len(rooms)}")
-        github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.file)}#L{chosen_room.line_num}'
+        github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.tas_path)}#L{chosen_room.line_num_start + 1}'
         room_display = f"`{chosen_room.name}`"
         maingame_emojis = ''
 
         if project_id == 598945702554501130:  # maingame
-            filename_only = chosen_room.file.rpartition('/')[2]
+            filename_only = chosen_room.tas_path.rpartition('/')[2]
             berrycamp = {'0 - Prologue': 'prologue/a', '0 - Epilogue': 'epilogue/a', '9': 'farewell/a',
                          '1B': 'city/b', '1C': 'city/c', '1': 'city/a',
                          '2B': 'site/b', '2C': 'site/c', '2': 'site/a',
@@ -309,8 +306,21 @@ async def room_suggestions():
 
         message_text = (f"### Room improvement suggestion\n"
                         f"Room: {room_display}\n"
-                        f"File: [{chosen_room.file} @ line {chosen_room.line_num}](<{github_link}>) {maingame_emojis}")
+                        f"File: [{chosen_room.tas_path} @ line {chosen_room.line_num_start}](<{github_link}>) {maingame_emojis}")
         await send_message_update_pin(message_text, pin_id)
+        maingame_vid_files = []
+
+        if (maingame_vid_main := Path('maingame_vids') / chosen_room.video_filename(False)).is_file():
+            maingame_vid_files.append(discord.File(maingame_vid_main))
+
+        if (maingame_vid_hitboxes := Path('maingame_vids') / chosen_room.video_filename(True)).is_file():
+            maingame_vid_files.append(discord.File(maingame_vid_hitboxes))
+
+        if maingame_vid_files:
+            log.info(f'Sending maingame vids: {maingame_vid_files}')
+            await client.get_channel(channel_id).send('_ _', files=maingame_vid_files)
+        else:
+            log.info(f'No maingame vids found to send ({chosen_room.video_filename(False)} or {chosen_room.video_filename(True)})')
 
 
 @functools.cache

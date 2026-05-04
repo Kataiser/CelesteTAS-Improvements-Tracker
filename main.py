@@ -215,15 +215,14 @@ def commit(project: dict, message: discord.Message, filename: str, content: byte
         timesave = f"{validation_result.timesave} " if validation_result.timesave else "Updated: "
         data['sha'] = get_sha(repo, file_path)
         data['message'] = f"{timesave}{filename}{chapter_time} from {author}\n\n{message.jump_url}\n{message.content}"
+    elif not project['commit_drafts']:
+        return
     else:
         draft = True
         data['message'] = f"{filename} {'WIP' if validation_result.wip else 'draft'} by {author}{chapter_time}"
         subdir = project['subdir']
         file_path = f'{subdir}/{filename}' if subdir else filename
         db.path_caches.add_file(message.channel.id, filename, file_path)
-
-        if not project['commit_drafts']:
-            return
 
     if user_github_account:
         data['author'] = {'name': user_github_account[0], 'email': user_github_account[1]}

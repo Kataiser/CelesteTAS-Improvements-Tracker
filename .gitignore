@@ -1,6 +1,7 @@
 .idea/
 __pycache__/
 log_history/
+maingame_vids/
 CelesteTAS Improvements Tracker.exe
 bot.log
 improvements bot icon 32.ico
@@ -26,3 +27,4 @@ host.toml
 archivelist.txt
 uv.lock
 pyproject.toml
+generate_maingame_vids.log
