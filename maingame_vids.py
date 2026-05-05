@@ -33,10 +33,6 @@ def generate_all():
             log.info(f"Skipping {tas_path.name} (excluded)")
             continue
 
-        # TESTING
-        # if tas_path.name != '1A.tas':
-        #     continue
-
         log.info(f"Finding rooms for {tas_path.name}...")
 
         with open(tas_path, 'rb') as tas_file:
@@ -55,9 +51,18 @@ def generate_all():
 
     game_sync.wait_for_game_load(mods, '')
     existing_vids = [v.name for v in maingame_vids_path.glob('*.mp4')]
+    current_filename = all_rooms[0].tas_path.name
     log.info("Starting video generation")
 
     for room in all_rooms:
+        if current_filename != room.tas_path.name:
+            log.info(f"Writing back original {room.tas_path.name}")
+
+            with open(room.tas_path, 'w', encoding='UTF8') as tas_file:
+                tas_file.truncate()
+                tas_file.write('\n'.join(file_lines_cache[room.tas_path.name]))
+
+        current_filename = room.tas_path.name
         generate_vid_for_room(room, existing_vids, False)
         generate_vid_for_room(room, existing_vids, True)
 
@@ -89,8 +94,8 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
         log.info(f"Skipping existing {video_filename}")
         return
 
-    if len(room.inputs) < 3:
-        log.info(f"Skipping {video_filename} (short inputs)")
+    if len(room.inputs) < 4:
+        log.info(f"Skipping {video_filename} ({len(room.inputs)} inputs)")
 
     log.info(f"Generating {video_filename}")
     tas_lines = copy.copy(file_lines_cache[room.tas_path.name])
