@@ -93,9 +93,9 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     if video_filename in existing_vids:
         log.info(f"Skipping existing {video_filename}")
         return
-
-    if len(room.inputs) < 4:
+    elif len(room.inputs) < 4:
         log.info(f"Skipping {video_filename} ({len(room.inputs)} inputs)")
+        return
 
     log.info(f"Generating {video_filename}")
     tas_lines = copy.copy(file_lines_cache[room.tas_path.name])
