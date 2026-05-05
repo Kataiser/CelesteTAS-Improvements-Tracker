@@ -120,8 +120,14 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     try:
         time.sleep(0.5)
         niquests.post(f'http://localhost:32270/tas/playtas?filePath={room.tas_path}', timeout=10)
-        time.sleep(2)
-        # TODO: wait for breakpoint to be hit (periodically check for the same state twice in a row?)
+        time.sleep(1)
+        prev_state = None
+
+        while prev_state != (game_state := niquests.get('http://localhost:32270/tas/info', timeout=10).content):
+            log.info("Waiting for breakpoint...")
+            prev_state = game_state
+            time.sleep(0.2)
+
         niquests.post('http://localhost:32270/tas/sendhotkey?id=Pause', timeout=10)
     except niquests.RequestException as error:
         log.error(error)
