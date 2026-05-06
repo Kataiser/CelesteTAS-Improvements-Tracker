@@ -16,8 +16,7 @@ import main
 def generate_all():
     global log
     log = main.create_logger('generate_maingame_vids')
-    mods = {'CelesteTAS', 'TASRecorder'}
-    game_sync.generate_blacklist(mods)
+    game_sync.generate_blacklist({'CelesteTAS', 'TASRecorder'})
     game_sync.close_game()
     game_sync.start_game()
     cwdir = os.getcwd()
@@ -29,7 +28,7 @@ def generate_all():
     all_rooms = []
 
     for tas_path in (maingame_vids_path / 'CelesteTAS').rglob('**/*.tas'):
-        if tas_path.name.startswith('0 - '):
+        if tas_path.name.startswith('0 - ') or tas_path.name == '9NMG.tas':
             log.info(f"Skipping {tas_path.name} (excluded)")
             continue
 
@@ -49,7 +48,7 @@ def generate_all():
         log.info(f"Deleting {new_recorded_vid}")
         new_recorded_vid.unlink()
 
-    game_sync.wait_for_game_load(mods, '')
+    game_sync.wait_for_game_load({'CelesteTAS', 'TASRecorder'}, '')
     existing_vids = [v.name for v in maingame_vids_path.glob('*.mp4')]
     current_filename = all_rooms[0].tas_path.name
     log.info("Starting video generation")
@@ -93,6 +92,8 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     if video_filename in existing_vids:
         log.info(f"Skipping existing {video_filename}")
         return
+    elif f'{room.tas_path.name[:-4]}_{room.name}' in ('7AG_f-02', '5SHCG_a-10 (0)', '6BG_a-05 (1)', '7AG_f-02', '5SHCG_a-10 (0)', '5SHCG_e-00 (1)', '4SHCG_a-00'):
+        log.info(f"Skipping {video_filename} (borked)")
     elif len(room.inputs) < 4:
         log.info(f"Skipping {video_filename} ({len(room.inputs)} inputs)")
         return
@@ -120,7 +121,7 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     try:
         time.sleep(0.5)
         niquests.post(f'http://localhost:32270/tas/playtas?filePath={room.tas_path}', timeout=10)
-        time.sleep(1)
+        time.sleep(2)
         prev_state = None
 
         while prev_state != (game_state := niquests.get('http://localhost:32270/tas/info', timeout=10).content):
@@ -131,6 +132,11 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
         niquests.post('http://localhost:32270/tas/sendhotkey?id=Pause', timeout=10)
     except niquests.RequestException as error:
         log.error(error)
+        log.info("Restarting game")
+        time.sleep(10)
+        game_sync.close_game()
+        game_sync.start_game()
+        game_sync.wait_for_game_load({'CelesteTAS', 'TASRecorder'}, '')
         return
 
     while True:
@@ -148,6 +154,7 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
             continue
 
         log.info(f"Renamed from {prev_name}")
+        time.sleep(1)
         break
 
 
