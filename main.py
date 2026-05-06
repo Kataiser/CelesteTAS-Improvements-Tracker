@@ -153,6 +153,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 project['do_run_validation'] = True
                 log.info("Reenabled sync checking")
                 await message.channel.send("Reenabled sync checking for this project.")
+                await edit_pin(message.channel)
 
             db.projects.set(message.channel.id, project)
             update_contributors(message.author, message.channel.id, project)
