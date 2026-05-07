@@ -48,6 +48,11 @@ def generate_all():
         log.info(f"Deleting {new_recorded_vid}")
         new_recorded_vid.unlink()
 
+    for video in [f for f in maingame_vids_path.glob('*_*_*_*.mp4')]:
+        if video.name not in [room.video_filename(False) for room in all_rooms] + [room.video_filename(True) for room in all_rooms]:
+            log.info(f"Deleting outdated {video.name}")
+            video.unlink()
+
     game_sync.wait_for_game_load({'CelesteTAS', 'TASRecorder'}, '')
     existing_vids = [v.name for v in maingame_vids_path.glob('*.mp4')]
     current_filename = all_rooms[0].tas_path.name
@@ -64,6 +69,9 @@ def generate_all():
         current_filename = room.tas_path.name
         generate_vid_for_room(room, existing_vids, False)
         generate_vid_for_room(room, existing_vids, True)
+
+    log.info("Finished")
+    game_sync.close_game()
 
 
 def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> list[Room]:
@@ -94,6 +102,7 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
         return
     elif f'{room.tas_path.name[:-4]}_{room.name}' in ('7AG_f-02', '5SHCG_a-10 (0)', '6BG_a-05 (1)', '7AG_f-02', '5SHCG_a-10 (0)', '5SHCG_e-00 (1)', '4SHCG_a-00'):
         log.info(f"Skipping {video_filename} (borked)")
+        return
     elif len(room.inputs) < 4:
         log.info(f"Skipping {video_filename} ({len(room.inputs)} inputs)")
         return
