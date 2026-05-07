@@ -74,6 +74,30 @@ def generate_all():
     game_sync.close_game()
 
 
+@dataclasses.dataclass
+class Room:
+    tas_path: Path | str
+    name: str
+    line_num_start: int
+    line_num_end: int = 0
+    inputs: list[str] = None
+    inputs_hash: int = 0
+
+    def __post_init__(self):
+        self.inputs = []
+
+    def add_input_line(self, line: str, line_num: int):
+        self.inputs.append(line)
+        self.line_num_end = line_num
+
+    def finalize(self):
+        self.inputs_hash = zlib.adler32('\n'.join(self.inputs).encode('UTF8'))
+
+    def video_filename(self, hitboxes: bool):
+        tas_name = self.tas_path.name if isinstance(self.tas_path, Path) else self.tas_path.rpartition('/')[2]
+        return f'{tas_name[:-4]}_{self.name}_{self.inputs_hash}_{'hitboxes' if hitboxes else 'main'}.mp4'
+
+
 def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> list[Room]:
     rooms = []
     current_room = None
@@ -169,30 +193,6 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
 
 def get_new_recorded_vids() -> list[Path]:
     return [f for f in maingame_vids_path.glob('202*.mp4')]
-
-
-@dataclasses.dataclass
-class Room:
-    tas_path: Path | str
-    name: str
-    line_num_start: int
-    line_num_end: int = 0
-    inputs: list[str] = None
-    inputs_hash: int = 0
-
-    def __post_init__(self):
-        self.inputs = []
-
-    def add_input_line(self, line: str, line_num: int):
-        self.inputs.append(line)
-        self.line_num_end = line_num
-
-    def finalize(self):
-        self.inputs_hash = zlib.adler32('\n'.join(self.inputs).encode('UTF8'))
-
-    def video_filename(self, hitboxes: bool):
-        tas_name = self.tas_path.name if isinstance(self.tas_path, Path) else self.tas_path.rpartition('/')[2]
-        return f'{tas_name[:-4]}_{self.name}_{self.inputs_hash}_{'hitboxes' if hitboxes else 'main'}.mp4'
 
 
 log: logging.Logger = None
