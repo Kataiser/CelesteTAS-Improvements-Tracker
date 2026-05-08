@@ -93,9 +93,14 @@ class Room:
     def finalize(self):
         self.inputs_hash = zlib.adler32('\n'.join(self.inputs).encode('UTF8'))
 
+    def tas_name(self) -> str:
+        return self.tas_path.name if isinstance(self.tas_path, Path) else self.tas_path.rpartition('/')[2]
+
     def video_filename(self, hitboxes: bool):
-        tas_name = self.tas_path.name if isinstance(self.tas_path, Path) else self.tas_path.rpartition('/')[2]
-        return f'{tas_name[:-4]}_{self.name}_{self.inputs_hash}_{'hitboxes' if hitboxes else 'main'}.mp4'
+        return f'{self.tas_name()[:-4]}_{self.name}_{self.inputs_hash}_{'hitboxes' if hitboxes else 'main'}.mp4'
+
+    def __str__(self) -> str:
+        return f'file={self.tas_name()}, room={self.name}, line_num={self.line_num_start}'
 
 
 def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> list[Room]:

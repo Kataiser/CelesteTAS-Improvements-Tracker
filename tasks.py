@@ -306,7 +306,7 @@ async def room_suggestions():
 
         message_text = (f"### Room improvement suggestion\n"
                         f"Room: {room_display}\n"
-                        f"File: [{chosen_room.tas_path} @ line {chosen_room.line_num_start}](<{github_link}>) {maingame_emojis}")
+                        f"File: [{chosen_room.tas_path} @ line {chosen_room.line_num_start + 1}](<{github_link}>) {maingame_emojis}")
         await send_message_update_pin(message_text, pin_id)
         maingame_vid_files = []
 
@@ -317,7 +317,7 @@ async def room_suggestions():
             maingame_vid_files.append(discord.File(maingame_vid_hitboxes))
 
         if maingame_vid_files:
-            log.info(f'Sending maingame vids: {maingame_vid_files}')
+            log.info(f'Sending maingame vids: {[f.filename for f in maingame_vid_files]}')
             await client.get_channel(channel_id).send('_ _', files=maingame_vid_files)
         else:
             log.info(f'No maingame vids found to send ({chosen_room.video_filename(False)} or {chosen_room.video_filename(True)})')
