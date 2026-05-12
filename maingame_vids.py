@@ -161,8 +161,13 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
         niquests.post(f'http://localhost:32270/tas/playtas?filePath={room.tas_path}', timeout=10)
         time.sleep(2)
         prev_state = None
+        start_time = time.perf_counter()
 
         while prev_state != (game_state := niquests.get('http://localhost:32270/tas/info', timeout=10).content):
+            if time.perf_counter() - start_time > 30:
+                log.info("Game seems to have gotten stuck, abandoning")
+                return
+
             log.info("Waiting for breakpoint...")
             prev_state = game_state
             time.sleep(0.2)
