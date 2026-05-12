@@ -174,6 +174,8 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
             time.sleep(0.2)
 
         niquests.post('http://localhost:32270/tas/sendhotkey?id=Pause', timeout=10)
+        log.info("Started recording")
+        start_time = time.perf_counter()
     except niquests.RequestException as error:
         log.error(error)
         log.info("Restarting game")
@@ -185,6 +187,10 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
 
     while True:
         time.sleep(2)
+
+        if time.perf_counter() - start_time > 120:
+            log.info("Game seems to have gotten stuck, abandoning")
+            return
 
         if not (new_recorded_vid_paths := get_new_recorded_vids()):
             continue
