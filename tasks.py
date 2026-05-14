@@ -275,7 +275,7 @@ async def room_suggestions():
                 with archive_file.open(file) as file_opened:
                     file_lines = file_opened.read().decode('UTF8').splitlines()
 
-                rooms.extend(maingame_vids.get_rooms_from_tas(file_lines, file_path))
+                rooms.extend(maingame_vids.get_rooms_from_tas(file_lines, file_path)[0])
 
         try:
             previous_suggestions = db.room_suggestions.get(project_id)
@@ -285,7 +285,7 @@ async def room_suggestions():
             previous_suggestions = []
 
         # choose a room not in previous room suggestions
-        while (chosen_room := random.choice(rooms)).suggestion_id() in previous_suggestions:
+        while (chosen_room := random.Random(project_id).choice(rooms)).suggestion_id() in previous_suggestions:
             pass
 
         log.info(f"Chose {chosen_room}")

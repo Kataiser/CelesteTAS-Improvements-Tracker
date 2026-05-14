@@ -39,8 +39,8 @@ def generate_all():
             file_lines = tas_file.read().decode('UTF8').splitlines()
             file_lines_cache[tas_path.name] = file_lines
 
-        rooms_found = get_rooms_from_tas(file_lines, tas_path)
-        log.info(f"Found {len(rooms_found)}")
+        rooms_found, excluded_count = get_rooms_from_tas(file_lines, tas_path)
+        log.info(f"Found {len(rooms_found)} ({excluded_count} excluded)")
         all_rooms.extend(rooms_found)
 
     log.info(f"Finished finding {len(all_rooms)} rooms")
@@ -107,14 +107,18 @@ class Room:
         return f'file={self.tas_name()}, room={self.name}, line_num={self.line_num_start}'
 
 
-def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> list[Room]:
+def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> tuple[list[Room], int]:
     rooms = []
     current_room = None
+    rooms_excluded_count = 0
 
     for line_num, line in enumerate(tas_lines):
         if line.startswith('#lvl_'):  # start new room
             if current_room:
-                current_room.finalize()
+                if len(current_room.inputs) > 3:
+                    current_room.finalize()
+                else:
+                    rooms_excluded_count += 1
 
             current_room = Room(tas_path=tas_path, name=line[5:], line_num_start=line_num)
             rooms.append(current_room)
@@ -124,7 +128,7 @@ def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> list[Room]
     if current_room:
         current_room.finalize()
 
-    return rooms
+    return rooms, rooms_excluded_count
 
 
 def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
@@ -135,9 +139,6 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
         return
     elif f'{room.tas_path.name[:-4]}_{room.name}' in ('7AG_f-02', '5SHCG_a-10 (0)', '6BG_a-05 (1)', '7AG_f-02', '5SHCG_a-10 (0)', '5SHCG_e-00 (1)', '4SHCG_a-00'):
         log.info(f"Skipping {video_filename} (borked)")
-        return
-    elif len(room.inputs) < 4:
-        log.info(f"Skipping {video_filename} ({len(room.inputs)} inputs)")
         return
 
     log.info(f"Generating {video_filename}")
