@@ -17,21 +17,22 @@
    with the created access key, and set your preferred default region.
 2. **Create the following DynamoDB tables**
 
-   | Table name                                     | Key                  | Key type |
-   |------------------------------------------------|----------------------|----------|
-   | `CelesteTAS-Improvement-Tracker_githubs`       | `discord_id`         | Number   |
-   | `CelesteTAS-Improvement-Tracker_history_log`   | `timestamp`          | String   |
-   | `CelesteTAS-Improvement-Tracker_installations` | `github_username`    | String   |
-   | `CelesteTAS-Improvement-Tracker_project_logs`  | `project_id`         | Number   |
-   | `CelesteTAS-Improvement-Tracker_sheet_writes`  | `timestamp`          | String   |
-   | `CelesteTAS-Improvement-Tracker_logs`          | `time`               | String   |
-   | `CelesteTAS-Improvement-Tracker_sync_results`  | `project_id`         | Number   |
-   | `CelesteTAS-Improvement-Tracker_misc`          | `key`                | String   |
-   | `CelesteTAS-Improvement-Tracker_contributors`  | `project_id`         | Number   |
-   | `CelesteTAS-Improvement-Tracker_sid_caches`    | `project_id`         | Number   |
-   | `CelesteTAS-Improvement-Tracker_tokens`        | `installation_owner` | String   |
-   | `CelesteTAS-Improvement-Tracker_projects`      | `project_id`         | Number   |
-   | `CelesteTAS-Improvement-Tracker_path_caches`   | `project_id`         | Number   |
+   | Table name                                        | Key                  | Key type |
+   |---------------------------------------------------|----------------------|----------|
+   | `CelesteTAS-Improvement-Tracker_githubs`          | `discord_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_history_log`      | `timestamp`          | String   |
+   | `CelesteTAS-Improvement-Tracker_installations`    | `github_username`    | String   |
+   | `CelesteTAS-Improvement-Tracker_project_logs`     | `project_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_sheet_writes`     | `timestamp`          | String   |
+   | `CelesteTAS-Improvement-Tracker_logs`             | `time`               | String   |
+   | `CelesteTAS-Improvement-Tracker_sync_results`     | `project_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_misc`             | `key`                | String   |
+   | `CelesteTAS-Improvement-Tracker_contributors`     | `project_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_sid_caches`       | `project_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_tokens`           | `installation_owner` | String   |
+   | `CelesteTAS-Improvement-Tracker_projects`         | `project_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_path_caches`      | `project_id`         | Number   |
+   | `CelesteTAS-Improvement-Tracker_room_suggestions` | `project_id`         | Number   |
 
 3. **Discord**
 

@@ -290,6 +290,7 @@ misc = Table('misc', 'key')
 contributors = Table('contributors', 'project_id')
 sid_caches = Table('sid_caches', 'project_id')
 tokens = Table('tokens', 'installation_owner')
+room_suggestions = Table('room_suggestions', 'project_id')
 projects = Projects('projects', 'project_id')
 path_caches = PathCaches('path_caches', 'project_id')
 

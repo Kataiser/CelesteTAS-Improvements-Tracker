@@ -100,6 +100,9 @@ class Room:
     def video_filename(self, hitboxes: bool):
         return f'{self.tas_name()[:-4]}_{self.name}_{self.inputs_hash}_{'hitboxes' if hitboxes else 'main'}.mp4'
 
+    def suggestion_id(self) -> str:
+        return f'{self.tas_name()[:-4]}_{self.name}'
+
     def __str__(self) -> str:
         return f'file={self.tas_name()}, room={self.name}, line_num={self.line_num_start}'
 

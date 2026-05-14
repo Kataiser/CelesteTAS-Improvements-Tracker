@@ -233,19 +233,18 @@ async def room_suggestions():
         project = db.projects.get(project_id)
         repo = project['repo']
         pin_id = int(project['room_suggestion_pin'])
-        rooms_index = int(project['room_suggestion_index'])
         channel_id = int(project['room_suggestion_channel'])
 
         if channel_id == 0:
             log.warning(f"Can't do room improvement suggestion for project \"{project['name']}\" because channel ID is 0")
             continue
 
-        project['room_suggestion_index'] += 1
-        db.projects.set(project_id, project)
-
         if project_id == 1074148268407275520:  # sj
             log.info("Updating room improvement suggestion for SJ")
             sj_maps = [level for level in spreadsheet.sj_data]
+            rooms_index = int(project['room_suggestion_index'])
+            project['room_suggestion_index'] += 1
+            db.projects.set(project_id, project)
             random.Random(project_id + (rooms_index // len(sj_maps))).shuffle(sj_maps)
             chosen_map = sj_maps[rooms_index % len(sj_maps)]
             chosen_map_filename = spreadsheet.sj_data[chosen_map][4]
@@ -264,6 +263,7 @@ async def room_suggestions():
         r = niquests.get(f'https://github.com/{repo}/archive/refs/heads/master.zip', timeout=30)
         utils.handle_potential_request_error(r, 200)
         rooms: list[maingame_vids.Room] = []
+        chosen_room: maingame_vids.Room
 
         with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
             for file in archive_file.filelist:
@@ -277,9 +277,21 @@ async def room_suggestions():
 
                 rooms.extend(maingame_vids.get_rooms_from_tas(file_lines, file_path))
 
-        random.Random(project_id + (rooms_index // len(rooms))).shuffle(rooms)
-        chosen_room = rooms[rooms_index % len(rooms)]
-        log.info(f"Chose {chosen_room}, index {rooms_index}/{len(rooms)}")
+        try:
+            previous_suggestions = db.room_suggestions.get(project_id)
+        except db.DBKeyError:
+            log.warning("No previous room suggestions, creating entry")
+            db.room_suggestions.set(project_id, [])
+            previous_suggestions = []
+
+        # choose a room not in previous room suggestions
+        while (chosen_room := random.choice(rooms)).suggestion_id() in previous_suggestions:
+            pass
+
+        log.info(f"Chose {chosen_room}")
+        previous_suggestions.append(chosen_room.suggestion_id())
+        previous_suggestions = previous_suggestions[-int(len(rooms) * 0.75):]
+        db.room_suggestions.set(project_id, previous_suggestions)
         github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.tas_path)}#L{chosen_room.line_num_start + 1}'
         room_display = f"`{chosen_room.name}`"
         maingame_emojis = ''
