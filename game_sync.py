@@ -892,7 +892,7 @@ def everest_update_to_stable():
     installed_everest = everest_installed_version()
     latest_everest = everest_latest_stable_version()
 
-    if installed_everest != latest_everest:
+    if latest_everest and installed_everest != latest_everest:
         log.info(f"Updating Everest from {installed_everest} to {latest_everest}")
         current_dir = os.getcwd()
         os.chdir(game_dir())
