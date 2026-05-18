@@ -264,6 +264,7 @@ async def room_suggestions():
         utils.handle_potential_request_error(r, 200)
         rooms: list[maingame_vids.Room] = []
         chosen_room: maingame_vids.Room
+        rng = random.Random(project_id)
 
         with zipfile.ZipFile(io.BytesIO(r.content), 'r') as archive_file:
             for file in archive_file.filelist:
@@ -285,7 +286,7 @@ async def room_suggestions():
             previous_suggestions = []
 
         # choose a room not in previous room suggestions
-        while (chosen_room := random.Random(project_id).choice(rooms)).suggestion_id() in previous_suggestions:
+        while (chosen_room := rng.choice(rooms)).suggestion_id() in previous_suggestions:
             pass
 
         log.info(f"Chose {chosen_room}")
