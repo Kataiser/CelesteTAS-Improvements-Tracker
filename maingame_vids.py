@@ -67,6 +67,8 @@ def generate_all():
                 tas_file.truncate()
                 tas_file.write('\n'.join(file_lines_cache[room.tas_path.name]))
 
+            time.sleep(0.1)
+
         current_filename = room.tas_path.name
         generate_vid_for_room(room, existing_vids, False)
         generate_vid_for_room(room, existing_vids, True)
@@ -112,21 +114,20 @@ def get_rooms_from_tas(tas_lines: list[str], tas_path: Path | str) -> tuple[list
     current_room = None
     rooms_excluded_count = 0
 
-    for line_num, line in enumerate(tas_lines):
+    for line_num, line in enumerate([*tas_lines, '#lvl_']):
         if line.startswith('#lvl_'):  # start new room
             if current_room:
                 if len(current_room.inputs) > 3:
                     current_room.finalize()
                 else:
+                    rooms.remove(current_room)
                     rooms_excluded_count += 1
 
-            current_room = Room(tas_path=tas_path, name=line[5:], line_num_start=line_num)
-            rooms.append(current_room)
+            if line_num < len(tas_lines):  # excludes appended #lvl_
+                current_room = Room(tas_path=tas_path, name=line[5:], line_num_start=line_num)
+                rooms.append(current_room)
         elif current_room:  # add inputs to current room
             current_room.add_input_line(line, line_num)
-
-    if current_room:
-        current_room.finalize()
 
     return rooms, rooms_excluded_count
 
