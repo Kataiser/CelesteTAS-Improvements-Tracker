@@ -13,9 +13,18 @@ import game_sync
 import main
 
 
+FILES_BLACKLIST = \
+    ('7AG_f-02', '5SHCG_a-10 (0)', '6BG_a-05 (1)', '7AG_f-02', '5SHCG_a-10 (0)', '5SHCG_e-00 (1)', '4SHCG_a-00', '5AG_d-19b (1)','5A_d-19b (1)', '4AG_b-02', '7SHC_b-00', '6CG_02 (1)',
+     '5SHC_a-00b (0)', '5SHC_b-20 (0)', '4CG_02 (1)', '6HC_start', '7BG_g-03 (1)', '3CG_02 (1)', '2BG_end (1)', '4BG_end (1)', '2BG_end (1)', '8BG_space (1)', '3CG_02 (1)', '3A_roof07',
+     '5CG_02 (1)', '1CG_02 (1)', '3A_roof07', '2CG_02 (1)', '2CG_02 (1)', '1BG_end (1)', '3SH_roof07', '7BG_g-03 (1)', '3SH_roof07', '4CG_02 (1)', '3BG_end (1)', '3BG_end (1)',
+     '5BG_d-05 (1)', '1CG_02 (1)', '5BG_d-05 (1)', '1BG_end (1)', '7BG_e-03 (1)', '5CG_02 (1)', '6BG_d-05 (1)', '6BG_d-05 (1)', '4BG_end (1)', '4BG_c-00 (1)')
+
+
 def generate_all():
     global log
     log = main.create_logger('generate_maingame_vids')
+    game_sync.update_mods({'CelesteTAS', 'TASRecorder'})
+    game_sync.get_mod_everest_yaml.cache_clear()
     game_sync.generate_blacklist({'CelesteTAS', 'TASRecorder'})
     game_sync.close_game()
     game_sync.start_game()
@@ -56,20 +65,20 @@ def generate_all():
 
     game_sync.wait_for_game_load({'CelesteTAS', 'TASRecorder'}, '')
     existing_vids = [v.name for v in maingame_vids_path.glob('*.mp4')]
-    current_filename = all_rooms[0].tas_path.name
+    current_file_path = all_rooms[0].tas_path
     log.info("Starting video generation")
 
     for room in all_rooms:
-        if current_filename != room.tas_path.name:
-            log.info(f"Writing back original {room.tas_path.name}")
+        if current_file_path.name != room.tas_path.name:
+            log.info(f"Writing back original {current_file_path.name}")
 
-            with open(room.tas_path, 'w', encoding='UTF8') as tas_file:
+            with open(current_file_path, 'w', encoding='UTF8') as tas_file:
                 tas_file.truncate()
-                tas_file.write('\n'.join(file_lines_cache[room.tas_path.name]))
+                tas_file.write('\n'.join(file_lines_cache[current_file_path.name]))
 
             time.sleep(0.1)
 
-        current_filename = room.tas_path.name
+        current_file_path = room.tas_path
         generate_vid_for_room(room, existing_vids, False)
         generate_vid_for_room(room, existing_vids, True)
 
@@ -138,8 +147,8 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     if video_filename in existing_vids:
         log.info(f"Skipping existing {video_filename}")
         return
-    elif f'{room.tas_path.name[:-4]}_{room.name}' in ('7AG_f-02', '5SHCG_a-10 (0)', '6BG_a-05 (1)', '7AG_f-02', '5SHCG_a-10 (0)', '5SHCG_e-00 (1)', '4SHCG_a-00'):
-        log.info(f"Skipping {video_filename} (borked)")
+    elif f'{room.tas_path.name[:-4]}_{room.name}' in FILES_BLACKLIST:
+        log.info(f"Skipping {video_filename} (borked or tiny)")
         return
 
     log.info(f"Generating {video_filename}")
@@ -163,7 +172,6 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
         tas_file.write('\n'.join(tas_lines))
 
     try:
-        time.sleep(0.5)
         niquests.post(f'http://localhost:32270/tas/playtas?filePath={room.tas_path}', timeout=10)
         time.sleep(2)
         prev_state = None
@@ -204,6 +212,7 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
 
         # wait for recording to finish
         try:
+            time.sleep(1)
             new_recorded_vid_paths[0].rename(maingame_vids_path / video_filename)
         except PermissionError:
             continue
