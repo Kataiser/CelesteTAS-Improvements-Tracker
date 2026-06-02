@@ -37,8 +37,7 @@ def generate_all():
     all_rooms = []
 
     for tas_path in (maingame_vids_path / 'CelesteTAS').rglob('**/*.tas'):
-        if tas_path.name == '9NMG.tas' or (tas_path.name.startswith('0 - ') and tas_path.name not in
-                                           ('0 - Epilogue.tas', '0 - EpilogueFast.tas', '0 - Prologue.tas')):
+        if tas_path.name.startswith('0 - ') and tas_path.name not in ('0 - Epilogue.tas', '0 - EpilogueFast.tas', '0 - Prologue.tas'):
             log.info(f"Skipping {tas_path.name} (excluded)")
             continue
 
