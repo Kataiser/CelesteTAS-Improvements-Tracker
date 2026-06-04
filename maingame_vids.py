@@ -23,11 +23,10 @@ FILES_BLACKLIST = \
 def generate_all():
     global log
     log = main.create_logger('generate_maingame_vids')
+    log.info("Starting maingame video generation")
     game_sync.update_mods({'CelesteTAS', 'TASRecorder'})
     game_sync.get_mod_everest_yaml.cache_clear()
     game_sync.generate_blacklist({'CelesteTAS', 'TASRecorder'})
-    game_sync.close_game()
-    game_sync.start_game()
     cwdir = os.getcwd()
     os.chdir(maingame_vids_path / 'CelesteTAS')
     subprocess.run(['git', 'reset', '--hard'])
@@ -62,12 +61,23 @@ def generate_all():
             log.info(f"Deleting outdated {video.name}")
             video.unlink()
 
-    game_sync.wait_for_game_load({'CelesteTAS', 'TASRecorder'}, '')
     existing_vids = [v.name for v in maingame_vids_path.glob('*.mp4')]
-    current_file_path = all_rooms[0].tas_path
+    rooms_needing_vids = [room for room in all_rooms
+                          if not (room.video_filename(False) in existing_vids and room.video_filename(True) in existing_vids)
+                          and f'{room.tas_path.name[:-4]}_{room.name}' not in FILES_BLACKLIST]
+
+    if not rooms_needing_vids:
+        log.info("All videos already exist")
+        return
+
+    log.info(f"Starting game for {len(rooms_needing_vids)} room(s) needing videos")
+    game_sync.close_game()
+    game_sync.start_game()
+    game_sync.wait_for_game_load({'CelesteTAS', 'TASRecorder'}, '')
+    current_file_path = rooms_needing_vids[0].tas_path
     log.info("Starting video generation")
 
-    for room in all_rooms:
+    for room in rooms_needing_vids:
         if current_file_path.name != room.tas_path.name:
             log.info(f"Writing back original {current_file_path.name}")
 
@@ -146,9 +156,6 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     if video_filename in existing_vids:
         log.info(f"Skipping existing {video_filename}")
         return
-    elif f'{room.tas_path.name[:-4]}_{room.name}' in FILES_BLACKLIST:
-        log.info(f"Skipping {video_filename} (borked or tiny)")
-        return
 
     log.info(f"Generating {video_filename}")
     tas_lines = copy.copy(file_lines_cache[room.tas_path.name])
@@ -200,7 +207,7 @@ def generate_vid_for_room(room: Room, existing_vids: list[str], hitboxes: bool):
     while True:
         time.sleep(2)
 
-        if time.perf_counter() - start_time > 120:
+        if time.perf_counter() - start_time > 180:
             log.info("Game seems to have gotten stuck, abandoning")
             return
 
