@@ -116,7 +116,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
             return
 
     # verify needed permissions in improvements channel
-    missing_permissions = utils.missing_channel_permissions(improvements_channel)
+    missing_permissions = utils.missing_channel_permissions(improvements_channel, True)
     if missing_permissions:
         error = f"Don't have {missing_permissions[0]} permission for #{improvements_channel.name} ({improvements_channel.id})."
         await utils.report_error(client, error)

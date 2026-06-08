@@ -84,15 +84,17 @@ def log_timestamp() -> str:
     return time.strftime('%Y-%m-%d %H:%M:%S,', current_time_local) + str(round(current_time % 1, 3))[2:]
 
 
-def missing_channel_permissions(channel: discord.TextChannel) -> list:
+def missing_channel_permissions(channel: discord.TextChannel, require_pin_messages: bool) -> list:
     improvements_channel_permissions = channel.permissions_for(channel.guild.me)
     permissions_needed = {'View Channel': improvements_channel_permissions.view_channel,
                           'Send Messages': improvements_channel_permissions.send_messages,
                           'Read Messages': improvements_channel_permissions.read_messages,
                           'Read Message History': improvements_channel_permissions.read_message_history,
                           'Add Reactions': improvements_channel_permissions.add_reactions,
-                          'Manage Messages': improvements_channel_permissions.manage_messages,
-                          'Pin Messages': improvements_channel_permissions.pin_messages}
+                          'Manage Messages': improvements_channel_permissions.manage_messages}
+
+    if require_pin_messages:
+        permissions_needed['Pin Messages'] = improvements_channel_permissions.pin_messages
 
     return [perm for perm in permissions_needed if not permissions_needed[perm]]
 

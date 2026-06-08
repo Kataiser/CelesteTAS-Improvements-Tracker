@@ -104,7 +104,7 @@ async def on_ready():
         project = projects_startup[improvements_channel_id]
         improvements_channel = client.get_channel(improvements_channel_id)
 
-        if not improvements_channel or utils.missing_channel_permissions(improvements_channel):
+        if not improvements_channel or utils.missing_channel_permissions(improvements_channel, False):
             utils.log_error(f"Can't access improvements channel for project {project['name']}", flash_window=False)
             main.inaccessible_projects.add(improvements_channel_id)
             continue
