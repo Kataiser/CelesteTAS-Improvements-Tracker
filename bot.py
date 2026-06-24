@@ -298,6 +298,10 @@ async def on_member_join(member: discord.Member):
             await member.kick(reason=kick_message)
             kicked_likely_bots.append(join_id)
             db.misc.set('kicked_likely_bots', kicked_likely_bots)
+        else:
+            allow_message = f"Allowing join from previously kicked suspected scambot {utils.detailed_user(user=member)} into {member.guild}"
+            log.info(allow_message)
+            await (await utils.user_from_id(client, admin_user_id)).send(allow_message)
 
 
 @client.event
