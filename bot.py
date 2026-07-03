@@ -294,7 +294,7 @@ async def on_member_join(member: discord.Member):
         if join_id not in kicked_likely_bots:
             kick_message = f"Kicking likely scambot {utils.detailed_user(user=member)}, mutual servers are {member.mutual_guilds}"
             log.info(kick_message)
-            await (await utils.user_from_id(client, admin_user_id)).send(kick_message)
+            await (await utils.user_from_id(client, admin_user_id)).send(kick_message, silent=True)
             await member.kick(reason=kick_message)
             kicked_likely_bots.append(join_id)
             db.misc.set('kicked_likely_bots', kicked_likely_bots)
