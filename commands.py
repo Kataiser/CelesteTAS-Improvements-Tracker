@@ -434,7 +434,8 @@ async def command_about(interaction: discord.Interaction):
            "\nHost uptime: {8} days" \
            "\nCurrent host: {7}" \
            "\nSync checks: {4} project{6}" \
-           "\nImprovements/drafts processed and committed: {5}"
+           "\nImprovements/drafts processed and committed: {5}" \
+           "\nLikely scambots kicked: {9}"
 
     sync_checks = 0
     installations = set()
@@ -460,7 +461,8 @@ async def command_about(interaction: discord.Interaction):
                            db.history_log.size(False),  # techically inaccurate because add/edit project logs but close enough
                            plural(sync_checks),
                            utils.host().name,
-                           host_uptime)
+                           host_uptime,
+                           len(db.misc.get('kicked_likely_bots')))
 
     log.info(text_out)
     await respond(interaction, text_out)
