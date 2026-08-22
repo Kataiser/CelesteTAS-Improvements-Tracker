@@ -384,7 +384,7 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
         last_run = project['last_run_validation']
         filetimes = dict(sorted(project['filetimes'].items()))
 
-        if project['project_id'] == 598945702554501130:
+        if project['project_id'] == 598945702554501130:  # maingame
             for file in tuple(filetimes.keys()):
                 if file.startswith('0 - '):
                     filetimes[file.removeprefix('0 - ')] = filetimes[file]

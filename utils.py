@@ -66,7 +66,8 @@ def nickname(author: discord.User) -> str:
                  671098132959985684: "Mr. Wolf",
                  226515080752267286: "Soloiini",
                  794291191726211103: "Ash",
-                 761176028982018048: "Daniell"}
+                 761176028982018048: "Daniell",
+                 279027947523014657: "oliviapg"}
 
     return nicknames[author.id] if author.id in nicknames else (author.global_name if author.global_name else author.name)
 
