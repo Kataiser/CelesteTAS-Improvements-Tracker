@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import logging
 import os
 import re
 import sys
@@ -63,7 +64,7 @@ def start():
         enable_logs=True,
         traces_sample_rate=1.0,
         server_name=f'{utils.cached_hostname()} ({utils.host()})',
-        integrations=[LoggingIntegration(capture_sentry_logs=True)],
+        integrations=[LoggingIntegration(capture_sentry_logs=True, event_level=logging.ERROR)],
         environment="debug" if debug else "production"
     )
 
