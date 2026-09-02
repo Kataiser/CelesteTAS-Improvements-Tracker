@@ -8,7 +8,9 @@ from typing import List, Optional
 
 import discord
 import dotenv
+import sentry_sdk
 from discord import app_commands
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 import commands
 import db
@@ -52,6 +54,19 @@ def start():
     if debug:
         log.info("DEBUG MODE")
 
+    if not dotenv.load_dotenv():
+        log.error("Failed to load .env")
+
+    sentry_sdk.init(
+        dsn=os.getenv('SENTRY_DSN'),
+        send_default_pii=True,
+        enable_logs=True,
+        traces_sample_rate=1.0,
+        server_name=f'{utils.cached_hostname()} ({utils.host()})',
+        integrations=[LoggingIntegration(capture_sentry_logs=True)],
+        environment="debug" if debug else "production"
+    )
+
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -65,7 +80,6 @@ def start():
     if not len(projects_startup) == project_logs_size == path_caches_size:
         log.warning("Project data component lengths are not equal")
 
-    dotenv.load_dotenv()
     bot_token = os.getenv('BOT_TOKEN')
 
     while True:
