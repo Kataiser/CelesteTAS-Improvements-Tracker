@@ -9,7 +9,7 @@ cryptography==50.0.1
 deepdiff==9.1.0
 discord.py[speed]==2.7.1
 fastjsonschema==2.22.2
-google-api-core==2.35.0
+google-api-core==2.34.0
 google-api-python-client==2.200.0
 google-auth-httplib2==0.4.2
 google-auth-oauthlib==1.4.1
