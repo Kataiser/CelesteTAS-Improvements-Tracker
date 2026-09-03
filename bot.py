@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import logging
 import os
 import re
 import sys
@@ -8,10 +7,7 @@ import time
 from typing import List, Optional
 
 import discord
-import dotenv
-import sentry_sdk
 from discord import app_commands
-from sentry_sdk.integrations.logging import LoggingIntegration
 
 import commands
 import db
@@ -38,6 +34,12 @@ safe_mode = False
 
 
 def start():
+    global debug, projects_startup
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
+    debug = parser.parse_args().debug
+
+    utils.init_sentry('bot', debug)
     heartbeat = db.misc.get('heartbeat')
     time_since_heartbeat = int(time.time()) - heartbeat['time']
 
@@ -46,27 +48,10 @@ def start():
                     f"last heartbeat was {time_since_heartbeat} seconds ago. Press any key to start anyway.")
         input()
 
-    global debug, projects_startup
     log.info("Bot starting")
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--debug', action='store_true', help="Debug mode", default=False)
-    debug = parser.parse_args().debug
 
     if debug:
         log.info("DEBUG MODE")
-
-    if not dotenv.load_dotenv():
-        log.error("Failed to load .env")
-
-    sentry_sdk.init(
-        dsn=os.getenv('SENTRY_DSN'),
-        send_default_pii=True,
-        enable_logs=True,
-        traces_sample_rate=1.0,
-        server_name=f'{utils.cached_hostname()} ({utils.host()})',
-        integrations=[LoggingIntegration(capture_sentry_logs=True, event_level=logging.ERROR)],
-        environment="debug" if debug else "production"
-    )
 
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

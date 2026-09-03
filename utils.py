@@ -11,11 +11,15 @@ from collections import namedtuple
 from typing import Optional, Sized, Union, Tuple
 
 import discord
+import dotenv
 import niquests
 import orjson
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 import db
 from constants import admin_user_id
+
 
 Host = namedtuple('Host', ('name', 'sleep_scale'))
 
@@ -140,6 +144,26 @@ async def user_from_id(client: discord.Client, user_id: int) -> discord.User:
         user = await client.fetch_user(user_id)
 
     return user
+
+
+def init_sentry(system: str, debug: bool):
+    env = f"{system}-debug" if debug else f"{system}-production"
+
+    if not dotenv.load_dotenv():
+        log.error("Failed to load .env")
+
+    sentry_sdk.init(
+        dsn=os.getenv('SENTRY_DSN'),
+        send_default_pii=True,
+        enable_logs=True,
+        traces_sample_rate=1.0,
+        server_name=f'{cached_hostname()} ({host()})',
+        integrations=[LoggingIntegration(capture_sentry_logs=True)],
+        ignore_errors=[KeyboardInterrupt],
+        environment=env
+    )
+
+    log.info(f"Init Sentry with environment \"{env}\"")
 
 
 class LogPlaceholder:

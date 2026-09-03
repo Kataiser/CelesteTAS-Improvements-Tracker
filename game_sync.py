@@ -44,6 +44,7 @@ def run_syncs():
     force_file = parser.parse_args().file
     force_run_all = parser.parse_args().all
     safe = parser.parse_args().safe
+    utils.init_sentry('game_sync', safe)
 
     try:
         everest_update_to_stable()
@@ -908,7 +909,8 @@ def everest_update_to_stable():
         Path('installed_everest_version.txt').write_text(str(latest_everest))
         os.chdir(current_dir)
         everest_installed_version.cache_clear()
-        log_error(f"Updated Everest from {installed_everest} to {latest_everest} on {utils.cached_hostname()}")
+        db.send_sync_result(db.SyncResultType.REPORTED_ERROR, {'time': int(time.time()), 'error':  # ik it's the reported error type but it's like fine
+            f"Updated Everest from {installed_everest} to {latest_everest} on {utils.cached_hostname()}"})
     else:
         log.info(f"Everest version: {installed_everest}")
 
@@ -968,7 +970,6 @@ def everest_download_and_extract_stable():
 
 
 def scaled_sleep(seconds: float):
-    host_sleep_scale = utils.host().sleep_scale
     time.sleep(seconds * sleep_scale)
 
 
