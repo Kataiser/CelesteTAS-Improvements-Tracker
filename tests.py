@@ -12,6 +12,7 @@ import pytest
 
 import bot
 import commands
+import constants
 import db
 import game_sync
 import gen_token
@@ -668,9 +669,14 @@ async def test_dm_echo(setup_log, monkeypatch):
     monkeypatch.setattr(discord, 'Message', mock_message)
     monkeypatch.setattr(discord, 'TextChannel', mock_channel)
     channel = discord.TextChannel()
+    not_kataiser = MockUser()
+    not_kataiser.id = 970375635027525652
     await commands.handle_direct_dm(discord.Message("ok", channel, MockUser()))
     await commands.handle_direct_dm(discord.Message("hello", channel, MockUser()))
-    assert channel.sent_messages == ["ok", "hello"]
+    await commands.handle_direct_dm(discord.Message("😨", channel, MockUser()))
+    await commands.handle_direct_dm(discord.Message("die", channel, not_kataiser))
+    await commands.handle_direct_dm(discord.Message("iduyfv34n897yqcni78xm98", channel, MockUser()))
+    assert channel.sent_messages == ["ok", "hello", "😨", f"Not allowed, you are not {constants.admin_name}.", "DM commands are now slash commands, run `/help` for more info."]
 
 
 @pytest.mark.xfail

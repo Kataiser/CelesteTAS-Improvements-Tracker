@@ -11,6 +11,7 @@ from operator import itemgetter
 from typing import Optional, Union
 
 import discord
+import emoji
 import niquests
 import orjson
 import strip_markdown
@@ -767,7 +768,7 @@ async def retry_message(key: str, dm_channel: discord.DMChannel):
 async def handle_direct_dm(message: discord.Message):
     log.info(f"Received DM from {utils.detailed_user(message)}: `{message.content}`")
 
-    if message.content.lower() in ('ok', 'hi', 'hello', 'meow'):
+    if message.content.lower() in ('ok', 'hi', 'hello', 'meow') or emoji.is_emoji(message.content):
         await message.channel.send(message.content)
         return
 

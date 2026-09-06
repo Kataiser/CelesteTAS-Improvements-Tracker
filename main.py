@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import discord
+import emoji
 import niquests
 import orjson
 
@@ -75,6 +76,8 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.add_reaction('😻')
             elif message.content == '👀':
                 await message.add_reaction('👁️')
+            elif emoji.is_emoji(message.content):
+                await message.add_reaction(message.content)
             else:
                 await message.add_reaction('👍')
 
