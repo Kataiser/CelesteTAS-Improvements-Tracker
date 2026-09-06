@@ -5,6 +5,7 @@ import re
 from typing import List, Optional, Callable, Union
 
 import discord
+import sentry_sdk
 
 import db
 import utils
@@ -33,7 +34,9 @@ class ValidationResult:
         if self.valid_tas:
             log.info("TAS file and improvement post have been validated")
 
-            if not self.finaltime:
+            if self.finaltime:
+                sentry_sdk.metrics.distribution('bot-valid_tas_frames', self.finaltime_frames)
+            else:
                 log.warning("Valid tas result has no finaltime")
 
     def __post_init__(self):
@@ -284,12 +287,14 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     if got_timesave:
         timesave = str(time_saved_messages[0]) if time_saved_messages else None
+        sentry_sdk.metrics.distribution('bot-valid_tas_time_saved', time_saved_num)
     elif is_dash_save:
         # techically not timesave but whatever
-        timesave = str(dash_saves[0])
+        timesave = dash_saves[0]
     else:
         timesave = None
 
+    sentry_sdk.metrics.distribution('bot-valid_tas_lines', len(tas_lines))
     sj_data = (tas_lines, tas_parsed.finaltime_line_num) if message.channel.id == 1074148268407275520 else None
     validation_result.finaltime = tas_parsed.finaltime
     validation_result.finaltime_frames = tas_parsed.finaltime_frames

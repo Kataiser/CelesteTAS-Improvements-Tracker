@@ -17,6 +17,7 @@ from pathlib import Path
 import cron_validator
 import discord
 import niquests
+import sentry_sdk
 from discord.ext import tasks
 
 import db
@@ -155,6 +156,8 @@ async def handle_no_game_sync_results():
     current_time = time.time()
     time_since_last_game_sync_start = current_time - float(db.misc.get('last_game_sync_start_time'))
     time_since_last_game_sync_result = current_time - float(db.misc.get('last_game_sync_result_time'))
+    sentry_sdk.metrics.distribution('bot-time_since_last_game_sync_start', time_since_last_game_sync_start)
+    sentry_sdk.metrics.distribution('bot-time_since_last_game_sync_result', time_since_last_game_sync_result)
     warning_text = None
 
     if time_since_last_game_sync_result > 172800:  # 48 hours
@@ -293,6 +296,7 @@ async def room_suggestions():
         previous_suggestions.append(chosen_room.suggestion_id())
         previous_suggestions = previous_suggestions[-int(len(rooms) * 0.75):]
         db.room_suggestions.set(project_id, previous_suggestions)
+        log.info(f"Previous suggestions count is now {len(previous_suggestions)}")
         github_link = f'https://github.com/{repo}/blob/master/{urllib.parse.quote(chosen_room.tas_path)}#L{chosen_room.line_num_start + 1}'
         room_display = f"`{chosen_room.name}`"
         maingame_emojis = ''
@@ -316,6 +320,7 @@ async def room_suggestions():
                     break
 
             maingame_emojis = get_maingame_emojis(filename_only)
+            sentry_sdk.metrics.gauge('bot-maingame_previous_suggestions_count', len(previous_suggestions))
 
         message_text = (f"### Room improvement suggestion\n"
                         f"Room: {room_display}\n"
@@ -424,6 +429,7 @@ def archive_logs():
 
     if result.returncode == 0 and archive_path.is_file():
         log.info(f"Successfully archived logs")
+        sentry_sdk.metrics.gauge('bot-archived_logs', len(files))
     else:
         raise Exception(f"Error archiving files: {result.stderr}")
 

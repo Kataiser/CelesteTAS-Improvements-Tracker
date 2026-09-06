@@ -18,6 +18,7 @@ import discord
 import emoji
 import niquests
 import orjson
+import sentry_sdk
 
 import commands
 import db
@@ -45,6 +46,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         skip_validation = True
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']})\n{message.jump_url}\n{message.content}")
+    start_time = time.perf_counter()
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
     zip_attachments = [a for a in message.attachments if a.filename.endswith('.zip')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
@@ -83,9 +85,11 @@ async def process_improvement_message(message: discord.Message, project: Optiona
 
         add_project_log(message)
         log.info("Done processing message")
+        sentry_sdk.metrics.distribution('bot-improvement_message_processing_time', time.perf_counter() - start_time)
         await set_status(message, project['name'])
         return True
     elif len(tas_attachments) > 1:
+        sentry_sdk.metrics.distribution('bot-tas_attachments', len(tas_attachments))
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
         # TODO: handle this better
 
@@ -183,6 +187,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
 
     await message.clear_reaction('👀')
     log.info("Done processing message")
+    sentry_sdk.metrics.distribution('bot-improvement_message_processing_time', time.perf_counter() - start_time)
     await set_status(message, project['name'])
     return True
 
@@ -303,6 +308,7 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
 
     db.path_caches.set(project_id, path_cache)
     log.info(f"Cached: {path_cache}")
+    sentry_sdk.metrics.distribution('bot-path_cache_files', len(path_cache))
     previous_room_indexing_includes_reads = project['room_indexing_includes_reads']
     room_indexing_includes_reads = False
 
@@ -419,6 +425,7 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
                   f'https://github.com/{repo}/archive/refs/heads/master.zip'
     repo_full = f'{repo}/{subdir}' if subdir else repo
     text_out = text.format(name, repo_url, package_url, admins, sync_timestamp, desyncs_text, plural(project['admins']), filetimes_text, repo_full)
+    sentry_sdk.metrics.distribution('bot-pin_full_length', len(text_out))
 
     if len(text_out) > 1900:
         log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
@@ -508,6 +515,7 @@ def update_contributors(contributor: discord.User, project_id: int, project: dic
         log.info(f"Created contributor: {contributor_id} = {project_contributors[contributor_id]}")
 
     db.contributors.set(project_id, project_contributors)
+    sentry_sdk.metrics.distribution('bot-contributors_count', len(project_contributors))
 
     if not project['use_contributors_file']:
         log.info("Not updating Contributors.txt")
