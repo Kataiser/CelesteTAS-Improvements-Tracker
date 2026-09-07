@@ -63,7 +63,6 @@ def start():
     project_logs_size = db.project_logs.size()
     log.info(f"Loaded {len(projects_startup)} project{plural(projects_startup)}, {project_logs_size} project message log{plural(project_logs_size)}, "
              f"and {path_caches_size} path cache{plural(path_caches_size)}")
-    sentry_sdk.metrics.gauge('bot-startup_projects', len(projects_startup))
     bot_token = os.getenv('BOT_TOKEN')
 
     if not len(projects_startup) == project_logs_size == path_caches_size:
@@ -96,7 +95,6 @@ async def on_ready():
     main.login_time = time.time()
     await command_tree.sync()
     log.info(f"Servers: {[g.name for g in client.guilds]}")
-    sentry_sdk.metrics.gauge('bot-startup_servers', len(client.guilds))
     downtime_message_count = 0
     projects_to_scan = main.safe_projects if safe_mode else projects_startup
     db.project_logs.enable_cache()

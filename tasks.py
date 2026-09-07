@@ -20,6 +20,7 @@ import niquests
 import sentry_sdk
 from discord.ext import tasks
 
+import commands
 import db
 import main
 import maingame_vids
@@ -35,7 +36,8 @@ def start_tasks() -> dict[callable, bool]:
                      heartbeat_task: False,
                      room_suggestions_task: False,
                      archive_logs_task: False,
-                     git_gc_task: False}
+                     git_gc_task: False,
+                     sentry_gauges_task: False}
 
     for task in tasks_running:
         tasks_running[task] = task.is_running()
@@ -94,6 +96,11 @@ async def archive_logs_task():
 @tasks.loop(hours=24)
 async def git_gc_task():
     await run_and_catch_task(git_gc)
+
+
+@tasks.loop(hours=6)
+async def sentry_gauges_task():
+    await run_and_catch_task(sentry_gauges)
 
 
 async def handle_game_sync_results():
@@ -429,7 +436,7 @@ def archive_logs():
 
     if result.returncode == 0 and archive_path.is_file():
         log.info(f"Successfully archived logs")
-        sentry_sdk.metrics.gauge('bot-archived_logs', len(files))
+        sentry_sdk.metrics.distribution('bot-archived_logs', len(files))
     else:
         raise Exception(f"Error archiving files: {result.stderr}")
 
@@ -437,6 +444,18 @@ def archive_logs():
 def git_gc():
     subprocess.run(['git', 'gc'])
     log.info("Ran git gc")
+
+
+def sentry_gauges():
+    metrics = commands.bot_metrics()
+    sentry_sdk.metrics.gauge('bot-sync_checks', metrics['sync_checks'])
+    sentry_sdk.metrics.gauge('bot-installations', metrics['installations'])
+    sentry_sdk.metrics.gauge('bot-host_uptime', metrics['host_uptime'])
+    sentry_sdk.metrics.gauge('bot-bot_uptime', metrics['bot_uptime'])
+    sentry_sdk.metrics.gauge('bot-projects', metrics['projects'])
+    sentry_sdk.metrics.gauge('bot-servers', metrics['servers'])
+    sentry_sdk.metrics.gauge('bot-commits', metrics['commits'])
+    sentry_sdk.metrics.gauge('bot-kicked_likely_bots', metrics['kicked_likely_bots'])
 
 
 client: discord.Client | None = None

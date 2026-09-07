@@ -438,32 +438,17 @@ async def command_about(interaction: discord.Interaction):
            "\nImprovements/drafts processed and committed: {5}" \
            "\nLikely scambots kicked: {9}"
 
-    sync_checks = 0
-    installations = set()
-    import psutil
-    host_uptime = round((time.time() - psutil.boot_time()) / 86400, 1)
-
-    for project in db.projects.get_all(consistent_read=False):
-        installations.add(project['installation_owner'])
-
-        if project['do_run_validation']:
-            sync_checks += 1
-
-    if main.login_time:
-        bot_uptime = round((time.time() - main.login_time) / 86400, 1)
-    else:
-        bot_uptime = 0.0
-
-    text_out = text.format(main.projects_count(),
-                           len(client.guilds),
-                           len(installations),
-                           bot_uptime,
-                           sync_checks,
-                           db.history_log.size(False),  # techically inaccurate because add/edit project logs but close enough
-                           plural(sync_checks),
+    metrics = bot_metrics()
+    text_out = text.format(metrics['projects'],
+                           metrics['servers'],
+                           metrics['installations'],
+                           metrics['bot_uptime'],
+                           metrics['sync_checks'],
+                           metrics['commits'],
+                           plural(metrics['sync_checks']),
                            utils.host().name,
-                           host_uptime,
-                           len(db.misc.get('kicked_likely_bots')))
+                           metrics['host_uptime'],
+                           metrics['kicked_likely_bots'])
 
     log.info(text_out)
     await respond(interaction, text_out)
@@ -749,6 +734,33 @@ async def command_restart(message: discord.Message):
     log.info("Restarting...")
     await message.channel.send("yeah ok")
     sys.exit(111)  # caught by runner script
+
+
+def bot_metrics() -> dict:
+    sync_checks = 0
+    installations = set()
+    import psutil
+    host_uptime = round((time.time() - psutil.boot_time()) / 86400, 1)
+
+    for project in db.projects.get_all(consistent_read=False):
+        installations.add(project['installation_owner'])
+
+        if project['do_run_validation']:
+            sync_checks += 1
+
+    if main.login_time:
+        bot_uptime = round((time.time() - main.login_time) / 86400, 1)
+    else:
+        bot_uptime = 0.0
+
+    return {'sync_checks': sync_checks,
+            'installations': len(installations),
+            'host_uptime': host_uptime,
+            'bot_uptime': bot_uptime,
+            'projects': main.projects_count(),
+            'servers': len(client.guilds),
+            'commits': db.history_log.size(False),  # technically inaccurate because add/edit project logs but close enough
+            'kicked_likely_bots': len(db.misc.get('kicked_likely_bots'))}
 
 
 async def retry_message(key: str, dm_channel: discord.DMChannel):
