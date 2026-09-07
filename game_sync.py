@@ -19,6 +19,7 @@ from typing import Optional, Union
 import dateutil.parser
 import niquests
 import orjson
+import sentry_sdk
 from deepdiff import DeepDiff
 
 import db
@@ -84,7 +85,9 @@ def run_syncs():
         raise
 
     post_cleanup()
-    log.info(f"All sync checks time: {format_elapsed_time(start_time)}")
+    elapsed_time = time.time() - start_time
+    log.info(f"All sync checks time: {format_elapsed_time(elapsed_time)}")
+    sentry_sdk.metrics.distribution('sync-all_checks_total_time', elapsed_time)
 
 
 def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: bool = False):
@@ -150,6 +153,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
+    sentry_sdk.metrics.distribution('sync-mods_loaded', len(mods_to_load))
     close_game()
     start_game(project['validate_room_labels'])
 
@@ -422,6 +426,9 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     new_desyncs = [d for d in desyncs if d[0] not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")
+    sentry_sdk.metrics.distribution('sync-all_desyncs', len(desyncs))
+    sentry_sdk.metrics.distribution('sync-new_desyncs', len(new_desyncs))
+    sentry_sdk.metrics.distribution('sync-files_tested', files_timed)
     report_text = report_log = None
 
     if new_desyncs:
@@ -492,7 +499,9 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         if project_id == 598945702554501130:
             db.send_sync_result(db.SyncResultType.MAINGAME_COMMIT, {'maingame_message': f"Committed `{commit_message}` <{commit_url}>"})
 
-    log.info(f"Sync check time: {format_elapsed_time(start_time)}")
+    elapsed_time = time.time() - start_time
+    log.info(f"Sync check time: {format_elapsed_time(elapsed_time)}")
+    sentry_sdk.metrics.distribution('sync-project_check_time', elapsed_time, attributes={'force': force})
 
 
 def clone_repo(repo: str, project_id: int, access_token: str | None = None):
@@ -562,6 +571,7 @@ def generate_blacklist(mods_to_load: set):
 # for when headless is enabled
 def update_mods(mods: set):
     gb_mods = get_gb_mods()
+    updated_mod_count = 0
 
     for mod in mods:
         mod_spaces = mod.replace('_', ' ')
@@ -581,6 +591,9 @@ def update_mods(mods: set):
             utils.handle_potential_request_error(r_mmdl, 200)
             mods_dir().joinpath(f'{mod}.zip').write_bytes(r_mmdl.content)
             log.info(f"Done in {time.time() - start_time:.1f} seconds, wrote {len(r_mmdl.content)} bytes")
+            updated_mod_count += 1
+
+    sentry_sdk.metrics.distribution('sync-updated_mods', updated_mod_count)
 
 
 # remove all files related to any save
@@ -625,7 +638,7 @@ def wait_for_game_load(mods: set, project_name: str):
     import psutil
     game_loaded = False
     last_game_loading_notify = time.perf_counter()
-    wait_start_time = time.time()
+    start_time = time.time()
 
     while not game_loaded:
         try:
@@ -637,11 +650,12 @@ def wait_for_game_load(mods: set, project_name: str):
             if current_time - last_game_loading_notify > 60:
                 last_game_loading_notify = current_time
 
-            if time.time() - wait_start_time > 3600:
+            if time.time() - start_time > 3600:
                 raise TimeoutError(f"Game failed to load after an hour for project {project_name}")
         else:
             game_loaded = True
 
+    sentry_sdk.metrics.distribution('sync-game_load_time', time.time() - start_time)
     mod_versions_start_time = time.perf_counter()
     scaled_sleep(5)
     log.info(f"Game loaded, mod versions: {mod_versions(mods)}")
@@ -835,8 +849,8 @@ def consider_disabling_after_inactivity(project: dict, reference_time: Union[int
             return disabled_text
 
 
-def format_elapsed_time(start_time: float) -> str:
-    hours, seconds = divmod(time.time() - start_time, 3600)
+def format_elapsed_time(elapsed_time: float) -> str:
+    hours, seconds = divmod(elapsed_time, 3600)
     minutes = seconds / 60
     return f"{int(hours)}h {int(minutes)}m"
 
