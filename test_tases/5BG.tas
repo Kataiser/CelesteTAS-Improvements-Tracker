@@ -1,0 +1,74 @@
+console hard 5
+   1
+
+#Start
+ 190
+
+#lvl_start
+# +4f
+   4,Z
+   2,R,J
+   8,R
+   1,R,J
+   9,R,D,X
+   1,R,J
+   3,R
+   1,R,K
+   3,R
+   8,R,J
+  14,R,D,X
+   1,R,J
+   8,R,D,X
+   1,R,J
+  40
+
+#lvl_a-00
+   6,R,J
+   1,R,K,G
+   9,R
+  18,R,C
+  22,U,X
+  11,R,D
+   2,D
+   3,R
+   1,R,D
+   1,R,J,G
+   6,R,K,G
+  14,R
+  20,R,U,X
+   7,R,Z
+   1,R,J
+   6,R
+  40
+
+#lvl_a-01
+Read,../5B,lvl_a-01,lvl_c-00
+
+#lvl_c-00
+ 206
+Read,../5B,5BG1,lvl_d-05
+
+#lvl_d-05
+  15,R,D,X
+   1,R,J
+   5,R,D,X
+  13,R,G
+  12,R,J,G
+   5,R,G
+   1,R,J,G
+  29,R,G
+   7,R,J,G
+   5,R,G
+   1,R,J,G
+  10,R,G
+   1,R,J,G
+   1,R,G
+   1,L
+  11,R
+  14,R,U,X
+# Exit
+   1,S
+   1,U,J
+   1,O
+  31
+FileTime: 1:41.932(5996)

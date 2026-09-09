@@ -372,8 +372,8 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
     example_timesave = f"-{round(random.triangular(1, 50, 0))}f {random.choice(maingame_times)}"
 
     text = "Welcome to the **{0} TAS project!** This improvements channel is in part managed by this bot, which automatically verifies and commits files. When posting " \
-           f"a file, please include the amount of frames saved{level_text_ensure} and the ChapterTime of the file, (ex: `{example_timesave}`). {lobby_text}" \
-           f"Room(s) affected is ideal, and{level_text_not_ensure} previous ChapterTime, category affected, and video are optional." \
+           f"a file, please include the amount of frames saved{level_text_ensure} and the final time of the file, (ex: `{example_timesave}`). {lobby_text}" \
+           f"Room(s) affected is ideal, and{level_text_not_ensure} previous final time, category affected, and video are optional." \
            "\n\nRepo: [{8}](<{1}>) (using [Github Desktop](<https://desktop.github.com/>) is recommended)" \
            "\n[Package download](<{2}>)" \
            "\nAdmin{6}: {3}" \

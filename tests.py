@@ -326,7 +326,7 @@ def test_validate(setup_log, monkeypatch):
                                                                         "duplicate room label #lvl_hub on line 383 in the_lab.tas",
                                                                         "duplicate room label #lvl_start-02-Radley on line 515 in the_lab.tas",
                                                                         "duplicate room label #lvl_hub on line 521 in the_lab.tas",
-                                                                        "ChapterTime (1:32.871) missing in message content",
+                                                                        "final time (ChapterTime, 1:32.871) missing in message content",
                                                                         "no \"draft\" text in message",
                                                                         "level name ['lab'] missing in message content"])
     assert validation.validate(Path('test_tases\\room indexes\\the_lab not indexed.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_duplicate_room_label
@@ -338,7 +338,7 @@ def test_validate(setup_log, monkeypatch):
                                                                           "post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.", "The level "
                                                                           "name is missing in your message, please add it and post again."],
                                                             log_text=["missing room label #lvl_hub on line 521 in the_lab.tas",
-                                                                      "ChapterTime (1:32.871) missing in message content",
+                                                                      "final time (ChapterTime, 1:32.871) missing in message content",
                                                                       "no \"draft\" text in message",
                                                                       "level name ['lab'] missing in message content"])
     assert validation.validate(Path('test_tases\\room indexes\\the_lab unfinished index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_missing_room_label
@@ -350,7 +350,7 @@ def test_validate(setup_log, monkeypatch):
                                                                              "reasonable) and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the "
                                                                              "repo.", "The level name is missing in your message, please add it and post again."],
                                                                log_text=["out of order room label #lvl_hub (2) on line 521 in the_lab.tas",
-                                                                         "ChapterTime (1:32.871) missing in message content",
+                                                                         "final time (ChapterTime, 1:32.871) missing in message content",
                                                                          "no \"draft\" text in message",
                                                                          "level name ['lab'] missing in message content"])
     assert validation.validate(Path('test_tases\\room indexes\\the_lab disordered index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) == result_disordered_room_label
@@ -363,7 +363,7 @@ def test_validate(setup_log, monkeypatch):
                                                                                "exactly the same as in the repo.",
                                                                                "The level name is missing in your message, please add it and post again."],
                                                                  log_text=["incorrect initial room label #lvl_start-04-Radley (1) on line 80 in the_lab.tas",
-                                                                           "ChapterTime (1:32.871) missing in message content",
+                                                                           "final time (ChapterTime, 1:32.871) missing in message content",
                                                                            "no \"draft\" text in message",
                                                                            "level name ['lab'] missing in message content"])
     assert (validation.validate(Path('test_tases\\room indexes\\the_lab inconsistent index.tas').read_bytes(), 'the_lab.tas', message, None, test_project, False) ==
@@ -374,7 +374,7 @@ def test_validate(setup_log, monkeypatch):
                                                                        "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) "
                                                                        "and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.",
                                                                        "The level name is missing in your message, please add it and post again."],
-                                                         log_text=["ChapterTime (4:01.145) missing in message content",
+                                                         log_text=["final time (ChapterTime, 4:01.145) missing in message content",
                                                                            "no \"draft\" text in message",
                                                                    "level name ['area36'] missing in message content"])
     assert (validation.validate(Path('test_tases\\room indexes\\area_36.tas').read_bytes(), 'area_36.tas', message, None, test_project, False) ==
@@ -391,13 +391,13 @@ def test_validate(setup_log, monkeypatch):
     result_disallowed_command2 = validation.ValidationResult(valid_tas=False, finaltime='0:45.016', finaltime_frames=2648,
                                                              warning_text=["Incorrect `Set` command usage on line 10: Set command is not allowed.",
                                                                            "Incorrect `Set` command usage on line 394: Set command is not allowed.",
-                                                                           "The file's ChapterTime (45.016) is missing in your message, please add it and post again.",
+                                                                           "The file's final time (45.016) is missing in your message, please add it and post again.",
                                                                            "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) "
                                                                            "and post again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo.",
                                                                            "The level name is missing in your message, please add it and post again."],
                                                              log_text=["incorrect command argument in nyoom.tas: Set, Set command is not allowed",
                                                                        "incorrect command argument in nyoom.tas: Set, Set command is not allowed",
-                                                                       "ChapterTime (45.016) missing in message content",
+                                                                       "final time (final time, 45.016) missing in message content",
                                                                        "no \"draft\" text in message",
                                                                        "level name ['nyoom'] missing in message content"])
     assert validation.validate(Path('test_tases\\nyoom.tas').read_bytes(), 'nyoom.tas', message, None, test_project, False) == result_disallowed_command2
@@ -423,18 +423,26 @@ def test_validate(setup_log, monkeypatch):
                                                                 warning_text=["The file's ChapterTime (7:54.929) is missing in your message, please add it and post again.", "Since this "
                                                                               "is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post "
                                                                               "again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo."],
-                                                                log_text=["ChapterTime (7:54.929) missing in message content", "no \"draft\" text in message"])
+                                                                log_text=["final time (ChapterTime, 7:54.929) missing in message content", "no \"draft\" text in message"])
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_chaptertime, None, test_project, False) == result_no_message_chaptertime
 
-    test_project['is_lobby'] = True
+    message_no_filetime = discord.Message("-1f 5BG", MockChannel(), mock_kataiser)
+    result_no_message_filetime = validation.ValidationResult(valid_tas=False, finaltime='1:41.932', finaltime_frames=5996,
+                                                                warning_text=["The file's FileTime (1:41.932) is missing in your message, please add it and post again.", "Since this "
+                                                                              "is a draft, please mention that in your message (just put the word \"draft\" somewhere reasonable) and post "
+                                                                              "again. If it shouldn't be a draft, make sure your filename is exactly the same as in the repo."],
+                                                                log_text=["final time (FileTime, 1:41.932) missing in message content", "no \"draft\" text in message"])
+    assert validation.validate(Path('test_tases\\5BG.tas').read_bytes(), '5BG.tas', message_no_filetime, None, test_project, False) == result_no_message_filetime
 
+    test_project['is_lobby'] = True
     result_no_message_chaptertime_lobby = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
-                                                                      warning_text=["The file's final time (7:54.929) is missing in your message, please add it and post again.",
+                                                                      warning_text=["The file's ChapterTime (7:54.929) is missing in your message, please add it and post again.",
                                                                                     "Since this is a draft, please mention that in your message (just put the word \"draft\" somewhere "
                                                                                     "reasonable) and post again. If it shouldn't be a draft, make sure your filename is exactly the same "
                                                                                     "as in the repo."],
-                                                                      log_text=["final time (7:54.929) missing in message content", "no \"draft\" text in message"])
+                                                                      log_text=["final time (ChapterTime, 7:54.929) missing in message content", "no \"draft\" text in message"])
     assert validation.validate(ehs_valid, 'expert_heartside.tas', message_no_chaptertime, None, test_project, False) == result_no_message_chaptertime_lobby
+    test_project['is_lobby'] = False
 
     result_no_start = validation.ValidationResult(valid_tas=False, finaltime='7:54.929', finaltime_frames=27937,
                                                   warning_text=["No `#Start` found in file, please add one between the console load frame and the intro frames (or first room label if "
@@ -444,11 +452,11 @@ def test_validate(setup_log, monkeypatch):
     assert validation.validate(Path('test_tases\\invalids\\ehs_no_start.tas').read_bytes(), 'expert_heartside.tas', message, None, test_project, False) == result_no_start
 
     result_space_start = validation.ValidationResult(valid_tas=False, finaltime='0:19.584', finaltime_frames=1152,
-                                                  warning_text=["The file's final time (0:19.584) is missing in your message, please add it and post again.", "Since this is a draft, "
+                                                  warning_text=["The file's ChapterTime (19.584) is missing in your message, please add it and post again.", "Since this is a draft, "
                                                                 "please mention that in your message (just put the word \"draft\" somewhere reasonable) and post again. If it shouldn't be "
                                                                 "a draft, make sure your filename is exactly the same as in the repo.", "The level name is missing in your message, "
                                                                 "please add it and post again."],
-                                                  log_text=["final time (0:19.584) missing in message content", "no \"draft\" text in message",
+                                                  log_text=["final time (ChapterTime, 19.584) missing in message content", "no \"draft\" text in message",
                                                             "level name ['sailorsbreak'] missing in message content"])
     assert validation.validate(Path('test_tases\\sailorsbreak.tas').read_bytes(), 'sailorsbreak.tas', message, None, test_project, False) == result_space_start
 

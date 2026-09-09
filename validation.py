@@ -200,17 +200,11 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     time_saved_messages: Union[None, re.Match] = None
 
-    # validate chaptertime is in message content
-    if tas_parsed.finaltime:
-        if project['is_lobby']:
-            if tas_parsed.finaltime not in message.content:
-                validation_result.emit_failed_check(f"The file's final time ({tas_parsed.finaltime}) is missing in your message, please add it and post again.",
-                                                    f"final time ({tas_parsed.finaltime}) missing in message content")
-        else:
-            if tas_parsed.finaltime not in message.content and tas_parsed.finaltime_trimmed not in message.content:
-                chapter_time_notif = tas_parsed.finaltime if tas_parsed.finaltime == tas_parsed.finaltime_trimmed else tas_parsed.finaltime_trimmed
-                validation_result.emit_failed_check(f"The file's ChapterTime ({chapter_time_notif}) is missing in your message, please add it and post again.",
-                                                    f"ChapterTime ({chapter_time_notif}) missing in message content")
+    # validate final time is in message content
+    if tas_parsed.finaltime and tas_parsed.finaltime not in message.content and (project['is_lobby'] or tas_parsed.finaltime_trimmed not in message.content):
+            chapter_time_notif = tas_parsed.finaltime if tas_parsed.finaltime == tas_parsed.finaltime_trimmed else tas_parsed.finaltime_trimmed
+            validation_result.emit_failed_check(f"The file's {tas_parsed.finaltime_type} ({chapter_time_notif}) is missing in your message, please add it and post again.",
+                                                f"final time ({tas_parsed.finaltime_type}, {chapter_time_notif}) missing in message content")
 
     # validate #Start exists
     if not found_start:
@@ -304,12 +298,12 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
     return validation_result
 
 
-class FinalTimeTypes(enum.Enum):
-    Chapter = 0
-    MidwayChapter = 1
-    File = 2
-    MidwayFile = 3
-    Comment = 4
+class FinalTimeTypes(enum.StrEnum):
+    Chapter = 'ChapterTime'
+    MidwayChapter = 'MidwayChapterTime'
+    File = 'FileTime'
+    MidwayFile = 'MidwayFileTime'
+    Comment = 'final time'
 
     def as_midway(self):
         match self:
