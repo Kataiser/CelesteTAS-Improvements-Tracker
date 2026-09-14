@@ -413,7 +413,7 @@ def archive_logs():
     for file in Path('log_history').iterdir():
         mtime = datetime.datetime.fromtimestamp(file.stat().st_mtime)
 
-        if mtime.month == last_month.month and mtime.year == last_month.year:
+        if mtime.month <= last_month.month and mtime.year <= last_month.year:
             files.append(file)
 
     if not files or now.day <= 7:
