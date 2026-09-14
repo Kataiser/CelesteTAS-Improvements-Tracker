@@ -34,9 +34,7 @@ class ValidationResult:
         if self.valid_tas:
             log.info("TAS file and improvement post have been validated")
 
-            if self.finaltime:
-                sentry_sdk.metrics.distribution('bot-valid_tas_frames', self.finaltime_frames)
-            else:
+            if not self.finaltime:
                 log.warning("Valid tas result has no finaltime")
 
     def __post_init__(self):
@@ -279,16 +277,21 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
         if not [f for f in filenames_level if f in message_level]:
             validation_result.emit_failed_check("The level name is missing in your message, please add it and post again.", f"level name {filenames_level} missing in message content")
 
+    sentry_attributes = {'project_id': project['project_id']}
+
     if got_timesave:
         timesave = str(time_saved_messages[0]) if time_saved_messages else None
-        sentry_sdk.metrics.distribution('bot-valid_tas_time_saved', time_saved_num)
+        sentry_sdk.metrics.distribution('bot-valid_tas_time_saved', time_saved_num, attributes=sentry_attributes)
     elif is_dash_save:
         # techically not timesave but whatever
         timesave = dash_saves[0]
     else:
         timesave = None
 
-    sentry_sdk.metrics.distribution('bot-valid_tas_lines', len(tas_lines))
+    if tas_parsed.finaltime_frames:
+        sentry_sdk.metrics.distribution('bot-valid_tas_frames', tas_parsed.finaltime_frames, attributes=sentry_attributes)
+
+    sentry_sdk.metrics.distribution('bot-valid_tas_lines', len(tas_lines), attributes=sentry_attributes)
     sj_data = (tas_lines, tas_parsed.finaltime_line_num) if message.channel.id == 1074148268407275520 else None
     validation_result.finaltime = tas_parsed.finaltime
     validation_result.finaltime_frames = tas_parsed.finaltime_frames

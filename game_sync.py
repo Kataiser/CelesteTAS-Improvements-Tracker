@@ -91,6 +91,7 @@ def run_syncs():
 
 
 def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: bool = False):
+    global sleep_scale, sentry_attributes
     start_time = time.time()
     current_log = io.StringIO()
     stream_handler = logging.StreamHandler(current_log)
@@ -105,6 +106,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         return
 
     log.info(f"Considering sync check for project: {project['name']} ({project_id})")
+    sentry_attributes = {'project_id': project_id, 'safe_mode': safe_mode, 'force': force, 'force_file': force_file}
     mods = project['mods']
     repo = project['repo']
     previous_desyncs = project['desyncs']
@@ -153,7 +155,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     get_mod_everest_yaml.cache_clear()
     generate_blacklist(mods_to_load)
     log.info(f"Created blacklist, launching game with {len(mods_to_load)} mod{plural(mods_to_load)}")
-    sentry_sdk.metrics.distribution('sync-mods_loaded', len(mods_to_load))
+    sentry_sdk.metrics.distribution('sync-mods_loaded', len(mods_to_load), attributes=sentry_attributes)
     close_game()
     start_game(project['validate_room_labels'])
 
@@ -223,7 +225,6 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
         db.sid_caches.set(project_id, sid_cache)
         log.warning(f"Removed {len(sid_cache_files_removed)} invalid cached SIDs: {sid_cache_files_removed}")
 
-    global sleep_scale
     host_sleep_scale = utils.host().sleep_scale
 
     if host_sleep_scale:
@@ -426,9 +427,9 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
     new_desyncs = [d for d in desyncs if d[0] not in previous_desyncs]
     log.info(f"All desyncs: {desyncs}")
     log.info(f"New desyncs: {new_desyncs}")
-    sentry_sdk.metrics.distribution('sync-all_desyncs', len(desyncs))
-    sentry_sdk.metrics.distribution('sync-new_desyncs', len(new_desyncs))
-    sentry_sdk.metrics.distribution('sync-files_tested', files_timed)
+    sentry_sdk.metrics.distribution('sync-all_desyncs', len(desyncs), attributes=sentry_attributes)
+    sentry_sdk.metrics.distribution('sync-new_desyncs', len(new_desyncs), attributes=sentry_attributes)
+    sentry_sdk.metrics.distribution('sync-files_tested', files_timed, attributes=sentry_attributes)
     report_text = report_log = None
 
     if new_desyncs:
@@ -501,7 +502,7 @@ def sync_test(project_id: int, force: bool, force_file: str | None, safe_mode: b
 
     elapsed_time = time.time() - start_time
     log.info(f"Sync check time: {format_elapsed_time(elapsed_time)}")
-    sentry_sdk.metrics.distribution('sync-project_check_time', elapsed_time, attributes={'force': force})
+    sentry_sdk.metrics.distribution('sync-project_check_time', elapsed_time, attributes=sentry_attributes)
 
 
 def clone_repo(repo: str, project_id: int, access_token: str | None = None):
@@ -593,7 +594,7 @@ def update_mods(mods: set):
             log.info(f"Done in {time.time() - start_time:.1f} seconds, wrote {len(r_mmdl.content)} bytes")
             updated_mod_count += 1
 
-    sentry_sdk.metrics.distribution('sync-updated_mods', updated_mod_count)
+    sentry_sdk.metrics.distribution('sync-updated_mods', updated_mod_count, attributes=sentry_attributes)
 
 
 # remove all files related to any save
@@ -655,7 +656,7 @@ def wait_for_game_load(mods: set, project_name: str):
         else:
             game_loaded = True
 
-    sentry_sdk.metrics.distribution('sync-game_load_time', time.time() - start_time)
+    sentry_sdk.metrics.distribution('sync-game_load_time', time.time() - start_time, attributes=sentry_attributes)
     mod_versions_start_time = time.perf_counter()
     scaled_sleep(5)
     log.info(f"Game loaded, mod versions: {mod_versions(mods)}")
@@ -1006,6 +1007,7 @@ re_save_file = re.compile(r"([1-9]|\d{2,})(?:-modsavedata|-mod(?:save|session)-\
 game_sync_hash = None
 sleep_scale = 1.0
 gb_mods_cache: dict | None = None
+sentry_attributes = {}
 
 if __name__ == '__main__':
     run_syncs()
