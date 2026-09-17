@@ -11,6 +11,7 @@ import niquests
 
 import game_sync
 import main
+import validation
 
 
 FILES_BLACKLIST = \
@@ -108,8 +109,9 @@ class Room:
         self.inputs = []
 
     def add_input_line(self, line: str, line_num: int):
-        self.inputs.append(line)
-        self.line_num_end = line_num
+        if not validation.re_chapter_time.match(line) and not validation.re_file_time.match(line):
+            self.inputs.append(line)
+            self.line_num_end = line_num
 
     def finalize(self):
         self.inputs_hash = zlib.adler32('\n'.join(self.inputs).encode('UTF8'))
