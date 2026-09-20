@@ -51,7 +51,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     zip_attachments = [a for a in message.attachments if a.filename.endswith('.zip')]
     video_attachments = [a for a in message.attachments if a.filename.rpartition('.')[2] in ('mp4', 'webm', 'gif', 'gifv', 'mkv', 'avi', 'mov', 'm4v')]
     has_video = video_attachments or [s for s in ('youtube.com/watch?v=', 'youtu.be/', 'streamable.com/', 'gfycat.com/') if s in message.content]
-    sentry_attributes = {'project_id': project['project_id'], 'skip_validation': skip_validation, 'force': force}
 
     if has_video:
         log.info("Video found 🍿")
@@ -68,6 +67,9 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                     with zip_file.open(file) as file_opened:
                         basename = os.path.basename(file.filename)
                         tas_attachments.append(AttachmentFromZip(basename, f'{zip_attachment.filename}/{file.filename}', file_opened.read()))
+
+    sentry_attributes = {'project_id': project['project_id'], 'skip_validation': skip_validation, 'force': force, 'tas_attachments': len(tas_attachments)}
+    sentry_sdk.metrics.distribution('bot-tas_attachments', len(tas_attachments), attributes=sentry_attributes)
 
     if len(tas_attachments) == 0:
         log.info("No TAS file found 👍")
@@ -90,7 +92,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         await set_status(message, project['name'])
         return True
     elif len(tas_attachments) > 1:
-        sentry_sdk.metrics.distribution('bot-tas_attachments', len(tas_attachments), attributes=sentry_attributes)
         log.warning(f"Message has {len(tas_attachments)} TAS files. This could break stuff")
         # TODO: handle this better
 
