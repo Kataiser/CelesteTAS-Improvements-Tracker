@@ -16,7 +16,7 @@ import validation
 
 FILES_BLACKLIST = \
     ('7AG_f-02', '5SHCG_a-10 (0)', '6BG_a-05 (1)', '7AG_f-02', '5SHCG_a-10 (0)', '5SHCG_e-00 (1)', '4SHCG_a-00', '5AG_d-19b (1)','5A_d-19b (1)', '4AG_b-02', '7SHC_b-00', '6CG_02 (1)',
-     '5SHC_a-00b (0)', '5SHC_b-20 (0)', '4CG_02 (1)', '6HC_start', '7BG_g-03 (1)', '3CG_02 (1)', '2BG_end (1)', '4BG_end (1)', '2BG_end (1)', '8BG_space (1)', '3CG_02 (1)', '3A_roof07',
+     '5SHC_a-00b (0)', '4CG_02 (1)', '6HC_start', '7BG_g-03 (1)', '3CG_02 (1)', '2BG_end (1)', '4BG_end (1)', '2BG_end (1)', '8BG_space (1)', '3CG_02 (1)', '3A_roof07',
      '5CG_02 (1)', '1CG_02 (1)', '3A_roof07', '2CG_02 (1)', '2CG_02 (1)', '1BG_end (1)', '3SH_roof07', '7BG_g-03 (1)', '3SH_roof07', '4CG_02 (1)', '3BG_end (1)', '3BG_end (1)',
      '5BG_d-05 (1)', '1CG_02 (1)', '5BG_d-05 (1)', '1BG_end (1)', '7BG_e-03 (1)', '5CG_02 (1)', '6BG_d-05 (1)', '6BG_d-05 (1)', '4BG_end (1)', '4BG_c-00 (1)')
 
