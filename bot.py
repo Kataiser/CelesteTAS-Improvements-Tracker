@@ -271,7 +271,7 @@ async def on_guild_join(guild: discord.Guild):
 
 @client.event
 async def on_guild_remove(guild: discord.Guild):
-    remove_message = f"Bot has been removed from a server: {guild.name} (ID = {guild.id})"
+    remove_message = f"Bot has been removed from a server: {guild.name} (ID = {guild.id}, owner ID = {guild.owner_id})"
     log.info(remove_message)
     await (await utils.user_from_id(client, admin_user_id)).send(remove_message)
 
