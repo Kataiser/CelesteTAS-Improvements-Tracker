@@ -920,11 +920,11 @@ def everest_update_to_stable():
 
         if platform.system() == 'Linux':
             subprocess.run(['chmod', '+x', 'MiniInstaller-linux'], capture_output=True)
-            subprocess.run(['./MiniInstaller-linux', 'headless'], capture_output=True)
+            install_log = subprocess.run(['./MiniInstaller-linux', 'headless'], capture_output=True)
         else:
-            subprocess.run('MiniInstaller-win64.exe headless', capture_output=True)
+            install_log = subprocess.run('MiniInstaller-win64.exe headless', capture_output=True)
 
-        log.info("Installed")
+        log.info(f"Installed:\n{install_log.stdout.decode('UTF8')}")
         Path('installed_everest_version.txt').write_text(str(latest_everest))
         os.chdir(current_dir)
         everest_installed_version.cache_clear()
@@ -946,7 +946,6 @@ def everest_latest_stable_version() -> Optional[int]:
 
     everest_builds = orjson.loads(r_everest.content)
     return everest_builds['value'][0]['id'] + 700
-
 
 
 # don't actually parse the install cause that would be hard
