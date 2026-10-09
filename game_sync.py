@@ -760,6 +760,7 @@ def get_mod_everest_yaml(mod: str, zip_path: Optional[Path] = None) -> Optional[
         zip_path = mods_dir().joinpath(f'{mod}.zip')
 
     if not zip_path.is_file():
+        log.warning(f"Path {zip_path} is missing for mod {mod}")
         return None
 
     with zipfile.ZipFile(zip_path) as mod_zip:
@@ -775,6 +776,7 @@ def get_mod_everest_yaml(mod: str, zip_path: Optional[Path] = None) -> Optional[
                 from ruamel.yaml import YAML
                 return YAML(typ='safe').load(everest_yaml)[0]
         else:
+            log.warning(f"everest.yaml is missing from mod {mod} at {zip_path}")
             return None
 
 
