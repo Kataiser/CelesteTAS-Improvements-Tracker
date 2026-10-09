@@ -333,19 +333,21 @@ async def room_suggestions():
                         f"Room: {room_display}\n"
                         f"File: [{chosen_room.tas_path} @ line {chosen_room.line_num_start + 1}](<{github_link}>) {maingame_emojis}")
         await send_message_update_pin(message_text, pin_id)
-        maingame_vid_files = []
 
-        if (maingame_vid_main := Path('maingame_vids') / chosen_room.video_filename(False)).is_file():
-            maingame_vid_files.append(discord.File(maingame_vid_main))
+        if project_id == 598945702554501130:
+            maingame_vid_files = []
 
-        if (maingame_vid_hitboxes := Path('maingame_vids') / chosen_room.video_filename(True)).is_file():
-            maingame_vid_files.append(discord.File(maingame_vid_hitboxes))
+            if (maingame_vid_main := Path('maingame_vids') / chosen_room.video_filename(False)).is_file():
+                maingame_vid_files.append(discord.File(maingame_vid_main))
 
-        if maingame_vid_files:
-            log.info(f'Sending maingame vids: {[f.filename for f in maingame_vid_files]}')
-            await client.get_channel(channel_id).send('_ _', files=maingame_vid_files)
-        else:
-            log.info(f'No maingame vids found to send ({chosen_room.video_filename(False)} or {chosen_room.video_filename(True)})')
+            if (maingame_vid_hitboxes := Path('maingame_vids') / chosen_room.video_filename(True)).is_file():
+                maingame_vid_files.append(discord.File(maingame_vid_hitboxes))
+
+            if maingame_vid_files:
+                log.info(f'Sending maingame vids: {[f.filename for f in maingame_vid_files]}')
+                await client.get_channel(channel_id).send('_ _', files=maingame_vid_files)
+            else:
+                log.info(f'No maingame vids found to send ({chosen_room.video_filename(False)} or {chosen_room.video_filename(True)})')
 
 
 @functools.cache
