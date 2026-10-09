@@ -3,7 +3,6 @@ import copy
 import dataclasses
 import decimal
 import enum
-import json
 import os
 from operator import itemgetter
 from typing import Union, Any
@@ -261,7 +260,7 @@ def get_sync_results() -> list[SyncResult]:
         return results
 
     for message in response['Messages']:
-        body = json.loads(message['Body'])
+        body = orjson.loads(message['Body'])
         results.append(SyncResult(type=SyncResultType(body['type']),
                                   data=body['data'],
                                   receipt_handle=message['ReceiptHandle'],
