@@ -32,7 +32,6 @@ from constants import admin_user_id
 def start_tasks() -> dict[callable, bool]:
     tasks_running = {handle_game_sync_results_task: False,
                      handle_no_game_sync_results_task: False,
-                     alert_server_join_task: False,
                      heartbeat_task: False,
                      room_suggestions_task: False,
                      archive_logs_task: False,
@@ -71,11 +70,6 @@ async def handle_game_sync_results_task():
 @tasks.loop(hours=2)
 async def handle_no_game_sync_results_task():
     await run_and_catch_task(handle_no_game_sync_results)
-
-
-@tasks.loop(seconds=30)
-async def alert_server_join_task():
-    await run_and_catch_task(alert_server_join)
 
 
 @tasks.loop(minutes=2)
@@ -176,35 +170,6 @@ async def handle_no_game_sync_results():
         log.warning(warning_text)
         await (await utils.user_from_id(client, admin_user_id)).send(warning_text)
 
-
-async def alert_server_join():
-    global mc_server_log_last_update, mc_server_log_last_pos
-    log_file = Path('C:/Users/Kataiser/Documents/tas_offtopic server/logs/latest.log')
-
-    if not log_file.is_file():
-        return
-
-    log_mtime = log_file.stat().st_mtime
-
-    if log_mtime == mc_server_log_last_update:
-        return
-
-    first_scan = not mc_server_log_last_update
-    mc_server_log_last_update = log_mtime
-
-    with open(log_file, 'rb') as log_file_open:
-        log_file_open.seek(mc_server_log_last_pos)
-        new_lines = log_file_open.readlines()
-        mc_server_log_last_pos = log_file_open.tell()
-
-    if first_scan or not new_lines:
-        return
-
-    log.info(f"Minecraft server log has been updated with {len(new_lines)} lines")
-
-    for line in new_lines:
-        if (b"joined the game" in line or b"left the game" in line) and b"MechKataiser" not in line:
-            await (await utils.user_from_id(client, admin_user_id)).send(f"MC server: `{line.decode('UTF8').rstrip()}`")
 
 
 def heartbeat(killed=False):

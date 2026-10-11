@@ -11,6 +11,7 @@ import sentry_sdk
 from discord import app_commands
 
 import commands
+import constants
 import db
 import main
 import project_editor
@@ -155,54 +156,18 @@ async def on_message(message: discord.Message):
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
         sys.exit(111)  # caught by runner script
 
-    message_search = re_non_ascii.subn('', message.content.lower())[0]
-    user_ids = set()
-
-    if re_1984.findall(message_search):
-        user_ids.add(219955313334288385)
-    elif re_1984_music.findall(message_search):
-        message_split = re.findall(r'\w+|[^\w\s]', message_search)
-
-        if 'music' in message_split or 'song' in message_split:
-            user_ids.add(219955313334288385)
-
-    if re_1984_hydro.findall(message_search):
-        user_ids.add(236760821286436865)
-
-    if re_1984_cabob.findall(message_search):
-        user_ids.add(256796503530536970)
-
-    if re_1984_vamp.findall(message_search):
-        user_ids.add(234520815658336258)
-
-    if re_1984_cirion.findall(message_search):
-        user_ids.add(243310302995677184)
-
-    if re_1984_minty.findall(message_search):
-        user_ids.add(1060652582663630919)
-
-    if re_1984_bot.findall(message_search) and message.guild.id != 1334595934495182861:
-        user_ids.add(219955313334288385)
+    send_1984_dm = bool(re_1984.findall(re_non_ascii.subn('', message.content.lower())[0]))
 
     if message.reference:
-        replied_to_kataiser = False
-
         if message.reference.resolved:
-            replied_to_kataiser = message.reference.resolved.author.id == 219955313334288385
+            send_1984_dm = message.reference.resolved.author.id == constants.admin_user_id
         elif message.reference.cached_message:
-            replied_to_kataiser = message.reference.cached_message.author.id == 219955313334288385
+            send_1984_dm = message.reference.cached_message.author.id == constants.admin_user_id
 
-        if replied_to_kataiser:
-            user_ids.add(219955313334288385)
-
-    for user_id in user_ids:
-        if user_id in (message.author.id, *[m.id for m in message.mentions]):
-            continue
-
-        dm = f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990]
-        user = await utils.user_from_id(client, user_id)
-        await user.send(dm)
-        log.info(f"Sent 1984 DM to {user.display_name}:\n{dm}")
+    if send_1984_dm and constants.admin_user_id not in (message.author.id, *[m.id for m in message.mentions]):
+        dm_text = f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990]
+        await (await utils.user_from_id(client, constants.admin_user_id)).send(dm_text)
+        log.info(f"Sent 1984 DM:\n{dm_text}")
 
 
 @client.event
@@ -485,17 +450,8 @@ log = main.create_logger('bot')
 share_client(client)
 main.safe_mode = safe_mode
 projects_startup = Optional[dict]
-substrings_1984 = ('kataiser', 'kata', 'kori', 'warm fish', 'jaded', 'psycabob', 'shadowdrop mix', 'cosmic brain', 'pndcm', '<@970375635027525652>')
-substrings_1984_music = ('lab', 'psychokinetic', 'pk ', 'superluminary')
-substrings_1984_hydro = ('shatter', 'shong', 'shattersong', 'hydro', 'penumbra', 'reversion', 'lightspeed')
+substrings_1984 = ('kataiser', 'kata', 'kori', '<@970375635027525652>', 'bot', 'tracker')
 re_1984 = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984))
-re_1984_music = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984_music))
-re_1984_hydro = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984_hydro) + r'|\bss\+(?=\b|\W|$)')
-re_1984_cabob = re.compile(r'\bcabob\b')
-re_1984_vamp = re.compile(r'\bvamp\b')
-re_1984_cirion = re.compile(r'\bsussy\b')
-re_1984_minty = re.compile(r'\benigma\b')
-re_1984_bot = re.compile(r'\bbot\b|\btracker\b')
 re_non_ascii = re.compile(r'[^\x00-\x7F]')
 
 if __name__ == '__main__':
