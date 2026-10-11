@@ -419,7 +419,7 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
 
     name = project['name']
     repo = project['repo']
-    pin = project['pin']
+    pin_id = project['pin']
     subdir = project['subdir']
     admins = ', '.join([f'<@{admin}>' for admin in project['admins']])
     repo_url = f'https://github.com/{repo}/tree/HEAD/{urllib.parse.quote(subdir)}' if subdir else f'https://github.com/{repo}'
@@ -432,14 +432,16 @@ async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[d
     if len(text_out) > 1900:
         log.warning(f"Pin text is too long ({len(text_out)} chars), trimming")
         text_out = text_out[:1900]
+        
+    pin_log = f"pin at {channel.id}-{pin_id} with {len(text_out)} chars"
 
     if create_from_project:
-        log.info("Creating pin")
+        log.info(f"Creating {pin_log}")
         return await channel.send(text_out)
     else:
-        pin_message = channel.get_partial_message(pin)
+        pin_message = channel.get_partial_message(pin_id)
         await pin_message.edit(content=text_out)
-        log.info("Edited pin")
+        log.info(f"Edited {pin_log}")
         return pin_message
 
 
