@@ -67,7 +67,6 @@ def admin_command():
 @command()
 async def command_help(interaction: discord.Interaction):
     perms = discord.Permissions()
-    perms.kick_members = True
     perms.view_channel = True
     perms.send_messages = True
     perms.manage_messages = True
