@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import os
-import re
 import sys
 import time
 from typing import List, Optional
@@ -11,7 +10,6 @@ import sentry_sdk
 from discord import app_commands
 
 import commands
-import constants
 import db
 import main
 import project_editor
@@ -147,26 +145,11 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
-    elif message.guild.id == 403698615446536203:
-        return  # 1985
     elif message.channel.id == 1185382846018359346 and message.embeds and ':master' in message.embeds[0].title:
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
         sys.exit(111)  # caught by runner script
-
-    send_1984_dm = bool(re_1984.findall(re_non_ascii.subn('', message.content.lower())[0]))
-
-    if message.reference:
-        if message.reference.resolved:
-            send_1984_dm = message.reference.resolved.author.id == constants.admin_user_id
-        elif message.reference.cached_message:
-            send_1984_dm = message.reference.cached_message.author.id == constants.admin_user_id
-
-    if send_1984_dm and constants.admin_user_id not in (message.author.id, *[m.id for m in message.mentions]):
-        dm_text = f"`{utils.detailed_user(message)}:` \"{message.content}\" {message.jump_url} (#{message.channel.name})"[:1990]
-        await (await utils.user_from_id(client, constants.admin_user_id)).send(dm_text)
-        log.info(f"Sent 1984 DM:\n{dm_text}")
 
 
 @client.event
@@ -430,9 +413,6 @@ log = main.create_logger('bot')
 share_client(client)
 main.safe_mode = safe_mode
 projects_startup = Optional[dict]
-substrings_1984 = ('kataiser', 'kata', 'kori', '<@970375635027525652>', 'bot', 'tracker')
-re_1984 = re.compile('|'.join(fr'\b{re.escape(sub)}\b' for sub in substrings_1984))
-re_non_ascii = re.compile(r'[^\x00-\x7F]')
 
 if __name__ == '__main__':
     start()
