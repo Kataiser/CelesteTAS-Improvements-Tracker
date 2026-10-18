@@ -187,7 +187,6 @@ class Projects(Table):
 
 def add_project_key(key: str, value: Any):
     # update project_schema.json first
-    projects.init_validate_project_schema()
     projects_ = projects.dict()
 
     for project_id in projects_:

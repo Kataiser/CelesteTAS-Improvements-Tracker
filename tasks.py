@@ -170,7 +170,6 @@ async def handle_no_game_sync_results():
         await (await utils.user_from_id(client, admin_user_id)).send(warning_text)
 
 
-
 def heartbeat(killed=False):
     hb_time = 0 if killed else int(time.time())
 

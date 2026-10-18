@@ -136,6 +136,10 @@
         },
         "last_sync_check_elapsed_time": {
             "type": "number"
+        },
+        "branch": {
+            "type": "string",
+            "minLength": 1
         }
     }
 }

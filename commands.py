@@ -151,6 +151,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
         await utils.report_error(client, f"Repo {repo} doesn't seem to publically exist, status code is {r.status_code}")
         await respond(interaction, f"Repo \"{repo}\" doesn't seem to publically exist.")
         return
+    default_branch = orjson.loads(r.content)['default_branch']
 
     # verify subdir exists in repo
     if subdir:
@@ -216,7 +217,8 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
                           'room_suggestion_index': 0,
                           'validate_room_labels': False,
                           'commit_any_time_saved': False,
-                          'last_sync_check_elapsed_time': 0}
+                          'last_sync_check_elapsed_time': 0,
+                          'branch': default_branch}
 
     main.generate_path_cache(improvements_channel.id, registered_project)
     pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)
