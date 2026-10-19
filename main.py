@@ -265,48 +265,33 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
         project = db.projects.get(project_id)
 
     repo = project['repo']
-    project_subdir = project['subdir']
+    subdir = project['subdir']
     excluded_items = project['excluded_items']
-    project_subdir_base = project_subdir.partition('/')[0]
-    log.info(f"Caching {repo} structure ({project_subdir=})")
-    r = niquests.get(f'https://api.github.com/repos/{repo}/contents', headers=headers)
+    log.info(f"Caching {repo} structure ({subdir=})")
+    generate_request_headers(project['installation_owner'])  # maybe unnecessary?
+    r = niquests.get(f'https://api.github.com/repos/{repo}/git/trees/{project['branch']}', headers=headers, params={'recursive': '1'})
     utils.handle_potential_request_error(r, 200)
-    contents_json = orjson.loads(r.content)
     studioconfig_path = None
     path_cache = {}  # always start from scratch
 
     if excluded_items:
         log.info(f"Excluded items: {excluded_items}")
 
-    if 'message' in contents_json and contents_json['message'] == 'This repository is empty.':
-        log.info("Repo is empty")
-    else:
-        for item in contents_json:
-            if item['name'] in excluded_items:
-                continue
+    for item in orjson.loads(r.content)['tree']:
+        item_path = item['path']
+        item_filename = item_path.rpartition('/')[2]
 
-            if item['name'] == '.studioconfig.toml' and not project_subdir:
-                studioconfig_path = '.studioconfig.toml'
+        if item['type'] != 'blob' or (subdir and not item_path.startswith(subdir)) or not item_filename.endswith('.tas'):
+            continue
 
-            if item['type'] == 'dir' and (item['name'].startswith(project_subdir_base) if project_subdir else True):
-                # recursively get files in dirs (fyi {'recursive': 1} means true, not a depth of 1)
-                dir_sha = item['sha']
-                r = niquests.get(f'https://api.github.com/repos/{repo}/git/trees/{dir_sha}', headers=headers, params={'recursive': 1})
-                utils.handle_potential_request_error(r, 200)
+        if item_filename in excluded_items or (item_path.removeprefix(f'{subdir}/') if subdir else item_path).partition('/')[0] in excluded_items:
+            continue
 
-                for subitem in orjson.loads(r.content)['tree']:
-                    if subitem['type'] == 'blob':
-                        subitem_name = subitem['path'].split('/')[-1]
-                        subitem_full_path = f"{item['name']}/{subitem['path']}"
-                        in_subdir = subitem_full_path.startswith(project_subdir) if project_subdir else True
+        print(item_filename, item_path)
+        path_cache[item_filename] = item_path
 
-                        if subitem_name.endswith('.tas') and in_subdir and subitem_name not in excluded_items:
-                            path_cache[subitem_name] = subitem_full_path
-
-                        if subitem_name == '.studioconfig.toml' and in_subdir:
-                            studioconfig_path = subitem_full_path
-            elif not project_subdir and item['name'].endswith('.tas'):
-                path_cache[item['name']] = item['path']
+        if item_filename == '.studioconfig.toml':
+            studioconfig_path = item_path
 
     db.path_caches.set(project_id, path_cache)
     log.info(f"Cached: {path_cache}")
@@ -317,8 +302,8 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
     if studioconfig_path:
         try:
             r = niquests.get(f'https://api.github.com/repos/{repo}/contents/{studioconfig_path}', headers=headers)
-            r_json = orjson.loads(r.content)
             utils.handle_potential_request_error(r, 200)
+            r_json = orjson.loads(r.content)
             studioconfig_data = base64.b64decode(r_json['content']).decode('UTF8')
             studioconfig_parsed = tomllib.loads(studioconfig_data)
 
