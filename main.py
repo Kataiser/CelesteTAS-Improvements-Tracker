@@ -141,7 +141,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 history_data = (utils.detailed_user(message), message.channel.id, project['name'], *commit_status, attachment.url)
                 db.history_log.set(utils.log_timestamp(), str(history_data))
                 log.info("Added to history log")
-                await edit_pin(message.channel)
+                await edit_pin(message.channel, project=project)
             else:
                 log.info("File is a draft, and committing drafts is disabled for this project 🤘")
                 await message.add_reaction('🤘')
@@ -162,7 +162,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 project['do_run_validation'] = True
                 log.info("Reenabled sync checking")
                 await message.channel.send("Reenabled sync checking for this project.")
-                await edit_pin(message.channel)
+                await edit_pin(message.channel, project=project)
 
             db.projects.set(message.channel.id, project)
             update_contributors(message.author, message.channel.id, project)
@@ -340,10 +340,8 @@ def is_processable_message(message: discord.Message, project: dict) -> bool:
         return post_time > project['install_time']
 
 
-async def edit_pin(channel: discord.TextChannel, create_from_project: Optional[dict] = None):
-    if create_from_project:
-        project = create_from_project
-    else:
+async def edit_pin(channel: discord.TextChannel, project: Optional[dict] = None, create_from_project: bool = False):
+    if not project:
         project = db.projects.get(channel.id)
 
     ensure_level = project['ensure_level']

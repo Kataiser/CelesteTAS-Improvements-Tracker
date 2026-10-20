@@ -221,7 +221,7 @@ async def command_register_project(interaction: discord.Interaction, name: str, 
                           'branch': default_branch}
 
     main.generate_path_cache(improvements_channel.id, registered_project)
-    pinned_message = await main.edit_pin(improvements_channel, create_from_project=registered_project)
+    pinned_message = await main.edit_pin(improvements_channel, project=registered_project, create_from_project=True)
     await pinned_message.pin()
     registered_project['pin'] = pinned_message.id
     db.project_logs.set(improvements_channel.id, [])
@@ -409,7 +409,7 @@ async def command_rename_file(interaction: discord.Interaction, project_name: st
         await respond(interaction, "Rename successful.")
         improvements_channel = client.get_channel(project['project_id'])
         await improvements_channel.send(f"{interaction.user.mention} renamed `{filename_before}` to `{filename_after}`")
-        await main.edit_pin(improvements_channel)
+        await main.edit_pin(improvements_channel, project=project)
     else:
         await utils.report_error(client, "Rename unsuccessful")
         await respond(interaction, "Rename unsuccessful.")

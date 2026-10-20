@@ -131,11 +131,7 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
                                                         f"out of order room label {line[1]} on line {line[0] + 1} in {filename}")
             else:
                 if uses_one_indexing is None:
-                    match room_index:
-                        case 0:
-                            uses_one_indexing = False
-                        case 1:
-                            uses_one_indexing = True
+                    uses_one_indexing = room_index == 1
 
                 if room_index is not None and ((not uses_one_indexing and room_index != 0) or (uses_one_indexing and room_index != 1)):
                     init_str = "one" if uses_one_indexing else "zero"
@@ -264,8 +260,8 @@ def validate(tas: bytes, filename: str, message: discord.Message, old_tas: Optio
 
     # validate level
     if project['ensure_level']:
-        filenames_level = [re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].replace('_', '').removeprefix('the')]
-        message_level = re_remove_punctuation.subn('', filter_out_links(message_lowercase))[0].replace('_', '')
+        filenames_level = [re_remove_punctuation.subn('', filename.lower().removesuffix('.tas'))[0].removeprefix('the')]
+        message_level = re_remove_punctuation.subn('', filter_out_links(message_lowercase))[0]
 
         # aliases for maingame
         if project['project_id'] == 598945702554501130:
@@ -454,7 +450,7 @@ re_file_time = re.compile(r'#{0}(Midway)*FileTime: [\d+:]*\d+:\d+\.\d+(\d+)')
 re_comment_time = re.compile(r'#[\s+]*[\d:]*\d+\.\d+')
 re_timesave_frames = re.compile(r'[-+±]\d+f')
 re_dash_saves = re.compile(r'[-+]\d+x')
-re_remove_punctuation = re.compile(r'\W')
+re_remove_punctuation = re.compile(r'[\W_]')
 re_remove_non_digits = re.compile(r'[^\d.:]')
 re_check_space_command = re.compile(r'^[^,]+?\s+[^,]')
 re_markdown_link = re.compile(r'\[([^]]+)]\([^)]+\)')

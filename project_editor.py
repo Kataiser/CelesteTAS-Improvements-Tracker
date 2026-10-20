@@ -67,7 +67,7 @@ class ProjectEditor(discord.ui.View):
 
         if changes_made_count:
             tasks.get_crons.cache_clear()
-            await main.edit_pin(client.get_channel(project_id))
+            await main.edit_pin(client.get_channel(project_id), project=updated_project)
             main.generate_request_headers(updated_project['installation_owner'])
             main.generate_path_cache(project_id, updated_project)
 
@@ -273,7 +273,7 @@ class AdminSaveButton(discord.ui.Button):
         if changes_made_count:
             project['admins'] = new_admins_ids
             db.projects.set(project['project_id'], project)
-            await main.edit_pin(client.get_channel(project['project_id']))
+            await main.edit_pin(client.get_channel(project['project_id']), project=project)
 
         await interaction.response.send_message(f"Saved {changes_made_count} change{plural(changes_made_count)}." if changes_made_count else "Saved, no changes made.", ephemeral=True)
         self.editor.stop()

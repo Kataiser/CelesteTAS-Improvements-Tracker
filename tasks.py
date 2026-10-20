@@ -112,7 +112,7 @@ async def handle_game_sync_results():
             project = db.projects.get(project_id)
             project_name = project['name']
             improvements_channel = client.get_channel(project_id)
-            await main.edit_pin(improvements_channel)
+            await main.edit_pin(improvements_channel, project=project)
 
         match sync_result.type:
             case db.SyncResultType.NORMAL:
