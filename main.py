@@ -287,7 +287,6 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
         if item_filename in excluded_items or (item_path.removeprefix(f'{subdir}/') if subdir else item_path).partition('/')[0] in excluded_items:
             continue
 
-        print(item_filename, item_path)
         path_cache[item_filename] = item_path
 
         if item_filename == '.studioconfig.toml':
