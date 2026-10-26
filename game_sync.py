@@ -774,7 +774,12 @@ def get_mod_everest_yaml(mod: str, zip_path: Optional[Path] = None) -> Optional[
         if yaml_name:
             with mod_zip.open(yaml_name) as everest_yaml:
                 from ruamel.yaml import YAML
-                return YAML(typ='safe').load(everest_yaml)[0]
+                yaml_loaded = YAML(typ='safe').load(everest_yaml)[0]
+
+                if not 'Version' in yaml_loaded:
+                    log.warning(f"\"Version\" is missing from YAML in mod {mod} at {zip_path}")
+
+                return yaml_loaded
         else:
             log.warning(f"everest.yaml is missing from mod {mod} at {zip_path}")
             return None
