@@ -273,11 +273,18 @@ def generate_path_cache(project_id: int, project: Optional[dict] = None) -> dict
     utils.handle_potential_request_error(r, 200)
     studioconfig_path = None
     path_cache = {}  # always start from scratch
+    r_content = orjson.loads(r.content)
 
     if excluded_items:
         log.info(f"Excluded items: {excluded_items}")
 
-    for item in orjson.loads(r.content)['tree']:
+    if 'tree' in r_content:
+        repo_tree = r_content['tree']
+    else:
+        log.warning("\"tree\" not in response, presumably the repo is empty")
+        repo_tree = {}
+
+    for item in repo_tree:
         item_path = item['path']
         item_filename = item_path.rpartition('/')[2]
 
