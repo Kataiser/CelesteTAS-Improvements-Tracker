@@ -83,6 +83,8 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.add_reaction('👁️')
             elif emoji.is_emoji(message.content):
                 await message.add_reaction(message.content)
+            elif not message.content:
+                await message.add_reaction('🏓')
             else:
                 await message.add_reaction('👍')
 
@@ -101,6 +103,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         await message.clear_reaction('⏭')
     await message.add_reaction('👀')
     generate_request_headers(project['installation_owner'])
+    message.content = message.content.replace('<@970375635027525652>', '').strip()
 
     for attachment in tas_attachments:
         log.info(f"Processing file {attachment.filename} at {attachment.url}")
