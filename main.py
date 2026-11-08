@@ -33,6 +33,7 @@ from utils import plural
 
 
 # process a message posted in a registered improvements channel
+# returns whether or not the bot's status was updated
 async def process_improvement_message(message: discord.Message, project: Optional[dict] = None, skip_validation: bool = False, force: bool = False) -> bool:
     start_tasks()
 
@@ -46,6 +47,12 @@ async def process_improvement_message(message: discord.Message, project: Optiona
         skip_validation = True
 
     log.info(f"Processing message from {utils.detailed_user(message)} in server {message.guild.name} (project: {project['name']})\n{message.jump_url}\n{message.content}")
+
+    if not message.content:
+        log.info("Cannot process message due to it not pinging the bot")
+        await message.add_reaction('🏓')
+        return False
+
     start_time = time.perf_counter()
     tas_attachments = [a for a in message.attachments if a.filename.endswith('.tas')]
     zip_attachments = [a for a in message.attachments if a.filename.endswith('.zip')]
@@ -83,8 +90,6 @@ async def process_improvement_message(message: discord.Message, project: Optiona
                 await message.add_reaction('👁️')
             elif emoji.is_emoji(message.content):
                 await message.add_reaction(message.content)
-            elif not message.content:
-                await message.add_reaction('🏓')
             else:
                 await message.add_reaction('👍')
 
@@ -379,6 +384,7 @@ async def edit_pin(channel: discord.TextChannel, project: Optional[dict] = None,
            "\n❌ = Invalid TAS file or post" \
            "\n⏭ = React to commit invalid post anyway" \
            "\n👍 = Non-TAS containing message" \
+           "\n🏓 = Message didn't ping the bot" \
            "\n🤘 = Successfully verified draft but didn't commit" \
            "\n🚧 = Committed WIP file" \
            "\n🍿 = Video in message```"

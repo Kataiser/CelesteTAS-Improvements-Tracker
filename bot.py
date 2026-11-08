@@ -145,7 +145,7 @@ async def on_message(message: discord.Message):
     elif message.channel.id in main.fast_project_ids:
         await client.wait_until_ready()
         await main.process_improvement_message(message)
-    elif message.channel.id == 1185382846018359346 and message.embeds and ':master' in message.embeds[0].title:
+    elif message.channel.id == 1185382846018359346:
         updating_text = "New commit found, updating and restarting"
         log.info(updating_text)
         await (await utils.user_from_id(client, admin_user_id)).send(updating_text)
