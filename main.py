@@ -51,6 +51,7 @@ async def process_improvement_message(message: discord.Message, project: Optiona
     if not message.content:
         log.info("Cannot process message due to it not pinging the bot")
         await message.add_reaction('🏓')
+        add_project_log(message)
         return False
 
     start_time = time.perf_counter()
