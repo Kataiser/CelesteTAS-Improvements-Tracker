@@ -25,7 +25,7 @@ intents.messages = True
 intents.reactions = True
 intents.message_content = True
 
-client = discord.Client(intents=intents)
+client = discord.Client(intents=intents, max_messages=15000)
 command_tree = app_commands.CommandTree(client)
 
 debug = False
@@ -157,7 +157,7 @@ async def on_message_edit(old_message: discord.Message, message: discord.Message
     if message.channel.id not in main.fast_project_ids:
         return
 
-    if not await has_bot_reaction(message, '❌'):
+    if not await has_bot_reaction(message, '❌') and not await has_bot_reaction(message, '🏓'):  # pretty sure this doesn't actually work anymore
         return
 
     log.info("Reprocessing message after edit")
