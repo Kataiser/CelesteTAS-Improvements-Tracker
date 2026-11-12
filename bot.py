@@ -23,7 +23,6 @@ intents = discord.Intents.none()
 intents.guilds = True
 intents.messages = True
 intents.reactions = True
-intents.message_content = True
 
 client = discord.Client(intents=intents, max_messages=15000)
 command_tree = app_commands.CommandTree(client)
